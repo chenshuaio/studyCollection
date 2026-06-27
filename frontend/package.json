@@ -17,6 +17,8 @@
     "axios": "^1.7.4"
   },
   "devDependencies": {
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^24.1.1",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"
   }
