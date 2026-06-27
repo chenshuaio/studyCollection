@@ -60,5 +60,6 @@
     <module>exam-service</module>
     <module>mistake-service</module>
     <module>report-service</module>
+    <module>ai-service</module>
   </modules>
 </project>
