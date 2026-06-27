@@ -5,6 +5,7 @@
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
         <RouterLink to="/questions">题库管理</RouterLink>
+        <RouterLink to="/import">题目导入</RouterLink>
         <a href="#exam">自定义组卷</a>
         <a href="#feedback">错题反馈</a>
         <a href="#report">AI 分析</a>
@@ -42,7 +43,7 @@
         <article id="import" class="workspace-panel">
           <h2>题库导入</h2>
           <p>支持 JSON、CSV、XLSX、TXT、MD、PDF、DOCX 文件预览后入库。</p>
-          <RouterLink class="button-link" to="/questions">进入题库</RouterLink>
+          <RouterLink class="button-link" to="/import">导入题目</RouterLink>
         </article>
         <article id="exam" class="workspace-panel">
           <h2>自定义组卷</h2>

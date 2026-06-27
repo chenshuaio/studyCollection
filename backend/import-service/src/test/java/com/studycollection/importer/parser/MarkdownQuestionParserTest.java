@@ -22,5 +22,7 @@ class MarkdownQuestionParserTest {
         assertThat(preview.questions()).hasSize(1);
         assertThat(preview.questions().get(0).title()).isEqualTo("Java 中 int 默认值是多少？");
         assertThat(preview.questions().get(0).answer()).isEqualTo("A");
+        assertThat(preview.questions().get(0).knowledgePoint()).isEqualTo("Java 基础");
+        assertThat(preview.questions().get(0).difficulty()).isEqualTo("BEGINNER");
     }
 }

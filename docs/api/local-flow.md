@@ -45,6 +45,22 @@ mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
 
 前端题库管理入口：`/questions`。
 
+## 导入预览接口
+
+- `POST /imports/preview`：提交结构化 Markdown/TXT 内容，返回题目预览列表。
+
+当前文本格式示例：
+
+```markdown
+## 单选题
+题目: Java 中 int 默认值是多少？
+答案: A
+知识点: Java 基础
+难度: BEGINNER
+```
+
+前端导入入口：`/import`。
+
 ## 账号接口
 
 - `POST /auth/register`：创建普通学习账号，当前本地实现使用内存仓储，后续可替换为 MyBatis-Plus + MySQL。

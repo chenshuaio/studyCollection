@@ -5,6 +5,7 @@
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
         <RouterLink to="/questions">题库管理</RouterLink>
+        <RouterLink to="/import">题目导入</RouterLink>
         <a href="#new-question">新增题目</a>
       </nav>
     </aside>
@@ -15,7 +16,7 @@
           <p class="eyebrow">题库工作台</p>
           <h1>题库管理</h1>
         </div>
-        <button type="button">导入文件</button>
+        <RouterLink class="button-link" to="/import">导入文件</RouterLink>
       </header>
 
       <section class="filter-bar" aria-label="题目筛选">
