@@ -1,2 +1,8 @@
 .superpowers/
 .worktrees/
+node_modules/
+dist/
+target/
+.env
+.env.local
+uploads/
