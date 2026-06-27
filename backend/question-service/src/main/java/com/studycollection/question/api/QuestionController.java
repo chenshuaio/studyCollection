@@ -43,9 +43,9 @@ public class QuestionController {
 
     @GetMapping
     public ApiResponse<List<Question>> search(
-            @RequestParam String knowledgePoint,
-            @RequestParam Difficulty difficulty,
-            @RequestParam QuestionType type
+            @RequestParam("knowledgePoint") String knowledgePoint,
+            @RequestParam("difficulty") Difficulty difficulty,
+            @RequestParam("type") QuestionType type
     ) {
         return ApiResponse.success(questionRepository.search(knowledgePoint, difficulty, type));
     }

@@ -32,6 +32,16 @@ mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
 
 默认连接地址是 `jdbc:mysql://127.0.0.1:3306/study_collection`，也可以通过 `STUDY_COLLECTION_DB_URL` 覆盖。
 
+## 本地启动
+
+无需 MySQL 也可以先使用内存版本地学习闭环：
+
+```powershell
+.\scripts\start-local.ps1
+```
+
+本地聚合后端由 `backend/local-app` 启动，默认端口为 `18080`。前端由 Vite 启动，默认端口为 `5173`，并通过 `/api` 代理访问后端。
+
 ## 账号接口
 
 - `POST /auth/register`：创建普通学习账号，当前本地实现使用内存仓储，后续可替换为 MyBatis-Plus + MySQL。

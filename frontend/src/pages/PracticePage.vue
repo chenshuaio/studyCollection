@@ -33,21 +33,22 @@
               <span>{{ option.value }}. {{ option.label }}</span>
             </label>
           </form>
+          <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
           <button type="button" @click="submitAnswer">提交答案</button>
         </article>
 
         <aside class="workspace-panel score-panel">
           <h2>得分</h2>
-          <strong>{{ submitted ? practiceResult.score : '--' }}/{{ practiceResult.totalScore }}</strong>
+          <strong>{{ submitted ? scoreText : '--/10' }}</strong>
           <p>{{ submitted ? resultText : '提交后会显示本次练习结果。' }}</p>
           <div class="progress-track" aria-label="正确率">
-            <span :style="{ width: submitted ? '100%' : '0%' }"></span>
+            <span :style="{ width: submitted ? progressWidth : '0%' }"></span>
           </div>
         </aside>
 
         <article class="workspace-panel analysis-panel">
           <h2>答案解析</h2>
-          <p>{{ submitted ? currentQuestion.analysis : '提交答案后展示解析，并自动进入错题整理候选。' }}</p>
+          <p>{{ submitted ? analysisText : '提交答案后展示解析，并自动进入错题整理候选。' }}</p>
           <dl>
             <div>
               <dt>你的答案</dt>
@@ -55,7 +56,7 @@
             </div>
             <div>
               <dt>标准答案</dt>
-              <dd>{{ submitted ? currentQuestion.answer : '提交后可见' }}</dd>
+              <dd>{{ submitted ? correctAnswer : '提交后可见' }}</dd>
             </div>
             <div>
               <dt>错题反馈</dt>
@@ -71,6 +72,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { submitPractice, type PracticeResult } from '../api'
 
 const currentQuestion = {
   id: 1,
@@ -86,20 +88,36 @@ const currentQuestion = {
 
 const selectedAnswer = ref('A')
 const submitted = ref(false)
+const statusMessage = ref('')
+const backendResult = ref<PracticeResult | null>(null)
 
-const isCorrect = computed(() => selectedAnswer.value === currentQuestion.answer)
-const practiceResult = computed(() => ({
-  score: isCorrect.value ? 10 : 0,
-  totalScore: 10
-}))
+const firstItem = computed(() => backendResult.value?.items[0])
+const isCorrect = computed(() => firstItem.value?.correct ?? selectedAnswer.value === currentQuestion.answer)
+const correctAnswer = computed(() => firstItem.value?.correctAnswer ?? currentQuestion.answer)
+const analysisText = computed(() => firstItem.value?.analysis ?? currentQuestion.analysis)
+const scoreText = computed(() => {
+  if (!backendResult.value) {
+    return isCorrect.value ? '10/10' : '0/10'
+  }
+  return `${backendResult.value.score}/${backendResult.value.totalScore}`
+})
+const progressWidth = computed(() => (isCorrect.value ? '100%' : '0%'))
 const resultText = computed(() => (isCorrect.value ? '回答正确，继续保持。' : '回答错误，已加入错题整理候选。'))
 
-function submitAnswer() {
-  submitted.value = true
+async function submitAnswer() {
+  statusMessage.value = ''
+  try {
+    backendResult.value = await submitPractice([{ questionId: currentQuestion.id, answer: selectedAnswer.value }])
+    submitted.value = true
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '提交失败，请检查本地后端是否启动。'
+  }
 }
 
 function resetPractice() {
   selectedAnswer.value = 'A'
   submitted.value = false
+  backendResult.value = null
+  statusMessage.value = ''
 }
 </script>

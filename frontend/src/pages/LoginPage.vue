@@ -16,13 +16,14 @@
       <form @submit.prevent="goDashboard">
         <label>
           账号
-          <input autocomplete="username" placeholder="admin 或 user" />
+          <input v-model="form.username" autocomplete="username" placeholder="admin 或 user" />
         </label>
         <label>
           密码
-          <input autocomplete="current-password" type="password" placeholder="请输入密码" />
+          <input v-model="form.password" autocomplete="current-password" type="password" placeholder="请输入密码" />
         </label>
-        <button type="submit">登录</button>
+        <p v-if="errorMessage" class="form-message">{{ errorMessage }}</p>
+        <button type="submit" :disabled="submitting">{{ submitting ? '登录中' : '登录' }}</button>
       </form>
       <RouterLink to="/register">创建学习账号</RouterLink>
     </section>
@@ -30,11 +31,29 @@
 </template>
 
 <script setup lang="ts">
+import { reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { login } from '../api'
 
 const router = useRouter()
+const submitting = ref(false)
+const errorMessage = ref('')
+const form = reactive({
+  username: 'user',
+  password: 'user123'
+})
 
-function goDashboard() {
-  router.push('/dashboard')
+async function goDashboard() {
+  submitting.value = true
+  errorMessage.value = ''
+  try {
+    const result = await login(form)
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify(result))
+    router.push('/dashboard')
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '登录失败，请检查本地后端是否启动。'
+  } finally {
+    submitting.value = false
+  }
 }
 </script>

@@ -17,20 +17,20 @@
           <p class="eyebrow">题库工作台</p>
           <h1>题库管理</h1>
         </div>
-        <RouterLink class="button-link" to="/import">导入文件</RouterLink>
+        <button type="button" @click="loadQuestions">刷新题库</button>
       </header>
 
       <section class="filter-bar" aria-label="题目筛选">
         <label>
           知识点
-          <select>
+          <select v-model="filters.knowledgePoint">
             <option>集合框架</option>
             <option>JVM</option>
           </select>
         </label>
         <label>
           难度
-          <select>
+          <select v-model="filters.difficulty">
             <option>INTERMEDIATE</option>
             <option>BEGINNER</option>
             <option>ADVANCED</option>
@@ -38,7 +38,7 @@
         </label>
         <label>
           题型
-          <select>
+          <select v-model="filters.type">
             <option>SINGLE_CHOICE</option>
             <option>SHORT_ANSWER</option>
             <option>PROGRAMMING</option>
@@ -72,20 +72,21 @@
 
         <aside id="new-question" class="workspace-panel">
           <h2>新增题目</h2>
-          <form class="question-form">
+          <form class="question-form" @submit.prevent="saveQuestion">
             <label>
               题干
-              <textarea>HashMap 默认负载因子是多少？</textarea>
+              <textarea v-model="draft.title"></textarea>
             </label>
             <label>
               标准答案
-              <input value="0.75" />
+              <input v-model="draft.answer" />
             </label>
             <label>
               解析
-              <textarea>HashMap 默认负载因子是 0.75。</textarea>
+              <textarea v-model="draft.analysis"></textarea>
             </label>
-            <button type="button">保存题目</button>
+            <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
+            <button type="submit">保存题目</button>
           </form>
         </aside>
       </section>
@@ -94,24 +95,48 @@
 </template>
 
 <script setup lang="ts">
+import { reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { createQuestion, searchQuestions, type Question } from '../api'
 
-const questions = [
+const filters = reactive({
+  knowledgePoint: '集合框架',
+  difficulty: 'INTERMEDIATE',
+  type: 'SINGLE_CHOICE'
+})
+const draft = reactive({
+  title: 'HashMap 默认负载因子是多少？',
+  type: 'SINGLE_CHOICE',
+  difficulty: 'INTERMEDIATE',
+  knowledgePoint: '集合框架',
+  answer: 'A',
+  analysis: 'HashMap 默认负载因子是 0.75。'
+})
+const statusMessage = ref('')
+const questions = ref<Question[]>([
   {
     id: 1,
-    title: 'HashMap 默认负载因子是多少？',
-    knowledgePoint: '集合框架',
-    difficulty: 'INTERMEDIATE',
-    type: 'SINGLE_CHOICE',
-    answer: '0.75'
-  },
-  {
-    id: 2,
-    title: 'Java 中 String 为什么不可变？',
-    knowledgePoint: 'Java 基础',
-    difficulty: 'BEGINNER',
-    type: 'SHORT_ANSWER',
-    answer: '安全性、缓存和哈希稳定性'
+    ...draft
   }
-]
+])
+
+async function loadQuestions() {
+  statusMessage.value = ''
+  try {
+    questions.value = await searchQuestions()
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '刷新题库失败。'
+  }
+}
+
+async function saveQuestion() {
+  statusMessage.value = ''
+  try {
+    const saved = await createQuestion({ ...draft })
+    questions.value = [saved, ...questions.value.filter((question) => question.id !== saved.id)]
+    statusMessage.value = '题目已保存到本地后端。'
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '保存失败，请检查本地后端是否启动。'
+  }
+}
 </script>

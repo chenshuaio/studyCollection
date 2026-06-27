@@ -1,0 +1,65 @@
+package com.studycollection.local;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest(
+        classes = LocalStudyCollectionApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+)
+class LocalStudyCollectionApplicationTest {
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    @Test
+    void exposesLocalLearningApisInOneProcess() {
+        assertOk(post("/auth/login", Map.of("username", "user", "password", "user123")));
+        assertOk(post("/questions", Map.of(
+                "title", "HashMap 默认负载因子是多少？",
+                "type", "SINGLE_CHOICE",
+                "difficulty", "INTERMEDIATE",
+                "knowledgePoint", "集合框架",
+                "answer", "A",
+                "analysis", "HashMap 默认负载因子是 0.75。"
+        )));
+        assertOk(get("/questions?knowledgePoint=集合框架&difficulty=INTERMEDIATE&type=SINGLE_CHOICE"));
+        assertOk(post("/imports/preview", Map.of("content", """
+                ## 单选题
+                题目: Java 中 int 默认值是多少？
+                答案: A
+                知识点: Java 基础
+                难度: BEGINNER
+                """)));
+        assertOk(post("/practice/submit", Map.of("answers", List.of(Map.of("questionId", 1, "answer", "A")))));
+    }
+
+    private ResponseEntity<String> post(String path, Object body) {
+        return restTemplate.postForEntity(url(path), body, String.class);
+    }
+
+    private ResponseEntity<String> get(String path) {
+        return restTemplate.getForEntity(url(path), String.class);
+    }
+
+    private String url(String path) {
+        return "http://127.0.0.1:" + port + path;
+    }
+
+    private static void assertOk(ResponseEntity<String> response) {
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("\"code\":\"OK\"");
+    }
+}
