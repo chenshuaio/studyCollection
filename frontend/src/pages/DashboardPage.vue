@@ -6,6 +6,7 @@
         <RouterLink to="/dashboard">学习控制台</RouterLink>
         <RouterLink to="/questions">题库管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
+        <RouterLink to="/practice">练习中心</RouterLink>
         <a href="#exam">自定义组卷</a>
         <a href="#feedback">错题反馈</a>
         <a href="#report">AI 分析</a>
@@ -18,7 +19,7 @@
           <p class="eyebrow">本地学习工作台</p>
           <h1>学习控制台</h1>
         </div>
-        <button type="button">新建练习</button>
+        <RouterLink class="button-link" to="/practice">新建练习</RouterLink>
       </header>
 
       <section id="overview" class="metric-grid" aria-label="学习概览">
@@ -48,7 +49,7 @@
         <article id="exam" class="workspace-panel">
           <h2>自定义组卷</h2>
           <p>按知识点、难度、题型筛选题目，也可以手动组合生成考试卷。</p>
-          <button type="button">开始组卷</button>
+          <RouterLink class="button-link" to="/practice">开始练习</RouterLink>
         </article>
         <article id="feedback" class="workspace-panel">
           <h2>错题反馈</h2>

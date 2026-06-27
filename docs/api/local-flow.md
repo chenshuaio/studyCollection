@@ -1,15 +1,15 @@
 # Local Flow
 
 1. 用户通过登录页登录。
-2. 用户上传题目文件并进入解析预览。
+2. 用户上传或粘贴题目内容，并进入解析预览。
 3. 用户确认题目进入个人题库。
 4. 用户选择知识点、难度、题型生成练习。
-5. 用户手动勾选题目组成个人考试卷。
-6. 用户提交答案。
-7. 系统记录错题。
+5. 用户也可以手动组合题目生成考试卷。
+6. 用户提交答案后，系统返回得分、逐题正误和解析。
+7. 答错题目进入错题整理候选。
 8. 用户发现题目答案或解析错误时提交题目反馈。
 9. 管理员审核反馈并修订题库。
-10. 系统生成规则报告或在线 AI 建议。
+10. 系统生成规则报告，或在开启在线模型时生成 AI 学习建议。
 
 ## 本地数据库
 
@@ -32,11 +32,15 @@ mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
 
 默认连接地址是 `jdbc:mysql://127.0.0.1:3306/study_collection`，也可以通过 `STUDY_COLLECTION_DB_URL` 覆盖。
 
-## 题目反馈接口
+## 账号接口
 
-- `POST /questions/feedback`：用户提交题目答案、解析、题干、选项、知识点或难度问题反馈。
-- `GET /questions/feedback/pending`：管理员查看待处理反馈。
-- `POST /questions/feedback/{feedbackId}/accept`：管理员采纳反馈并生成题目修订记录。
+- `POST /auth/register`：创建普通学习账号，当前本地实现使用内存仓储，后续可替换为 MyBatis-Plus + MySQL。
+- `POST /auth/login`：账号密码登录，返回签名 token、角色和展示名称。
+
+本地内置账号：
+
+- 管理员：`admin` / `admin123`
+- 学习用户：`user` / `user123`
 
 ## 题库接口
 
@@ -61,15 +65,28 @@ mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
 
 前端导入入口：`/import`。
 
-## 账号接口
+## 练习接口
 
-- `POST /auth/register`：创建普通学习账号，当前本地实现使用内存仓储，后续可替换为 MyBatis-Plus + MySQL。
-- `POST /auth/login`：账号密码登录，返回签名 token、角色和展示名称。
+- `POST /practice/submit`：提交练习答案，返回总分、满分、逐题正误、标准答案和解析。
 
-本地内置账号：
+请求示例：
 
-- 管理员：`admin` / `admin123`
-- 学习用户：`user` / `user123`
+```json
+{
+  "answers": [
+    { "questionId": 1, "answer": "A" },
+    { "questionId": 2, "answer": "false" }
+  ]
+}
+```
+
+前端练习入口：`/practice`。
+
+## 题目反馈接口
+
+- `POST /questions/feedback`：用户提交题目答案、解析、题干、选项、知识点或难度问题反馈。
+- `GET /questions/feedback/pending`：管理员查看待处理反馈。
+- `POST /questions/feedback/{feedbackId}/accept`：管理员采纳反馈并生成题目修订记录。
 
 第一版接口使用统一响应结构：
 
