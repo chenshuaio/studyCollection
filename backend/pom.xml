@@ -56,5 +56,6 @@
     <module>common-lib</module>
     <module>user-service</module>
     <module>question-service</module>
+    <module>import-service</module>
   </modules>
 </project>
