@@ -3,6 +3,10 @@ import { mount } from '@vue/test-utils'
 import LoginPage from './LoginPage.vue'
 
 vi.mock('vue-router', () => ({
+  RouterLink: {
+    props: ['to'],
+    template: '<a><slot /></a>'
+  },
   useRouter: () => ({
     push: vi.fn()
   })

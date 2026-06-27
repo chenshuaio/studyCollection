@@ -15,4 +15,9 @@ public class AuthController {
     public ApiResponse<LoginResponse> login(@RequestBody LoginRequest request) {
         return ApiResponse.success(authService.login(request));
     }
+
+    @PostMapping("/register")
+    public ApiResponse<RegisterResponse> register(@RequestBody RegisterRequest request) {
+        return ApiResponse.success(authService.register(request));
+    }
 }

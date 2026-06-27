@@ -27,6 +27,16 @@ mysql -u root -p < scripts/mysql-init.sql
 - `GET /questions/feedback/pending`：管理员查看待处理反馈。
 - `POST /questions/feedback/{feedbackId}/accept`：管理员采纳反馈并生成题目修订记录。
 
+## 账号接口
+
+- `POST /auth/register`：创建普通学习账号，当前本地实现使用内存仓储，后续可替换为 MyBatis-Plus + MySQL。
+- `POST /auth/login`：账号密码登录，返回签名 token、角色和展示名称。
+
+本地内置账号：
+
+- 管理员：`admin` / `admin123`
+- 学习用户：`user` / `user123`
+
 第一版接口使用统一响应结构：
 
 ```json

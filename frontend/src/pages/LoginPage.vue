@@ -24,13 +24,13 @@
         </label>
         <button type="submit">登录</button>
       </form>
-      <a href="/register">创建学习账号</a>
+      <RouterLink to="/register">创建学习账号</RouterLink>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
 const router = useRouter()
 
