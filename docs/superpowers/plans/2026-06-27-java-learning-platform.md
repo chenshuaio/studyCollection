@@ -16,7 +16,7 @@
 - 创建 `backend/common-lib`：共享 API 响应、错误码、JWT 辅助能力、分页 DTO 和测试夹具。
 - 创建 `backend/gateway-service`：网关入口、鉴权过滤器和路由配置。
 - 创建 `backend/user-service`：用户、角色、登录、注册、JWT 签发和权限检查。
-- 创建 `backend/question-service`：题库、题目、选项、答案、知识点和搜索 API。
+- 创建 `backend/question-service`：题库、题目、选项、答案、知识点、搜索 API、题目问题反馈和修订历史。
 - 创建 `backend/import-service`：文件上传、解析策略、预览记录和确认导入流程。
 - 创建 `backend/exam-service`：练习生成、管理员考试模板、用户自定义考试、答题会话和客观题评分。
 - 创建 `backend/mistake-service`：错题记录、掌握状态和错题重练 API。
@@ -739,7 +739,7 @@ git add frontend
 git commit -m "feat: add polished login page"
 ```
 
-### 任务 5：题目领域模型与搜索
+### 任务 5：题目领域模型、搜索与反馈审核
 
 **文件：**
 - 创建：`backend/question-service/pom.xml`
@@ -747,8 +747,14 @@ git commit -m "feat: add polished login page"
 - 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/Question.java`
 - 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/QuestionType.java`
 - 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/Difficulty.java`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/QuestionFeedback.java`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/FeedbackStatus.java`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/FeedbackType.java`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/QuestionRevision.java`
 - 创建：`backend/question-service/src/main/java/com/studycollection/question/app/QuestionSearchService.java`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/app/QuestionFeedbackService.java`
 - 测试：`backend/question-service/src/test/java/com/studycollection/question/app/QuestionSearchServiceTest.java`
+- 测试：`backend/question-service/src/test/java/com/studycollection/question/app/QuestionFeedbackServiceTest.java`
 
 - [ ] **步骤 1：编写会失败的搜索测试**
 
@@ -781,17 +787,57 @@ class QuestionSearchServiceTest {
 }
 ```
 
-- [ ] **步骤 2：运行测试并确认失败**
+- [ ] **步骤 2：编写会失败的题目反馈审核测试**
+
+创建 `backend/question-service/src/test/java/com/studycollection/question/app/QuestionFeedbackServiceTest.java`:
+
+```java
+package com.studycollection.question.app;
+
+import com.studycollection.question.domain.FeedbackStatus;
+import com.studycollection.question.domain.FeedbackType;
+import com.studycollection.question.domain.QuestionFeedback;
+import com.studycollection.question.domain.QuestionRevision;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class QuestionFeedbackServiceTest {
+    @Test
+    void acceptedFeedbackCreatesRevisionHistory() {
+        QuestionFeedbackService service = new QuestionFeedbackService();
+        QuestionFeedback feedback = service.submit(
+                7L,
+                101L,
+                FeedbackType.ANSWER_ERROR,
+                "标准答案应为 B，当前答案 A 不正确"
+        );
+
+        QuestionRevision revision = service.accept(
+                feedback.id(),
+                1L,
+                "答案从 A 修改为 B",
+                "用户反馈属实"
+        );
+
+        assertThat(service.find(feedback.id()).status()).isEqualTo(FeedbackStatus.ACCEPTED);
+        assertThat(revision.questionId()).isEqualTo(101L);
+        assertThat(revision.changeSummary()).contains("答案从 A 修改为 B");
+    }
+}
+```
+
+- [ ] **步骤 3：运行测试并确认失败**
 
 运行：`cd backend && mvn -pl question-service test`
 
 预期：失败，因为 `question-service` 尚未注册。
 
-- [ ] **步骤 3：注册模块并实现领域模型**
+- [ ] **步骤 4：注册模块并实现领域模型**
 
-添加 `question-service` to `backend/pom.xml` modules.
+将 `question-service` 添加到 `backend/pom.xml` 的 modules。
 
-创建 `backend/question-service/pom.xml` using the same parent pattern as `user-service`, with dependency on `common-lib`.
+创建 `backend/question-service/pom.xml`，使用与 `user-service` 相同的父项目结构，并依赖 `common-lib`。
 
 创建 `QuestionType.java`:
 
@@ -835,6 +881,67 @@ public record Question(
 }
 ```
 
+创建 `FeedbackType.java`:
+
+```java
+package com.studycollection.question.domain;
+
+public enum FeedbackType {
+    ANSWER_ERROR,
+    EXPLANATION_ERROR,
+    STEM_ERROR,
+    OPTION_ERROR,
+    KNOWLEDGE_POINT_ERROR,
+    DIFFICULTY_ERROR,
+    OTHER
+}
+```
+
+创建 `FeedbackStatus.java`:
+
+```java
+package com.studycollection.question.domain;
+
+public enum FeedbackStatus {
+    PENDING,
+    ACCEPTED,
+    REJECTED,
+    NEEDS_REVIEW
+}
+```
+
+创建 `QuestionFeedback.java`:
+
+```java
+package com.studycollection.question.domain;
+
+public record QuestionFeedback(
+        Long id,
+        Long userId,
+        Long questionId,
+        FeedbackType type,
+        String content,
+        FeedbackStatus status
+) {
+}
+```
+
+创建 `QuestionRevision.java`:
+
+```java
+package com.studycollection.question.domain;
+
+public record QuestionRevision(
+        Long id,
+        Long questionId,
+        Long feedbackId,
+        Long adminUserId,
+        String changeSummary,
+        String reviewNote
+) {
+}
+```
+
 创建 `QuestionSearchService.java`:
 
 ```java
@@ -863,7 +970,67 @@ public class QuestionSearchService {
 }
 ```
 
-- [ ] **步骤 4：运行测试并提交**
+创建 `QuestionFeedbackService.java`:
+
+```java
+package com.studycollection.question.app;
+
+import com.studycollection.question.domain.FeedbackStatus;
+import com.studycollection.question.domain.FeedbackType;
+import com.studycollection.question.domain.QuestionFeedback;
+import com.studycollection.question.domain.QuestionRevision;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
+public class QuestionFeedbackService {
+    private final AtomicLong feedbackIds = new AtomicLong(1);
+    private final AtomicLong revisionIds = new AtomicLong(1);
+    private final Map<Long, QuestionFeedback> feedbacks = new HashMap<>();
+
+    public QuestionFeedback submit(Long userId, Long questionId, FeedbackType type, String content) {
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("反馈内容不能为空");
+        }
+        Long id = feedbackIds.getAndIncrement();
+        QuestionFeedback feedback = new QuestionFeedback(id, userId, questionId, type, content, FeedbackStatus.PENDING);
+        feedbacks.put(id, feedback);
+        return feedback;
+    }
+
+    public QuestionFeedback find(Long feedbackId) {
+        QuestionFeedback feedback = feedbacks.get(feedbackId);
+        if (feedback == null) {
+            throw new IllegalArgumentException("反馈不存在");
+        }
+        return feedback;
+    }
+
+    public QuestionRevision accept(Long feedbackId, Long adminUserId, String changeSummary, String reviewNote) {
+        QuestionFeedback feedback = find(feedbackId);
+        QuestionFeedback accepted = new QuestionFeedback(
+                feedback.id(),
+                feedback.userId(),
+                feedback.questionId(),
+                feedback.type(),
+                feedback.content(),
+                FeedbackStatus.ACCEPTED
+        );
+        feedbacks.put(feedbackId, accepted);
+        return new QuestionRevision(
+                revisionIds.getAndIncrement(),
+                feedback.questionId(),
+                feedback.id(),
+                adminUserId,
+                changeSummary,
+                reviewNote
+        );
+    }
+}
+```
+
+- [ ] **步骤 5：运行测试并提交**
 
 运行：`cd backend && mvn -pl question-service test`
 
@@ -873,7 +1040,7 @@ public class QuestionSearchService {
 
 ```bash
 git add backend/pom.xml backend/question-service
-git commit -m "feat: add question search domain"
+git commit -m "feat: add question feedback review flow"
 ```
 
 ### 任务 6：导入预览流程
@@ -1396,7 +1563,9 @@ Write-Host "Local verification passed."
 5. 用户手动勾选题目组成个人考试卷。
 6. 用户提交答案。
 7. 系统记录错题。
-8. 系统生成规则报告或在线 AI 建议。
+8. 用户发现题目答案或解析错误时提交题目反馈。
+9. 管理员审核反馈并修订题库。
+10. 系统生成规则报告或在线 AI 建议。
 ```
 
 - [ ] **步骤 3：运行完整验证**
@@ -1417,7 +1586,7 @@ git push
 
 ## 自审记录
 
-- 规格覆盖：计划覆盖登录、角色、题目领域模型、导入预览、练习/考试、用户自定义组卷、错题、报告、AI/规则模式开关和验证。
+- 规格覆盖：计划覆盖登录、角色、题目领域模型、题目问题反馈、管理员修订历史、导入预览、练习/考试、用户自定义组卷、错题、报告、AI/规则模式开关和验证。
 - 范围控制：真正的 Java 代码沙箱判题、班级管理、支付和生产级容器编排不纳入第一版实现范围。
 - 执行顺序：每个任务都产出可运行的小切片，并保持频繁提交。
 
