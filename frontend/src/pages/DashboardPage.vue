@@ -1,0 +1,65 @@
+<template>
+  <main class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="主导航">
+      <p class="brand">StudyCollection</p>
+      <nav>
+        <a href="#overview">学习控制台</a>
+        <a href="#import">题库导入</a>
+        <a href="#exam">自定义组卷</a>
+        <a href="#feedback">错题反馈</a>
+        <a href="#report">AI 分析</a>
+      </nav>
+    </aside>
+
+    <section class="dashboard-main">
+      <header class="dashboard-header">
+        <div>
+          <p class="eyebrow">本地学习工作台</p>
+          <h1>学习控制台</h1>
+        </div>
+        <button type="button">新建练习</button>
+      </header>
+
+      <section id="overview" class="metric-grid" aria-label="学习概览">
+        <article>
+          <span>今日练习</span>
+          <strong>24 题</strong>
+          <small>正确率 82%</small>
+        </article>
+        <article>
+          <span>待处理错题</span>
+          <strong>6 题</strong>
+          <small>优先复习集合框架</small>
+        </article>
+        <article>
+          <span>管理员反馈</span>
+          <strong>3 条</strong>
+          <small>答案错误待审核</small>
+        </article>
+      </section>
+
+      <section class="workspace-grid">
+        <article id="import" class="workspace-panel">
+          <h2>题库导入</h2>
+          <p>支持 JSON、CSV、XLSX、TXT、MD、PDF、DOCX 文件预览后入库。</p>
+          <button type="button">上传题目</button>
+        </article>
+        <article id="exam" class="workspace-panel">
+          <h2>自定义组卷</h2>
+          <p>按知识点、难度、题型筛选题目，也可以手动组合生成考试卷。</p>
+          <button type="button">开始组卷</button>
+        </article>
+        <article id="feedback" class="workspace-panel">
+          <h2>错题反馈</h2>
+          <p>发现答案或解析错误时提交反馈，管理员审核后修订题库。</p>
+          <button type="button">查看反馈</button>
+        </article>
+        <article id="report" class="workspace-panel">
+          <h2>AI 分析</h2>
+          <p>在线模型开启时生成学习建议；关闭时使用规则分析薄弱点。</p>
+          <button type="button">生成报告</button>
+        </article>
+      </section>
+    </section>
+  </main>
+</template>

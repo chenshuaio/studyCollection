@@ -13,7 +13,7 @@
     <section class="login-card" aria-label="登录表单">
       <h2>欢迎回来</h2>
       <p>登录后继续你的 Java 训练计划</p>
-      <form>
+      <form @submit.prevent="goDashboard">
         <label>
           账号
           <input autocomplete="username" placeholder="admin 或 user" />
@@ -28,3 +28,13 @@
     </section>
   </main>
 </template>
+
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+function goDashboard() {
+  router.push('/dashboard')
+}
+</script>

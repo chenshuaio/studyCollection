@@ -6,6 +6,7 @@ import com.studycollection.question.domain.QuestionFeedback;
 import com.studycollection.question.domain.QuestionRevision;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -30,6 +31,12 @@ public class QuestionFeedbackService {
             throw new IllegalArgumentException("反馈不存在");
         }
         return feedback;
+    }
+
+    public List<QuestionFeedback> pending() {
+        return feedbacks.values().stream()
+                .filter(feedback -> feedback.status() == FeedbackStatus.PENDING)
+                .toList();
     }
 
     public QuestionRevision accept(Long feedbackId, Long adminUserId, String changeSummary, String reviewNote) {
