@@ -1,6 +1,6 @@
 # StudyCollection
 
-Java 学习题库平台，本地开发版支持账号登录、题库管理、题目导入预览、练习答题、错题反馈和学习分析的基础闭环。
+Java 学习题库平台，本地开发版支持账号登录、题库管理、结构化题目导入、Java 学习知识内容生成题库、练习答题、错题反馈和学习分析的基础闭环。
 
 ## 本地启动
 
@@ -27,6 +27,32 @@ Java 学习题库平台，本地开发版支持账号登录、题库管理、题
 ```
 
 日志目录：`.local/logs`
+
+## MySQL 本地账号
+
+你的本地 MySQL 账号可以使用：
+
+- 用户名：`root`
+- 密码：`root`
+- 数据库：`study_collection`
+
+初始化数据库：
+
+```powershell
+mysql -u root -proot < scripts/mysql-init.sql
+```
+
+如果需要启动时注入 root/root 环境变量：
+
+```powershell
+.\scripts\start-local.ps1 -UseMysql
+```
+
+当前 `local-app` 默认优先保证无数据库也能跑通学习闭环；MySQL 持久化优先用于后续用户和题库仓储替换。
+
+## Java 知识内容生成题库
+
+进入前端 `/import` 页面，在“学习内容生成题库”区域粘贴 Java 学习材料，例如 HashMap、局部变量、面向对象等知识内容，点击“分析生成题库”即可调用后端规则生成题库草稿，再点击“确认生成题入库”保存到题库。
 
 ## 验证
 

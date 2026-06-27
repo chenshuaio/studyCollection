@@ -8,7 +8,7 @@ const routerLinkStub = {
 }
 
 describe('ImportPage', () => {
-  it('renders import preview workflow', () => {
+  it('renders import preview and knowledge generation workflow', () => {
     const wrapper = mount(ImportPage, {
       global: {
         stubs: {
@@ -21,6 +21,9 @@ describe('ImportPage', () => {
     expect(wrapper.text()).toContain('粘贴题目')
     expect(wrapper.text()).toContain('解析预览')
     expect(wrapper.text()).toContain('确认入库')
-    expect(wrapper.text()).toContain('Java 中 int 默认值是多少？')
+    expect(wrapper.text()).toContain('学习内容生成题库')
+    expect(wrapper.text()).toContain('分析生成题库')
+    const knowledgeEditor = wrapper.find('textarea[aria-label="Java 学习知识内容"]').element as HTMLTextAreaElement
+    expect(knowledgeEditor.value).toContain('HashMap 默认负载因子是 0.75')
   })
 })

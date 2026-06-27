@@ -1,46 +1,48 @@
 # Local Flow
 
 1. 用户通过登录页登录。
-2. 用户上传或粘贴题目内容，并进入解析预览。
-3. 用户确认题目进入个人题库。
-4. 用户选择知识点、难度、题型生成练习。
-5. 用户也可以手动组合题目生成考试卷。
-6. 用户提交答案后，系统返回得分、逐题正误和解析。
-7. 答错题目进入错题整理候选。
-8. 用户发现题目答案或解析错误时提交题目反馈。
-9. 管理员审核反馈并修订题库。
-10. 系统生成规则报告，或在开启在线模型时生成 AI 学习建议。
-
-## 本地数据库
-
-使用 MySQL 8 初始化第一版表结构：
-
-```powershell
-mysql -u root -p < scripts/mysql-init.sql
-```
-
-脚本会创建 `study_collection` 数据库，并初始化用户、题目、选项、题目反馈、题目修订、考试卷、错题和学习报告等核心表。
-
-`user-service` 已接入 MyBatis-Plus 风格的用户持久化适配器。使用本地 MySQL 时启动 `local` profile：
-
-```powershell
-cd backend
-$env:STUDY_COLLECTION_DB_USER="root"
-$env:STUDY_COLLECTION_DB_PASSWORD="你的密码"
-mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
-```
-
-默认连接地址是 `jdbc:mysql://127.0.0.1:3306/study_collection`，也可以通过 `STUDY_COLLECTION_DB_URL` 覆盖。
+2. 用户上传或粘贴结构化题目内容，并进入解析预览。
+3. 用户也可以上传或粘贴 Java 学习知识内容，由系统分析生成题库草稿。
+4. 用户确认生成题或导入题进入个人题库。
+5. 用户选择知识点、难度、题型生成练习。
+6. 用户也可以手动组合题目生成考试卷。
+7. 用户提交答案后，系统返回得分、逐题正误和解析。
+8. 答错题目进入错题整理候选。
+9. 用户发现题目答案或解析错误时提交题目反馈。
+10. 管理员审核反馈并修订题库。
+11. 系统生成规则报告，或在开启在线模型时生成 AI 学习建议。
 
 ## 本地启动
 
-无需 MySQL 也可以先使用内存版本地学习闭环：
+默认无数据库也能先跑通学习闭环：
 
 ```powershell
 .\scripts\start-local.ps1
 ```
 
 本地聚合后端由 `backend/local-app` 启动，默认端口为 `18080`。前端由 Vite 启动，默认端口为 `5173`，并通过 `/api` 代理访问后端。
+
+## 本地数据库
+
+MySQL 本地账号：
+
+- 用户名：`root`
+- 密码：`root`
+- 数据库：`study_collection`
+
+初始化数据库：
+
+```powershell
+mysql -u root -proot < scripts/mysql-init.sql
+```
+
+带 root/root 环境变量启动：
+
+```powershell
+.\scripts\start-local.ps1 -UseMysql
+```
+
+`user-service` 的 `local` profile 默认连接地址是 `jdbc:mysql://127.0.0.1:3306/study_collection`，默认用户名和密码均为 `root`，也可以通过 `STUDY_COLLECTION_DB_URL`、`STUDY_COLLECTION_DB_USER`、`STUDY_COLLECTION_DB_PASSWORD` 覆盖。
 
 ## 账号接口
 
@@ -59,11 +61,12 @@ mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
 
 前端题库管理入口：`/questions`。
 
-## 导入预览接口
+## 导入与生成接口
 
-- `POST /imports/preview`：提交结构化 Markdown/TXT 内容，返回题目预览列表。
+- `POST /imports/preview`：提交结构化 Markdown/TXT 题目内容，返回题目预览列表。
+- `POST /imports/knowledge/generate`：提交 Java 学习知识内容，返回可入库的题库草稿。
 
-当前文本格式示例：
+结构化题目格式示例：
 
 ```markdown
 ## 单选题
@@ -71,6 +74,14 @@ mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
 答案: A
 知识点: Java 基础
 难度: BEGINNER
+```
+
+知识内容生成示例：
+
+```text
+HashMap 是 Java 集合框架中的常用 Map 实现。
+HashMap 默认负载因子是 0.75，达到阈值后会进行扩容。
+Java 中局部变量没有默认值，必须先赋值再使用。
 ```
 
 前端导入入口：`/import`。

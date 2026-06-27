@@ -52,6 +52,10 @@ type ImportPreviewResult = {
   questions: PreviewQuestion[]
 }
 
+type GeneratedQuestionBank = {
+  questions: QuestionPayload[]
+}
+
 export type PracticeAnswer = {
   questionId: number
   answer: string
@@ -118,6 +122,10 @@ export function searchQuestions() {
 
 export function previewImport(content: string) {
   return post<ImportPreviewResult>('/imports/preview', { content }).then((preview) => preview.questions)
+}
+
+export function generateKnowledgeQuestions(content: string) {
+  return post<GeneratedQuestionBank>('/imports/knowledge/generate', { content }).then((bank) => bank.questions)
 }
 
 export function submitPractice(answers: PracticeAnswer[]) {
