@@ -21,6 +21,17 @@ mysql -u root -p < scripts/mysql-init.sql
 
 脚本会创建 `study_collection` 数据库，并初始化用户、题目、选项、题目反馈、题目修订、考试卷、错题和学习报告等核心表。
 
+`user-service` 已接入 MyBatis-Plus 风格的用户持久化适配器。使用本地 MySQL 时启动 `local` profile：
+
+```powershell
+cd backend
+$env:STUDY_COLLECTION_DB_USER="root"
+$env:STUDY_COLLECTION_DB_PASSWORD="你的密码"
+mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+默认连接地址是 `jdbc:mysql://127.0.0.1:3306/study_collection`，也可以通过 `STUDY_COLLECTION_DB_URL` 覆盖。
+
 ## 题目反馈接口
 
 - `POST /questions/feedback`：用户提交题目答案、解析、题干、选项、知识点或难度问题反馈。

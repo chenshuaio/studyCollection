@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: ${STUDY_COLLECTION_DB_URL:jdbc:mysql://127.0.0.1:3306/study_collection?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${STUDY_COLLECTION_DB_USER:root}
+    password: ${STUDY_COLLECTION_DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
