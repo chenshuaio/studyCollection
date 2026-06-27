@@ -57,5 +57,6 @@
     <module>user-service</module>
     <module>question-service</module>
     <module>import-service</module>
+    <module>exam-service</module>
   </modules>
 </project>
