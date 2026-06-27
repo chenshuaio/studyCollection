@@ -1,47 +1,47 @@
-# Java Learning Platform Implementation Plan
+﻿# Java 学习题库平台实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给 agentic 执行者：** 必须使用子技能：推荐使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans`，按任务逐项执行本计划。所有步骤使用复选框 (`- [ ]`) 跟踪进度。
 
-**Goal:** Build a local-first Java learning question platform with Vue, Spring Boot microservice-prepared backend, MySQL, login, question import, practice, exams, custom exam composition, mistakes, reports, and selectable AI/rule analysis.
+**目标：** 构建一个本地优先的 Java 学习题库平台，使用 Vue、Spring Boot 微服务预备版后端和 MySQL，支持登录、题目导入、练习、考试、用户自定义组卷、错题、报告，以及可选择的 AI/规则分析。
 
-**Architecture:** Use a monorepo with one Vue app and multiple Spring Boot services. Each backend service owns a focused domain package and exposes REST APIs; the first implementation keeps service boundaries explicit while allowing local startup through Maven and npm commands.
+**架构：** 使用 monorepo，一个 Vue 前端应用配多个 Spring Boot 后端服务。每个后端服务负责一个清晰的领域包并暴露 REST API；第一版保持服务边界清楚，同时允许通过 Maven 和 npm 在本地启动与验证。
 
-**Tech Stack:** Java 17, Spring Boot 3, MyBatis-Plus, MySQL 8, Maven, Vue 3, Vite, TypeScript, Pinia, Vue Router, Vitest.
+**技术栈：** Java 17、Spring Boot 3、MyBatis-Plus、MySQL 8、Maven、Vue 3、Vite、TypeScript、Pinia、Vue Router、Vitest。
 
 ---
 
-## File Structure
+## 文件结构
 
-- Create `backend/pom.xml`: parent Maven project for all Spring Boot services and shared library.
-- Create `backend/common-lib`: shared API response, error codes, JWT helpers, pagination DTOs, and test fixtures.
-- Create `backend/gateway-service`: gateway entry point, auth filter, and route configuration.
-- Create `backend/user-service`: users, roles, login, registration, JWT issuing, and permission checks.
-- Create `backend/question-service`: question banks, questions, options, answers, knowledge points, and search APIs.
-- Create `backend/import-service`: file upload, parser strategies, preview records, and confirmed import flow.
-- Create `backend/exam-service`: practice generation, admin exam templates, custom user exams, answer sessions, and objective scoring.
-- Create `backend/mistake-service`: wrong-answer records, mastery status, and repeat-practice APIs.
-- Create `backend/report-service`: statistics, weak-point analysis, rule-based reports, and AI fallback orchestration.
-- Create `backend/ai-service`: selectable online AI adapter and offline rule response adapter.
-- Create `frontend`: Vue 3 app with user and admin layouts.
-- Create `docs/api`: REST API notes used while services are implemented.
-- Create `scripts`: local startup and database helper scripts.
+- 创建 `backend/pom.xml`：所有 Spring Boot 服务和共享库的 Maven 父项目。
+- 创建 `backend/common-lib`：共享 API 响应、错误码、JWT 辅助能力、分页 DTO 和测试夹具。
+- 创建 `backend/gateway-service`：网关入口、鉴权过滤器和路由配置。
+- 创建 `backend/user-service`：用户、角色、登录、注册、JWT 签发和权限检查。
+- 创建 `backend/question-service`：题库、题目、选项、答案、知识点和搜索 API。
+- 创建 `backend/import-service`：文件上传、解析策略、预览记录和确认导入流程。
+- 创建 `backend/exam-service`：练习生成、管理员考试模板、用户自定义考试、答题会话和客观题评分。
+- 创建 `backend/mistake-service`：错题记录、掌握状态和错题重练 API。
+- 创建 `backend/report-service`：统计、薄弱点分析、规则报告和 AI 回退编排。
+- 创建 `backend/ai-service`：可选在线 AI 适配器和离线规则响应适配器。
+- 创建 `frontend`：Vue 3 应用，包含用户端和管理员端布局。
+- 创建 `docs/api`：服务实现期间维护的 REST API 说明。
+- 创建 `scripts`：本地启动、检查和数据库辅助脚本。
 
-## Implementation Tasks
+## 实施任务
 
-### Task 1: Repository Scaffold
+### 任务 1：仓库脚手架
 
-**Files:**
-- Create: `backend/pom.xml`
-- Create: `backend/common-lib/pom.xml`
-- Create: `frontend/package.json`
-- Create: `frontend/vite.config.ts`
-- Create: `frontend/src/main.ts`
-- Create: `scripts/dev-check.ps1`
-- Modify: `.gitignore`
+**文件：**
+- 创建：`backend/pom.xml`
+- 创建：`backend/common-lib/pom.xml`
+- 创建：`frontend/package.json`
+- 创建：`frontend/vite.config.ts`
+- 创建：`frontend/src/main.ts`
+- 创建：`scripts/dev-check.ps1`
+- 修改：`.gitignore`
 
-- [ ] **Step 1: Create failing repository health check**
+- [ ] **步骤 1：创建会失败的仓库健康检查**
 
-Create `scripts/dev-check.ps1`:
+创建 `scripts/dev-check.ps1`:
 
 ```powershell
 $ErrorActionPreference = "Stop"
@@ -54,15 +54,15 @@ if (!(Test-Path "frontend/src/main.ts")) { throw "Missing frontend/src/main.ts" 
 Write-Host "Repository scaffold is present."
 ```
 
-- [ ] **Step 2: Run health check and verify it fails**
+- [ ] **步骤 2：运行健康检查并确认失败**
 
-Run: `powershell -ExecutionPolicy Bypass -File scripts/dev-check.ps1`
+运行：`powershell -ExecutionPolicy Bypass -File scripts/dev-check.ps1`
 
-Expected: FAIL with `Missing backend/pom.xml`.
+预期：失败，并显示 `Missing backend/pom.xml`。
 
-- [ ] **Step 3: Create backend parent Maven file**
+- [ ] **步骤 3：创建后端 Maven 父项目文件**
 
-Create `backend/pom.xml`:
+创建 `backend/pom.xml`:
 
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -86,9 +86,9 @@ Create `backend/pom.xml`:
 </project>
 ```
 
-- [ ] **Step 4: Create shared module Maven file**
+- [ ] **步骤 4：创建共享模块 Maven 文件**
 
-Create `backend/common-lib/pom.xml`:
+创建 `backend/common-lib/pom.xml`:
 
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -105,9 +105,9 @@ Create `backend/common-lib/pom.xml`:
 </project>
 ```
 
-- [ ] **Step 5: Create Vue app shell files**
+- [ ] **步骤 5：创建 Vue 应用外壳文件**
 
-Create `frontend/package.json`:
+创建 `frontend/package.json`:
 
 ```json
 {
@@ -135,7 +135,7 @@ Create `frontend/package.json`:
 }
 ```
 
-Create `frontend/vite.config.ts`:
+创建 `frontend/vite.config.ts`:
 
 ```ts
 import { defineConfig } from 'vite'
@@ -150,7 +150,7 @@ export default defineConfig({
 })
 ```
 
-Create `frontend/src/main.ts`:
+创建 `frontend/src/main.ts`:
 
 ```ts
 import { createApp } from 'vue'
@@ -162,9 +162,9 @@ const Root = {
 createApp(Root).mount('#app')
 ```
 
-- [ ] **Step 6: Update ignore rules**
+- [ ] **步骤 6：更新忽略规则**
 
-Modify `.gitignore`:
+修改 `.gitignore`:
 
 ```gitignore
 .superpowers/
@@ -176,30 +176,30 @@ target/
 uploads/
 ```
 
-- [ ] **Step 7: Run health check and commit**
+- [ ] **步骤 7：运行健康检查并提交**
 
-Run: `powershell -ExecutionPolicy Bypass -File scripts/dev-check.ps1`
+运行：`powershell -ExecutionPolicy Bypass -File scripts/dev-check.ps1`
 
-Expected: PASS with `Repository scaffold is present.`
+预期：通过，并显示 `Repository scaffold is present.`
 
-Commit:
+提交：
 
 ```bash
 git add .gitignore backend frontend scripts/dev-check.ps1
 git commit -m "chore: scaffold java vue monorepo"
 ```
 
-### Task 2: Shared Backend Contracts
+### 任务 2：后端共享契约
 
-**Files:**
-- Create: `backend/common-lib/src/main/java/com/studycollection/common/api/ApiResponse.java`
-- Create: `backend/common-lib/src/main/java/com/studycollection/common/api/ErrorCode.java`
-- Create: `backend/common-lib/src/main/java/com/studycollection/common/security/Role.java`
-- Test: `backend/common-lib/src/test/java/com/studycollection/common/api/ApiResponseTest.java`
+**文件：**
+- 创建：`backend/common-lib/src/main/java/com/studycollection/common/api/ApiResponse.java`
+- 创建：`backend/common-lib/src/main/java/com/studycollection/common/api/ErrorCode.java`
+- 创建：`backend/common-lib/src/main/java/com/studycollection/common/security/Role.java`
+- 测试：`backend/common-lib/src/test/java/com/studycollection/common/api/ApiResponseTest.java`
 
-- [ ] **Step 1: Write failing response contract test**
+- [ ] **步骤 1：编写会失败的响应契约测试**
 
-Create `backend/common-lib/src/test/java/com/studycollection/common/api/ApiResponseTest.java`:
+创建 `backend/common-lib/src/test/java/com/studycollection/common/api/ApiResponseTest.java`:
 
 ```java
 package com.studycollection.common.api;
@@ -229,15 +229,15 @@ class ApiResponseTest {
 }
 ```
 
-- [ ] **Step 2: Run test and verify it fails**
+- [ ] **步骤 2：运行测试并确认失败**
 
-Run: `cd backend && mvn -pl common-lib test`
+运行：`cd backend && mvn -pl common-lib test`
 
-Expected: FAIL because `ApiResponse` does not exist.
+预期：失败，因为 `ApiResponse` 尚不存在。
 
-- [ ] **Step 3: Add response and enum contracts**
+- [ ] **步骤 3：添加响应对象和枚举契约**
 
-Create `backend/common-lib/src/main/java/com/studycollection/common/api/ErrorCode.java`:
+创建 `backend/common-lib/src/main/java/com/studycollection/common/api/ErrorCode.java`:
 
 ```java
 package com.studycollection.common.api;
@@ -260,7 +260,7 @@ public enum ErrorCode {
 }
 ```
 
-Create `backend/common-lib/src/main/java/com/studycollection/common/api/ApiResponse.java`:
+创建 `backend/common-lib/src/main/java/com/studycollection/common/api/ApiResponse.java`:
 
 ```java
 package com.studycollection.common.api;
@@ -276,7 +276,7 @@ public record ApiResponse<T>(String code, String message, T data) {
 }
 ```
 
-Create `backend/common-lib/src/main/java/com/studycollection/common/security/Role.java`:
+创建 `backend/common-lib/src/main/java/com/studycollection/common/security/Role.java`:
 
 ```java
 package com.studycollection.common.security;
@@ -287,34 +287,34 @@ public enum Role {
 }
 ```
 
-- [ ] **Step 4: Run tests and commit**
+- [ ] **步骤 4：运行测试并提交**
 
-Run: `cd backend && mvn -pl common-lib test`
+运行：`cd backend && mvn -pl common-lib test`
 
-Expected: PASS.
+预期：通过。
 
-Commit:
+提交：
 
 ```bash
 git add backend/common-lib
 git commit -m "feat: add shared backend contracts"
 ```
 
-### Task 3: User Service Authentication
+### 任务 3：用户服务认证
 
-**Files:**
-- Create: `backend/user-service/pom.xml`
-- Modify: `backend/pom.xml`
-- Create: `backend/user-service/src/main/java/com/studycollection/user/UserServiceApplication.java`
-- Create: `backend/user-service/src/main/java/com/studycollection/user/auth/AuthController.java`
-- Create: `backend/user-service/src/main/java/com/studycollection/user/auth/AuthService.java`
-- Create: `backend/user-service/src/main/java/com/studycollection/user/auth/LoginRequest.java`
-- Create: `backend/user-service/src/main/java/com/studycollection/user/auth/LoginResponse.java`
-- Test: `backend/user-service/src/test/java/com/studycollection/user/auth/AuthServiceTest.java`
+**文件：**
+- 创建：`backend/user-service/pom.xml`
+- 修改：`backend/pom.xml`
+- 创建：`backend/user-service/src/main/java/com/studycollection/user/UserServiceApplication.java`
+- 创建：`backend/user-service/src/main/java/com/studycollection/user/auth/AuthController.java`
+- 创建：`backend/user-service/src/main/java/com/studycollection/user/auth/AuthService.java`
+- 创建：`backend/user-service/src/main/java/com/studycollection/user/auth/LoginRequest.java`
+- 创建：`backend/user-service/src/main/java/com/studycollection/user/auth/LoginResponse.java`
+- 测试：`backend/user-service/src/test/java/com/studycollection/user/auth/AuthServiceTest.java`
 
-- [ ] **Step 1: Write failing login service test**
+- [ ] **步骤 1：编写会失败的登录服务测试**
 
-Create `backend/user-service/src/test/java/com/studycollection/user/auth/AuthServiceTest.java`:
+创建 `backend/user-service/src/test/java/com/studycollection/user/auth/AuthServiceTest.java`:
 
 ```java
 package com.studycollection.user.auth;
@@ -337,15 +337,15 @@ class AuthServiceTest {
 }
 ```
 
-- [ ] **Step 2: Run test and verify it fails**
+- [ ] **步骤 2：运行测试并确认失败**
 
-Run: `cd backend && mvn -pl user-service test`
+运行：`cd backend && mvn -pl user-service test`
 
-Expected: FAIL because `user-service` is not registered.
+预期：失败，因为 `user-service` 尚未注册。
 
-- [ ] **Step 3: Register user service Maven module**
+- [ ] **步骤 3：注册用户服务 Maven 模块**
 
-Modify `backend/pom.xml` modules:
+修改 `backend/pom.xml` modules:
 
 ```xml
 <modules>
@@ -354,7 +354,7 @@ Modify `backend/pom.xml` modules:
 </modules>
 ```
 
-Create `backend/user-service/pom.xml`:
+创建 `backend/user-service/pom.xml`:
 
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -377,9 +377,9 @@ Create `backend/user-service/pom.xml`:
 </project>
 ```
 
-- [ ] **Step 4: Add minimal authentication implementation**
+- [ ] **步骤 4：添加最小认证实现**
 
-Create `backend/user-service/src/main/java/com/studycollection/user/auth/LoginRequest.java`:
+创建 `backend/user-service/src/main/java/com/studycollection/user/auth/LoginRequest.java`:
 
 ```java
 package com.studycollection.user.auth;
@@ -388,7 +388,7 @@ public record LoginRequest(String username, String password) {
 }
 ```
 
-Create `backend/user-service/src/main/java/com/studycollection/user/auth/LoginResponse.java`:
+创建 `backend/user-service/src/main/java/com/studycollection/user/auth/LoginResponse.java`:
 
 ```java
 package com.studycollection.user.auth;
@@ -397,7 +397,7 @@ public record LoginResponse(String token, String role, String displayName) {
 }
 ```
 
-Create `backend/user-service/src/main/java/com/studycollection/user/auth/AuthService.java`:
+创建 `backend/user-service/src/main/java/com/studycollection/user/auth/AuthService.java`:
 
 ```java
 package com.studycollection.user.auth;
@@ -415,9 +415,9 @@ public class AuthService {
 }
 ```
 
-- [ ] **Step 5: Add Spring entry and controller**
+- [ ] **步骤 5：添加 Spring 启动入口和控制器**
 
-Create `backend/user-service/src/main/java/com/studycollection/user/UserServiceApplication.java`:
+创建 `backend/user-service/src/main/java/com/studycollection/user/UserServiceApplication.java`:
 
 ```java
 package com.studycollection.user;
@@ -433,7 +433,7 @@ public class UserServiceApplication {
 }
 ```
 
-Create `backend/user-service/src/main/java/com/studycollection/user/auth/AuthController.java`:
+创建 `backend/user-service/src/main/java/com/studycollection/user/auth/AuthController.java`:
 
 ```java
 package com.studycollection.user.auth;
@@ -456,32 +456,32 @@ public class AuthController {
 }
 ```
 
-- [ ] **Step 6: Run tests and commit**
+- [ ] **步骤 6：运行测试并提交**
 
-Run: `cd backend && mvn -pl user-service test`
+运行：`cd backend && mvn -pl user-service test`
 
-Expected: PASS.
+预期：通过。
 
-Commit:
+提交：
 
 ```bash
 git add backend/pom.xml backend/user-service
 git commit -m "feat: add user authentication service"
 ```
 
-### Task 4: Frontend Login Page
+### 任务 4：前端登录页
 
-**Files:**
-- Create: `frontend/index.html`
-- Create: `frontend/src/App.vue`
-- Create: `frontend/src/pages/LoginPage.vue`
-- Create: `frontend/src/router.ts`
-- Create: `frontend/src/styles/theme.css`
-- Test: `frontend/src/pages/LoginPage.test.ts`
+**文件：**
+- 创建：`frontend/index.html`
+- 创建：`frontend/src/App.vue`
+- 创建：`frontend/src/pages/LoginPage.vue`
+- 创建：`frontend/src/router.ts`
+- 创建：`frontend/src/styles/theme.css`
+- 测试：`frontend/src/pages/LoginPage.test.ts`
 
-- [ ] **Step 1: Write failing login page test**
+- [ ] **步骤 1：编写会失败的登录页测试**
 
-Create `frontend/src/pages/LoginPage.test.ts`:
+创建 `frontend/src/pages/LoginPage.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -500,22 +500,22 @@ describe('LoginPage', () => {
 })
 ```
 
-- [ ] **Step 2: Run test and verify it fails**
+- [ ] **步骤 2：运行测试并确认失败**
 
-Run: `cd frontend && npm test -- LoginPage.test.ts`
+运行：`cd frontend && npm test -- LoginPage.test.ts`
 
-Expected: FAIL because Vue test utilities and the page are absent.
+预期：失败，因为 Vue 测试工具和页面尚不存在。
 
-- [ ] **Step 3: Add test dependency**
+- [ ] **步骤 3：添加测试依赖**
 
-Modify `frontend/package.json` dev dependencies:
+修改 `frontend/package.json` 的开发依赖：
 
 ```json
 "@vue/test-utils": "^2.4.6",
 "jsdom": "^24.1.1"
 ```
 
-Modify `frontend/vite.config.ts`:
+修改 `frontend/vite.config.ts`：
 
 ```ts
 import { defineConfig } from 'vite'
@@ -533,16 +533,16 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 4: Implement polished login page**
+- [ ] **步骤 4：实现精美登录页**
 
-Create `frontend/index.html`:
+创建 `frontend/index.html`:
 
 ```html
 <div id="app"></div>
 <script type="module" src="/src/main.ts"></script>
 ```
 
-Create `frontend/src/App.vue`:
+创建 `frontend/src/App.vue`:
 
 ```vue
 <template>
@@ -550,7 +550,7 @@ Create `frontend/src/App.vue`:
 </template>
 ```
 
-Create `frontend/src/router.ts`:
+创建 `frontend/src/router.ts`:
 
 ```ts
 import { createRouter, createWebHistory } from 'vue-router'
@@ -564,7 +564,7 @@ export const router = createRouter({
 })
 ```
 
-Modify `frontend/src/main.ts`:
+修改 `frontend/src/main.ts`：
 
 ```ts
 import { createApp } from 'vue'
@@ -575,7 +575,7 @@ import './styles/theme.css'
 createApp(App).use(router).mount('#app')
 ```
 
-Create `frontend/src/pages/LoginPage.vue`:
+创建 `frontend/src/pages/LoginPage.vue`:
 
 ```vue
 <template>
@@ -610,7 +610,7 @@ Create `frontend/src/pages/LoginPage.vue`:
 </template>
 ```
 
-Create `frontend/src/styles/theme.css`:
+创建 `frontend/src/styles/theme.css`:
 
 ```css
 * {
@@ -719,9 +719,9 @@ body {
 }
 ```
 
-- [ ] **Step 5: Run test, build, and commit**
+- [ ] **步骤 5：运行测试、构建并提交**
 
-Run:
+运行：
 
 ```bash
 cd frontend
@@ -730,29 +730,29 @@ npm test -- LoginPage.test.ts
 npm run build
 ```
 
-Expected: tests PASS and build exits 0.
+预期：测试通过，构建以退出码 0 结束。
 
-Commit:
+提交：
 
 ```bash
 git add frontend
 git commit -m "feat: add polished login page"
 ```
 
-### Task 5: Question Domain and Search
+### 任务 5：题目领域模型与搜索
 
-**Files:**
-- Create: `backend/question-service/pom.xml`
-- Modify: `backend/pom.xml`
-- Create: `backend/question-service/src/main/java/com/studycollection/question/domain/Question.java`
-- Create: `backend/question-service/src/main/java/com/studycollection/question/domain/QuestionType.java`
-- Create: `backend/question-service/src/main/java/com/studycollection/question/domain/Difficulty.java`
-- Create: `backend/question-service/src/main/java/com/studycollection/question/app/QuestionSearchService.java`
-- Test: `backend/question-service/src/test/java/com/studycollection/question/app/QuestionSearchServiceTest.java`
+**文件：**
+- 创建：`backend/question-service/pom.xml`
+- 修改：`backend/pom.xml`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/Question.java`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/QuestionType.java`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/domain/Difficulty.java`
+- 创建：`backend/question-service/src/main/java/com/studycollection/question/app/QuestionSearchService.java`
+- 测试：`backend/question-service/src/test/java/com/studycollection/question/app/QuestionSearchServiceTest.java`
 
-- [ ] **Step 1: Write failing search test**
+- [ ] **步骤 1：编写会失败的搜索测试**
 
-Create `backend/question-service/src/test/java/com/studycollection/question/app/QuestionSearchServiceTest.java`:
+创建 `backend/question-service/src/test/java/com/studycollection/question/app/QuestionSearchServiceTest.java`:
 
 ```java
 package com.studycollection.question.app;
@@ -781,19 +781,19 @@ class QuestionSearchServiceTest {
 }
 ```
 
-- [ ] **Step 2: Run test and verify it fails**
+- [ ] **步骤 2：运行测试并确认失败**
 
-Run: `cd backend && mvn -pl question-service test`
+运行：`cd backend && mvn -pl question-service test`
 
-Expected: FAIL because `question-service` is not registered.
+预期：失败，因为 `question-service` 尚未注册。
 
-- [ ] **Step 3: Register module and implement domain**
+- [ ] **步骤 3：注册模块并实现领域模型**
 
-Add `question-service` to `backend/pom.xml` modules.
+添加 `question-service` to `backend/pom.xml` modules.
 
-Create `backend/question-service/pom.xml` using the same parent pattern as `user-service`, with dependency on `common-lib`.
+创建 `backend/question-service/pom.xml` using the same parent pattern as `user-service`, with dependency on `common-lib`.
 
-Create `QuestionType.java`:
+创建 `QuestionType.java`:
 
 ```java
 package com.studycollection.question.domain;
@@ -808,7 +808,7 @@ public enum QuestionType {
 }
 ```
 
-Create `Difficulty.java`:
+创建 `Difficulty.java`:
 
 ```java
 package com.studycollection.question.domain;
@@ -820,7 +820,7 @@ public enum Difficulty {
 }
 ```
 
-Create `Question.java`:
+创建 `Question.java`:
 
 ```java
 package com.studycollection.question.domain;
@@ -835,7 +835,7 @@ public record Question(
 }
 ```
 
-Create `QuestionSearchService.java`:
+创建 `QuestionSearchService.java`:
 
 ```java
 package com.studycollection.question.app;
@@ -863,32 +863,32 @@ public class QuestionSearchService {
 }
 ```
 
-- [ ] **Step 4: Run tests and commit**
+- [ ] **步骤 4：运行测试并提交**
 
-Run: `cd backend && mvn -pl question-service test`
+运行：`cd backend && mvn -pl question-service test`
 
-Expected: PASS.
+预期：通过。
 
-Commit:
+提交：
 
 ```bash
 git add backend/pom.xml backend/question-service
 git commit -m "feat: add question search domain"
 ```
 
-### Task 6: Import Preview Flow
+### 任务 6：导入预览流程
 
-**Files:**
-- Create: `backend/import-service/pom.xml`
-- Modify: `backend/pom.xml`
-- Create: `backend/import-service/src/main/java/com/studycollection/importer/parser/ParsedQuestion.java`
-- Create: `backend/import-service/src/main/java/com/studycollection/importer/parser/MarkdownQuestionParser.java`
-- Create: `backend/import-service/src/main/java/com/studycollection/importer/parser/ImportPreview.java`
-- Test: `backend/import-service/src/test/java/com/studycollection/importer/parser/MarkdownQuestionParserTest.java`
+**文件：**
+- 创建：`backend/import-service/pom.xml`
+- 修改：`backend/pom.xml`
+- 创建：`backend/import-service/src/main/java/com/studycollection/importer/parser/ParsedQuestion.java`
+- 创建：`backend/import-service/src/main/java/com/studycollection/importer/parser/MarkdownQuestionParser.java`
+- 创建：`backend/import-service/src/main/java/com/studycollection/importer/parser/ImportPreview.java`
+- 测试：`backend/import-service/src/test/java/com/studycollection/importer/parser/MarkdownQuestionParserTest.java`
 
-- [ ] **Step 1: Write failing Markdown parser test**
+- [ ] **步骤 1：编写会失败的 Markdown 解析测试**
 
-Create `MarkdownQuestionParserTest.java`:
+创建 `MarkdownQuestionParserTest.java`:
 
 ```java
 package com.studycollection.importer.parser;
@@ -919,19 +919,19 @@ class MarkdownQuestionParserTest {
 }
 ```
 
-- [ ] **Step 2: Run test and verify it fails**
+- [ ] **步骤 2：运行测试并确认失败**
 
-Run: `cd backend && mvn -pl import-service test`
+运行：`cd backend && mvn -pl import-service test`
 
-Expected: FAIL because `import-service` is not registered.
+预期：失败，因为 `import-service` 尚未注册。
 
-- [ ] **Step 3: Register module and implement parser**
+- [ ] **步骤 3：注册模块并实现解析器**
 
-Add `import-service` to `backend/pom.xml` modules.
+添加 `import-service` to `backend/pom.xml` modules.
 
-Create `backend/import-service/pom.xml` with dependencies on `common-lib` and `question-service`.
+创建 `backend/import-service/pom.xml` with dependencies on `common-lib` and `question-service`.
 
-Create `ParsedQuestion.java`:
+创建 `ParsedQuestion.java`:
 
 ```java
 package com.studycollection.importer.parser;
@@ -945,7 +945,7 @@ public record ParsedQuestion(
 }
 ```
 
-Create `ImportPreview.java`:
+创建 `ImportPreview.java`:
 
 ```java
 package com.studycollection.importer.parser;
@@ -956,7 +956,7 @@ public record ImportPreview(List<ParsedQuestion> questions) {
 }
 ```
 
-Create `MarkdownQuestionParser.java`:
+创建 `MarkdownQuestionParser.java`:
 
 ```java
 package com.studycollection.importer.parser;
@@ -993,33 +993,33 @@ public class MarkdownQuestionParser {
 }
 ```
 
-- [ ] **Step 4: Run tests and commit**
+- [ ] **步骤 4：运行测试并提交**
 
-Run: `cd backend && mvn -pl import-service test`
+运行：`cd backend && mvn -pl import-service test`
 
-Expected: PASS.
+预期：通过。
 
-Commit:
+提交：
 
 ```bash
 git add backend/pom.xml backend/import-service
 git commit -m "feat: add import preview parser"
 ```
 
-### Task 7: Practice, Exam, and Custom Composition
+### 任务 7：练习、考试与用户自定义组卷
 
-**Files:**
-- Create: `backend/exam-service/pom.xml`
-- Modify: `backend/pom.xml`
-- Create: `backend/exam-service/src/main/java/com/studycollection/exam/domain/ExamPaper.java`
-- Create: `backend/exam-service/src/main/java/com/studycollection/exam/app/CustomExamComposer.java`
-- Create: `backend/exam-service/src/main/java/com/studycollection/exam/app/ScoringService.java`
-- Test: `backend/exam-service/src/test/java/com/studycollection/exam/app/CustomExamComposerTest.java`
-- Test: `backend/exam-service/src/test/java/com/studycollection/exam/app/ScoringServiceTest.java`
+**文件：**
+- 创建：`backend/exam-service/pom.xml`
+- 修改：`backend/pom.xml`
+- 创建：`backend/exam-service/src/main/java/com/studycollection/exam/domain/ExamPaper.java`
+- 创建：`backend/exam-service/src/main/java/com/studycollection/exam/app/CustomExamComposer.java`
+- 创建：`backend/exam-service/src/main/java/com/studycollection/exam/app/ScoringService.java`
+- 测试：`backend/exam-service/src/test/java/com/studycollection/exam/app/CustomExamComposerTest.java`
+- 测试：`backend/exam-service/src/test/java/com/studycollection/exam/app/ScoringServiceTest.java`
 
-- [ ] **Step 1: Write failing custom composition test**
+- [ ] **步骤 1：编写会失败的自定义组卷测试**
 
-Create `CustomExamComposerTest.java`:
+创建 `CustomExamComposerTest.java`:
 
 ```java
 package com.studycollection.exam.app;
@@ -1045,9 +1045,9 @@ class CustomExamComposerTest {
 }
 ```
 
-- [ ] **Step 2: Write failing scoring test**
+- [ ] **步骤 2：编写会失败的评分测试**
 
-Create `ScoringServiceTest.java`:
+创建 `ScoringServiceTest.java`:
 
 ```java
 package com.studycollection.exam.app;
@@ -1074,19 +1074,19 @@ class ScoringServiceTest {
 }
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [ ] **步骤 3：运行测试并确认失败**
 
-Run: `cd backend && mvn -pl exam-service test`
+运行：`cd backend && mvn -pl exam-service test`
 
-Expected: FAIL because `exam-service` is not registered.
+预期：失败，因为 `exam-service` 尚未注册。
 
-- [ ] **Step 4: Register module and implement exam services**
+- [ ] **步骤 4：注册模块并实现考试服务**
 
-Add `exam-service` to `backend/pom.xml` modules.
+添加 `exam-service` to `backend/pom.xml` modules.
 
-Create `backend/exam-service/pom.xml` with dependencies on `common-lib` and `question-service`.
+创建 `backend/exam-service/pom.xml` with dependencies on `common-lib` and `question-service`.
 
-Create `ExamPaper.java`:
+创建 `ExamPaper.java`:
 
 ```java
 package com.studycollection.exam.domain;
@@ -1097,7 +1097,7 @@ public record ExamPaper(String name, int durationMinutes, List<Long> questionIds
 }
 ```
 
-Create `CustomExamComposer.java`:
+创建 `CustomExamComposer.java`:
 
 ```java
 package com.studycollection.exam.app;
@@ -1116,7 +1116,7 @@ public class CustomExamComposer {
 }
 ```
 
-Create `ScoringService.java`:
+创建 `ScoringService.java`:
 
 ```java
 package com.studycollection.exam.app;
@@ -1132,33 +1132,33 @@ public class ScoringService {
 }
 ```
 
-- [ ] **Step 5: Run tests and commit**
+- [ ] **步骤 5：运行测试并提交**
 
-Run: `cd backend && mvn -pl exam-service test`
+运行：`cd backend && mvn -pl exam-service test`
 
-Expected: PASS.
+预期：通过。
 
-Commit:
+提交：
 
 ```bash
 git add backend/pom.xml backend/exam-service
 git commit -m "feat: add custom exam composition"
 ```
 
-### Task 8: Mistake and Report Analysis
+### 任务 8：错题与报告分析
 
-**Files:**
-- Create: `backend/mistake-service/pom.xml`
-- Create: `backend/report-service/pom.xml`
-- Modify: `backend/pom.xml`
-- Create: `backend/mistake-service/src/main/java/com/studycollection/mistake/domain/MistakeRecord.java`
-- Create: `backend/report-service/src/main/java/com/studycollection/report/app/WeakPointAnalyzer.java`
-- Create: `backend/report-service/src/main/java/com/studycollection/report/app/LearningReport.java`
-- Test: `backend/report-service/src/test/java/com/studycollection/report/app/WeakPointAnalyzerTest.java`
+**文件：**
+- 创建：`backend/mistake-service/pom.xml`
+- 创建：`backend/report-service/pom.xml`
+- 修改：`backend/pom.xml`
+- 创建：`backend/mistake-service/src/main/java/com/studycollection/mistake/domain/MistakeRecord.java`
+- 创建：`backend/report-service/src/main/java/com/studycollection/report/app/WeakPointAnalyzer.java`
+- 创建：`backend/report-service/src/main/java/com/studycollection/report/app/LearningReport.java`
+- 测试：`backend/report-service/src/test/java/com/studycollection/report/app/WeakPointAnalyzerTest.java`
 
-- [ ] **Step 1: Write failing weak-point test**
+- [ ] **步骤 1：编写会失败的薄弱点测试**
 
-Create `WeakPointAnalyzerTest.java`:
+创建 `WeakPointAnalyzerTest.java`:
 
 ```java
 package com.studycollection.report.app;
@@ -1187,19 +1187,19 @@ class WeakPointAnalyzerTest {
 }
 ```
 
-- [ ] **Step 2: Run test and verify it fails**
+- [ ] **步骤 2：运行测试并确认失败**
 
-Run: `cd backend && mvn -pl report-service test`
+运行：`cd backend && mvn -pl report-service test`
 
-Expected: FAIL because `report-service` is not registered.
+预期：失败，因为 `report-service` 尚未注册。
 
-- [ ] **Step 3: Register modules and implement analyzer**
+- [ ] **步骤 3：注册模块并实现分析器**
 
-Add `mistake-service` and `report-service` to `backend/pom.xml`.
+添加 `mistake-service` and `report-service` to `backend/pom.xml`.
 
-Create both module `pom.xml` files with dependency on `common-lib`.
+创建两个模块的 `pom.xml` 文件，并让它们依赖 `common-lib`。
 
-Create `backend/mistake-service/src/main/java/com/studycollection/mistake/domain/MistakeRecord.java`:
+创建 `backend/mistake-service/src/main/java/com/studycollection/mistake/domain/MistakeRecord.java`:
 
 ```java
 package com.studycollection.mistake.domain;
@@ -1208,7 +1208,7 @@ public record MistakeRecord(Long userId, Long questionId, String knowledgePoint,
 }
 ```
 
-Create `LearningReport.java`:
+创建 `LearningReport.java`:
 
 ```java
 package com.studycollection.report.app;
@@ -1217,7 +1217,7 @@ public record LearningReport(String weakestKnowledgePoint, String recommendation
 }
 ```
 
-Create `WeakPointAnalyzer.java`:
+创建 `WeakPointAnalyzer.java`:
 
 ```java
 package com.studycollection.report.app;
@@ -1250,32 +1250,32 @@ public class WeakPointAnalyzer {
 }
 ```
 
-- [ ] **Step 4: Run tests and commit**
+- [ ] **步骤 4：运行测试并提交**
 
-Run: `cd backend && mvn -pl report-service test`
+运行：`cd backend && mvn -pl report-service test`
 
-Expected: PASS.
+预期：通过。
 
-Commit:
+提交：
 
 ```bash
 git add backend/pom.xml backend/mistake-service backend/report-service
 git commit -m "feat: add weak point report analysis"
 ```
 
-### Task 9: AI Analysis Switch
+### 任务 9：AI 分析模式开关
 
-**Files:**
-- Create: `backend/ai-service/pom.xml`
-- Modify: `backend/pom.xml`
-- Create: `backend/ai-service/src/main/java/com/studycollection/ai/app/AnalysisMode.java`
-- Create: `backend/ai-service/src/main/java/com/studycollection/ai/app/AiAnalysisService.java`
-- Create: `backend/ai-service/src/main/java/com/studycollection/ai/app/AnalysisAdvice.java`
-- Test: `backend/ai-service/src/test/java/com/studycollection/ai/app/AiAnalysisServiceTest.java`
+**文件：**
+- 创建：`backend/ai-service/pom.xml`
+- 修改：`backend/pom.xml`
+- 创建：`backend/ai-service/src/main/java/com/studycollection/ai/app/AnalysisMode.java`
+- 创建：`backend/ai-service/src/main/java/com/studycollection/ai/app/AiAnalysisService.java`
+- 创建：`backend/ai-service/src/main/java/com/studycollection/ai/app/AnalysisAdvice.java`
+- 测试：`backend/ai-service/src/test/java/com/studycollection/ai/app/AiAnalysisServiceTest.java`
 
-- [ ] **Step 1: Write failing fallback test**
+- [ ] **步骤 1：编写会失败的回退测试**
 
-Create `AiAnalysisServiceTest.java`:
+创建 `AiAnalysisServiceTest.java`:
 
 ```java
 package com.studycollection.ai.app;
@@ -1297,19 +1297,19 @@ class AiAnalysisServiceTest {
 }
 ```
 
-- [ ] **Step 2: Run test and verify it fails**
+- [ ] **步骤 2：运行测试并确认失败**
 
-Run: `cd backend && mvn -pl ai-service test`
+运行：`cd backend && mvn -pl ai-service test`
 
-Expected: FAIL because `ai-service` is not registered.
+预期：失败，因为 `ai-service` 尚未注册。
 
-- [ ] **Step 3: Register module and implement switch**
+- [ ] **步骤 3：注册模块并实现模式开关**
 
-Add `ai-service` to `backend/pom.xml`.
+添加 `ai-service` to `backend/pom.xml`.
 
-Create `backend/ai-service/pom.xml` with dependency on `common-lib`.
+创建 `backend/ai-service/pom.xml` with dependency on `common-lib`.
 
-Create `AnalysisMode.java`:
+创建 `AnalysisMode.java`:
 
 ```java
 package com.studycollection.ai.app;
@@ -1320,7 +1320,7 @@ public enum AnalysisMode {
 }
 ```
 
-Create `AnalysisAdvice.java`:
+创建 `AnalysisAdvice.java`:
 
 ```java
 package com.studycollection.ai.app;
@@ -1329,7 +1329,7 @@ public record AnalysisAdvice(String source, String content) {
 }
 ```
 
-Create `AiAnalysisService.java`:
+创建 `AiAnalysisService.java`:
 
 ```java
 package com.studycollection.ai.app;
@@ -1344,28 +1344,28 @@ public class AiAnalysisService {
 }
 ```
 
-- [ ] **Step 4: Run tests and commit**
+- [ ] **步骤 4：运行测试并提交**
 
-Run: `cd backend && mvn -pl ai-service test`
+运行：`cd backend && mvn -pl ai-service test`
 
-Expected: PASS.
+预期：通过。
 
-Commit:
+提交：
 
 ```bash
 git add backend/pom.xml backend/ai-service
 git commit -m "feat: add ai analysis mode switch"
 ```
 
-### Task 10: End-to-End Local Verification
+### 任务 10：本地端到端验证
 
-**Files:**
-- Create: `scripts/verify-local.ps1`
-- Create: `docs/api/local-flow.md`
+**文件：**
+- 创建：`scripts/verify-local.ps1`
+- 创建：`docs/api/local-flow.md`
 
-- [ ] **Step 1: Create verification script**
+- [ ] **步骤 1：创建验证脚本**
 
-Create `scripts/verify-local.ps1`:
+创建 `scripts/verify-local.ps1`:
 
 ```powershell
 $ErrorActionPreference = "Stop"
@@ -1382,9 +1382,9 @@ Pop-Location
 Write-Host "Local verification passed."
 ```
 
-- [ ] **Step 2: Create local flow documentation**
+- [ ] **步骤 2：创建本地流程文档**
 
-Create `docs/api/local-flow.md`:
+创建 `docs/api/local-flow.md`:
 
 ```markdown
 # Local Flow
@@ -1399,15 +1399,15 @@ Create `docs/api/local-flow.md`:
 8. 系统生成规则报告或在线 AI 建议。
 ```
 
-- [ ] **Step 3: Run full verification**
+- [ ] **步骤 3：运行完整验证**
 
-Run: `powershell -ExecutionPolicy Bypass -File scripts/verify-local.ps1`
+运行：`powershell -ExecutionPolicy Bypass -File scripts/verify-local.ps1`
 
-Expected: backend tests PASS, frontend tests PASS, frontend build exits 0.
+预期：后端测试通过，前端测试通过，前端构建以退出码 0 结束。
 
-- [ ] **Step 4: Commit and push**
+- [ ] **步骤 4：提交并推送**
 
-Commit:
+提交：
 
 ```bash
 git add scripts/verify-local.ps1 docs/api/local-flow.md
@@ -1415,8 +1415,9 @@ git commit -m "chore: add local verification flow"
 git push
 ```
 
-## Self-Review Notes
+## 自审记录
 
-- Spec coverage: plan covers login, roles, question domain, import preview, practice/exam, user custom exam composition, mistakes, reports, AI/rule switch, and verification.
-- Scope control: true Java code sandbox judging, class management, payments, and production container orchestration remain outside the first implementation scope.
-- Execution order: tasks create runnable slices and commit frequently.
+- 规格覆盖：计划覆盖登录、角色、题目领域模型、导入预览、练习/考试、用户自定义组卷、错题、报告、AI/规则模式开关和验证。
+- 范围控制：真正的 Java 代码沙箱判题、班级管理、支付和生产级容器编排不纳入第一版实现范围。
+- 执行顺序：每个任务都产出可运行的小切片，并保持频繁提交。
+
