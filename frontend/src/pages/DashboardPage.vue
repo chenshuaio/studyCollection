@@ -3,8 +3,8 @@
     <aside class="dashboard-sidebar" aria-label="主导航">
       <p class="brand">StudyCollection</p>
       <nav>
-        <a href="#overview">学习控制台</a>
-        <a href="#import">题库导入</a>
+        <RouterLink to="/dashboard">学习控制台</RouterLink>
+        <RouterLink to="/questions">题库管理</RouterLink>
         <a href="#exam">自定义组卷</a>
         <a href="#feedback">错题反馈</a>
         <a href="#report">AI 分析</a>
@@ -42,7 +42,7 @@
         <article id="import" class="workspace-panel">
           <h2>题库导入</h2>
           <p>支持 JSON、CSV、XLSX、TXT、MD、PDF、DOCX 文件预览后入库。</p>
-          <button type="button">上传题目</button>
+          <RouterLink class="button-link" to="/questions">进入题库</RouterLink>
         </article>
         <article id="exam" class="workspace-panel">
           <h2>自定义组卷</h2>
@@ -63,3 +63,7 @@
     </section>
   </main>
 </template>
+
+<script setup lang="ts">
+import { RouterLink } from 'vue-router'
+</script>

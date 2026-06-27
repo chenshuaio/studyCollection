@@ -38,6 +38,13 @@ mvn -pl user-service spring-boot:run -Dspring-boot.run.profiles=local
 - `GET /questions/feedback/pending`：管理员查看待处理反馈。
 - `POST /questions/feedback/{feedbackId}/accept`：管理员采纳反馈并生成题目修订记录。
 
+## 题库接口
+
+- `POST /questions`：新增题目，字段包含题干、题型、难度、知识点、标准答案和解析。
+- `GET /questions?knowledgePoint=集合框架&difficulty=INTERMEDIATE&type=SINGLE_CHOICE`：按知识点、难度和题型查询题目。
+
+前端题库管理入口：`/questions`。
+
 ## 账号接口
 
 - `POST /auth/register`：创建普通学习账号，当前本地实现使用内存仓储，后续可替换为 MyBatis-Plus + MySQL。

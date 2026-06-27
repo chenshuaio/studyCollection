@@ -5,6 +5,8 @@ public record Question(
         String title,
         QuestionType type,
         Difficulty difficulty,
-        String knowledgePoint
+        String knowledgePoint,
+        String answer,
+        String analysis
 ) {
 }
