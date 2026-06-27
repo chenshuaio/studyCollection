@@ -14,7 +14,7 @@ function Stop-ProcessTree {
 
   $process = Get-Process -Id $RootProcessId -ErrorAction SilentlyContinue
   if ($process) {
-    Stop-Process -Id $RootProcessId -Force
+    Stop-Process -Id $RootProcessId -Force -ErrorAction SilentlyContinue
   }
 }
 
@@ -35,7 +35,7 @@ function Stop-WorkspaceListener {
     $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $listenerPid" -ErrorAction SilentlyContinue
     if ($processInfo -and $processInfo.CommandLine -like "*$root*") {
       Stop-ProcessTree -RootProcessId ([int]$listenerPid)
-      Write-Host "Stopped workspace listener on port $Port: $listenerPid"
+      Write-Host "Stopped workspace listener on port ${Port}: $listenerPid"
     }
   }
 }

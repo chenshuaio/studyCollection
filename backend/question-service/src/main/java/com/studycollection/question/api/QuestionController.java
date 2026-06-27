@@ -1,7 +1,6 @@
 package com.studycollection.question.api;
 
 import com.studycollection.common.api.ApiResponse;
-import com.studycollection.question.app.InMemoryQuestionRepository;
 import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
@@ -19,10 +18,6 @@ import java.util.List;
 @RequestMapping("/questions")
 public class QuestionController {
     private final QuestionRepository questionRepository;
-
-    public QuestionController() {
-        this(new InMemoryQuestionRepository());
-    }
 
     public QuestionController(QuestionRepository questionRepository) {
         this.questionRepository = questionRepository;

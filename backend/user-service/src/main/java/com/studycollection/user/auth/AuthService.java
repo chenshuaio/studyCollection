@@ -2,14 +2,12 @@ package com.studycollection.user.auth;
 
 import com.studycollection.common.security.Role;
 import com.studycollection.common.security.TokenService;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AuthService {
     private final UserRepository userRepository;
     private final TokenService tokenService;
-
-    public AuthService() {
-        this(InMemoryUserRepository.withDemoUsers(), new TokenService("study-collection-local-secret"));
-    }
 
     public AuthService(UserRepository userRepository, TokenService tokenService) {
         this.userRepository = userRepository;

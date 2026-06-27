@@ -3,11 +3,15 @@ package com.studycollection.question.app;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
 import com.studycollection.question.domain.QuestionType;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+@Repository
+@Profile("!local-mysql")
 public class InMemoryQuestionRepository implements QuestionRepository {
     private final AtomicLong ids = new AtomicLong(1);
     private final List<Question> questions = new ArrayList<>();

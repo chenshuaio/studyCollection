@@ -25,7 +25,7 @@ $frontendErrorLog = Join-Path $logDir "frontend-error.log"
 
 $mysqlEnv = ""
 if ($UseMysql) {
-  $mysqlEnv = "`$env:STUDY_COLLECTION_DB_USER='root'; `$env:STUDY_COLLECTION_DB_PASSWORD='root'; `$env:STUDY_COLLECTION_DB_URL='jdbc:mysql://127.0.0.1:3306/study_collection?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai'; "
+  $mysqlEnv = "`$env:SPRING_PROFILES_ACTIVE='local-mysql'; `$env:STUDY_COLLECTION_DB_USER='root'; `$env:STUDY_COLLECTION_DB_PASSWORD='root'; `$env:STUDY_COLLECTION_DB_URL='jdbc:mysql://127.0.0.1:3306/study_collection?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai'; "
 }
 
 $backendCommand = "Set-Location -LiteralPath '$backendPath'; $mysqlEnv mvn -pl local-app -am -DskipTests install; if (`$LASTEXITCODE -eq 0) { mvn -f local-app/pom.xml org.springframework.boot:spring-boot-maven-plugin:3.3.2:run }"

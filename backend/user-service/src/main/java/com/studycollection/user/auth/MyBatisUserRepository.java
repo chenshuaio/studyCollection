@@ -1,11 +1,13 @@
 package com.studycollection.user.auth;
 
 import com.studycollection.common.security.Role;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
 @Primary
 @Repository
+@Profile("local-mysql")
 public class MyBatisUserRepository implements UserRepository {
     private final UserMapper userMapper;
 

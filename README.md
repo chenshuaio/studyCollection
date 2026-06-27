@@ -48,7 +48,7 @@ mysql -u root -proot < scripts/mysql-init.sql
 .\scripts\start-local.ps1 -UseMysql
 ```
 
-当前 `local-app` 默认优先保证无数据库也能跑通学习闭环；MySQL 持久化优先用于后续用户和题库仓储替换。
+默认启动会使用内存仓储，方便没有数据库时快速体验；使用 `-UseMysql` 启动会启用 `local-mysql` profile，账号和题库保存会连接本地 MySQL。
 
 ## Java 知识内容生成题库
 

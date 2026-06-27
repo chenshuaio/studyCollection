@@ -42,11 +42,11 @@ mysql -u root -proot < scripts/mysql-init.sql
 .\scripts\start-local.ps1 -UseMysql
 ```
 
-`user-service` 的 `local` profile 默认连接地址是 `jdbc:mysql://127.0.0.1:3306/study_collection`，默认用户名和密码均为 `root`，也可以通过 `STUDY_COLLECTION_DB_URL`、`STUDY_COLLECTION_DB_USER`、`STUDY_COLLECTION_DB_PASSWORD` 覆盖。
+`-UseMysql` 会启用后端 `local-mysql` profile。默认连接地址是 `jdbc:mysql://127.0.0.1:3306/study_collection`，默认用户名和密码均为 `root`，也可以通过 `STUDY_COLLECTION_DB_URL`、`STUDY_COLLECTION_DB_USER`、`STUDY_COLLECTION_DB_PASSWORD` 覆盖。
 
 ## 账号接口
 
-- `POST /auth/register`：创建普通学习账号，当前本地实现使用内存仓储，后续可替换为 MyBatis-Plus + MySQL。
+- `POST /auth/register`：创建普通学习账号。默认本地启动使用内存仓储，`-UseMysql` 启动时使用 MySQL 用户表。
 - `POST /auth/login`：账号密码登录，返回签名 token、角色和展示名称。
 
 本地内置账号：

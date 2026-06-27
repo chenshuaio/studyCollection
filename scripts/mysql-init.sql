@@ -102,6 +102,9 @@ CREATE TABLE IF NOT EXISTS learning_reports (
 
 INSERT INTO users (username, password_hash, display_name, role)
 VALUES
-  ('admin', 'demo-admin123', '系统管理员', 'ADMIN'),
-  ('user', 'demo-user123', '学习用户', 'USER')
-ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), role = VALUES(role);
+  ('admin', '{plain}admin123', '系统管理员', 'ADMIN'),
+  ('user', '{plain}user123', '学习用户', 'USER')
+ON DUPLICATE KEY UPDATE
+  password_hash = VALUES(password_hash),
+  display_name = VALUES(display_name),
+  role = VALUES(role);
