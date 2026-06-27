@@ -58,5 +58,7 @@
     <module>question-service</module>
     <module>import-service</module>
     <module>exam-service</module>
+    <module>mistake-service</module>
+    <module>report-service</module>
   </modules>
 </project>
