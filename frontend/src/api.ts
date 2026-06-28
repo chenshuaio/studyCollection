@@ -41,6 +41,15 @@ export type Question = QuestionPayload & {
   id: number
 }
 
+export type PendingQuestionPayload = QuestionPayload & {
+  submitterUserId: number
+}
+
+export type PendingQuestion = PendingQuestionPayload & {
+  id: number
+  status: string
+}
+
 export type QuestionSearchParams = {
   keyword?: string
   knowledgePoint?: string
@@ -79,6 +88,12 @@ export type PracticeResult = {
     score: number
     analysis: string
   }>
+}
+
+export type PracticeStats = {
+  userId: number
+  answeredQuestionCount: number
+  correctQuestionCount: number
 }
 
 export type QuestionFeedbackPayload = {
@@ -182,6 +197,22 @@ export function createQuestion(payload: QuestionPayload) {
   return post<Question>('/questions', payload)
 }
 
+export function submitPendingQuestion(payload: PendingQuestionPayload) {
+  return post<PendingQuestion>('/questions/pending', payload)
+}
+
+export function listPendingQuestions() {
+  return request<PendingQuestion[]>('/questions/pending', { method: 'GET' })
+}
+
+export function approvePendingQuestion(id: number) {
+  return post<Question>(`/questions/pending/${id}/approve`, {})
+}
+
+export function rejectPendingQuestion(id: number) {
+  return post<PendingQuestion>(`/questions/pending/${id}/reject`, {})
+}
+
 export function searchQuestions(filters: QuestionSearchParams = {}) {
   const params = new URLSearchParams()
   Object.entries(filters).forEach(([key, value]) => {
@@ -216,12 +247,26 @@ export function submitPractice(answers: PracticeAnswer[]) {
   return post<PracticeResult>('/practice/submit', { answers })
 }
 
+export function submitUserPractice(userId: number, answers: PracticeAnswer[]) {
+  return post<PracticeResult>('/practice/submit', { userId, answers })
+}
+
+export function getPracticeStats(userId: number) {
+  const params = new URLSearchParams({ userId: String(userId) })
+  return request<PracticeStats>(`/practice/stats?${params.toString()}`, { method: 'GET' })
+}
+
 export function submitQuestionFeedback(payload: QuestionFeedbackPayload) {
   return post<QuestionFeedback>('/questions/feedback', payload)
 }
 
 export function listPendingFeedback() {
   return request<QuestionFeedback[]>('/questions/feedback/pending', { method: 'GET' })
+}
+
+export function listUserFeedback(userId: number) {
+  const params = new URLSearchParams({ userId: String(userId) })
+  return request<QuestionFeedback[]>(`/questions/feedback?${params.toString()}`, { method: 'GET' })
 }
 
 export function acceptQuestionFeedback(feedbackId: number, payload: AcceptFeedbackPayload) {

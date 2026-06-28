@@ -54,4 +54,15 @@ class QuestionFeedbackServiceTest {
         assertThat(service.find(needsReview.id()).status()).isEqualTo(FeedbackStatus.NEEDS_REVIEW);
         assertThat(service.pending()).isEmpty();
     }
+
+    @Test
+    void listsFeedbackSubmittedByUser() {
+        QuestionFeedbackService service = new QuestionFeedbackService();
+
+        service.submit(7L, 101L, FeedbackType.ANSWER_ERROR, "标准答案应为 B");
+        service.submit(8L, 102L, FeedbackType.EXPLANATION_ERROR, "解析需要补充");
+
+        assertThat(service.byUser(7L)).hasSize(1);
+        assertThat(service.byUser(7L).get(0).content()).contains("标准答案");
+    }
 }

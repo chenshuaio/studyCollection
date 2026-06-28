@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import QuestionBankPage from './QuestionBankPage.vue'
-import { searchQuestions } from '../api'
+import { approvePendingQuestion, listPendingQuestions, rejectPendingQuestion, searchQuestions } from '../api'
 
 vi.mock('../api', () => ({
+  approvePendingQuestion: vi.fn(),
   createQuestion: vi.fn(),
+  listPendingQuestions: vi.fn(),
+  rejectPendingQuestion: vi.fn(),
   searchQuestions: vi.fn()
 }))
 
@@ -16,6 +19,7 @@ const routerLinkStub = {
 describe('QuestionBankPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(listPendingQuestions).mockResolvedValue([])
   })
 
   it('renders searchable question bank management workspace', () => {
@@ -91,5 +95,107 @@ describe('QuestionBankPage', () => {
       type: ''
     })
     expect(wrapper.text()).toContain('ConcurrentHashMap')
+  })
+
+  it('reviews pending imported questions and refreshes the formal question bank after approval', async () => {
+    vi.mocked(searchQuestions)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 10,
+          title: 'HashMap 默认负载因子是多少？',
+          type: 'SINGLE_CHOICE',
+          difficulty: 'INTERMEDIATE',
+          knowledgePoint: '集合框架',
+          answer: 'A',
+          analysis: '0.75'
+        }
+      ])
+    vi.mocked(listPendingQuestions).mockResolvedValue([
+      {
+        id: 1,
+        submitterUserId: 7,
+        title: 'HashMap 默认负载因子是多少？',
+        type: 'SINGLE_CHOICE',
+        difficulty: 'INTERMEDIATE',
+        knowledgePoint: '集合框架',
+        answer: 'A',
+        analysis: '由导入预览提交审核',
+        status: 'PENDING'
+      }
+    ])
+    vi.mocked(approvePendingQuestion).mockResolvedValue({
+      id: 10,
+      title: 'HashMap 默认负载因子是多少？',
+      type: 'SINGLE_CHOICE',
+      difficulty: 'INTERMEDIATE',
+      knowledgePoint: '集合框架',
+      answer: 'A',
+      analysis: '0.75'
+    })
+
+    const wrapper = mount(QuestionBankPage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+
+    await flushPromises()
+    expect(wrapper.text()).toContain('待审核导入')
+    expect(wrapper.text()).toContain('HashMap 默认负载因子是多少？')
+
+    await wrapper.find('button[aria-label="通过待审核题目"]').trigger('click')
+    await flushPromises()
+
+    expect(approvePendingQuestion).toHaveBeenCalledWith(1)
+    expect(searchQuestions).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('审核通过，题目已入库。')
+  })
+
+  it('rejects pending imported questions without saving them', async () => {
+    vi.mocked(searchQuestions).mockResolvedValue([])
+    vi.mocked(listPendingQuestions).mockResolvedValue([
+      {
+        id: 2,
+        submitterUserId: 7,
+        title: '错误题目',
+        type: 'SINGLE_CHOICE',
+        difficulty: 'BEGINNER',
+        knowledgePoint: 'Java 基础',
+        answer: 'B',
+        analysis: '待拒绝',
+        status: 'PENDING'
+      }
+    ])
+    vi.mocked(rejectPendingQuestion).mockResolvedValue({
+      id: 2,
+      submitterUserId: 7,
+      title: '错误题目',
+      type: 'SINGLE_CHOICE',
+      difficulty: 'BEGINNER',
+      knowledgePoint: 'Java 基础',
+      answer: 'B',
+      analysis: '待拒绝',
+      status: 'REJECTED'
+    })
+
+    const wrapper = mount(QuestionBankPage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+
+    await flushPromises()
+    await wrapper.find('button[aria-label="拒绝待审核题目"]').trigger('click')
+    await flushPromises()
+
+    expect(rejectPendingQuestion).toHaveBeenCalledWith(2)
+    expect(wrapper.text()).toContain('已拒绝该导入题。')
   })
 })

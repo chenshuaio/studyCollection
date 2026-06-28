@@ -39,6 +39,12 @@ public class QuestionFeedbackService {
                 .toList();
     }
 
+    public List<QuestionFeedback> byUser(Long userId) {
+        return feedbacks.values().stream()
+                .filter(feedback -> feedback.userId().equals(userId))
+                .toList();
+    }
+
     public QuestionRevision accept(Long feedbackId, Long adminUserId, String changeSummary, String reviewNote) {
         QuestionFeedback feedback = find(feedbackId);
         updateStatus(feedback, FeedbackStatus.ACCEPTED);

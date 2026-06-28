@@ -4,13 +4,13 @@
       <p class="brand">StudyCollection</p>
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
-        <RouterLink to="/questions">题库管理</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
         <RouterLink to="/mistakes">错题本</RouterLink>
         <RouterLink to="/reports">学习报告</RouterLink>
-        <RouterLink to="/feedback">反馈审核</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
       </nav>
     </aside>
 
@@ -22,6 +22,7 @@
         </div>
         <div class="header-actions">
           <button type="button" @click="loadMistakes">刷新错题</button>
+          <CurrentAccount />
           <LogoutButton />
         </div>
       </header>
@@ -67,7 +68,13 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listMistakes, type MistakeRecord } from '../api'
+import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
+import { isAdmin } from '../permissions'
+import { getCurrentUser } from '../session'
+
+const isAdminUser = isAdmin()
+const currentUserId = getCurrentUser()?.userId ?? 7
 
 const mistakes = ref<MistakeRecord[]>([])
 const statusMessage = ref('')
@@ -77,7 +84,7 @@ onMounted(loadMistakes)
 async function loadMistakes() {
   statusMessage.value = ''
   try {
-    mistakes.value = await listMistakes(7)
+    mistakes.value = await listMistakes(currentUserId)
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '加载错题失败，请检查本地后端是否启动。'
   }

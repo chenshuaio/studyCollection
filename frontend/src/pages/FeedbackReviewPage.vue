@@ -22,6 +22,7 @@
         </div>
         <div class="header-actions">
           <button type="button" @click="loadFeedback">刷新反馈</button>
+          <CurrentAccount />
           <LogoutButton />
         </div>
       </header>
@@ -90,6 +91,7 @@ import {
   rejectQuestionFeedback,
   type QuestionFeedback
 } from '../api'
+import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 
 const feedbackItems = ref<QuestionFeedback[]>([])

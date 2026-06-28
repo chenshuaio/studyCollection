@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ExamTakingPage from './ExamTakingPage.vue'
-import { recordMistake, submitPractice } from '../api'
+import { recordMistake, submitUserPractice } from '../api'
 
 vi.mock('../api', () => ({
-  submitPractice: vi.fn(),
+  submitUserPractice: vi.fn(),
   recordMistake: vi.fn()
 }))
 
@@ -16,7 +16,7 @@ const routerLinkStub = {
 describe('ExamTakingPage', () => {
   beforeEach(() => {
     window.sessionStorage.clear()
-    vi.mocked(submitPractice).mockReset()
+    vi.mocked(submitUserPractice).mockReset()
     vi.mocked(recordMistake).mockReset()
   })
 
@@ -67,7 +67,8 @@ describe('ExamTakingPage', () => {
         ]
       })
     )
-    vi.mocked(submitPractice).mockResolvedValue({
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({ userId: 7, role: 'USER', displayName: 'Alice' }))
+    vi.mocked(submitUserPractice).mockResolvedValue({
       score: 20,
       totalScore: 30,
       items: [
@@ -123,7 +124,7 @@ describe('ExamTakingPage', () => {
     await wrapper.find('button[type="button"]').trigger('click')
     await flushPromises()
 
-    expect(submitPractice).toHaveBeenCalledWith([
+    expect(submitUserPractice).toHaveBeenCalledWith(7, [
       { questionId: 1, answer: 'A' },
       { questionId: 2, answer: 'true' },
       { questionId: 3, answer: 'B' }

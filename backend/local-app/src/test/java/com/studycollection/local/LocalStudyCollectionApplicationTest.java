@@ -46,6 +46,18 @@ class LocalStudyCollectionApplicationTest {
         assertOk(get("/questions"));
         assertOk(get("/questions?keyword=HashMap"));
         assertOk(get("/questions?knowledgePoint=集合框架&difficulty=INTERMEDIATE&type=SINGLE_CHOICE"));
+        assertOk(post("/questions/pending", Map.of(
+                "submitterUserId", 7,
+                "title", "ArrayList 扩容通常发生在什么时候？",
+                "type", "SINGLE_CHOICE",
+                "difficulty", "INTERMEDIATE",
+                "knowledgePoint", "集合框架",
+                "answer", "A",
+                "analysis", "由导入提交审核"
+        )));
+        assertOk(get("/questions/pending"));
+        assertOk(post("/questions/pending/1/approve", Map.of()));
+        assertOk(get("/questions?keyword=ArrayList"));
         assertOk(post("/imports/preview", Map.of("content", """
                 ## 单选题
                 题目: Java 中 int 默认值是多少？
@@ -53,7 +65,11 @@ class LocalStudyCollectionApplicationTest {
                 知识点: Java 基础
                 难度: BEGINNER
                 """)));
-        assertOk(post("/practice/submit", Map.of("answers", List.of(Map.of("questionId", 1, "answer", "A")))));
+        assertOk(post("/practice/submit", Map.of(
+                "userId", 7,
+                "answers", List.of(Map.of("questionId", 1, "answer", "A"))
+        )));
+        assertOk(get("/practice/stats?userId=7"));
         assertOk(post("/exams/custom", Map.of(
                 "name", "集合专项测试",
                 "durationMinutes", 45,
@@ -80,6 +96,7 @@ class LocalStudyCollectionApplicationTest {
                 "type", "ANSWER_ERROR",
                 "content", "标准答案应为 B"
         )));
+        assertOk(get("/questions/feedback?userId=7"));
         assertOk(get("/questions/feedback/pending"));
         assertOk(post("/questions/feedback/1/accept", Map.of(
                 "adminUserId", 1,

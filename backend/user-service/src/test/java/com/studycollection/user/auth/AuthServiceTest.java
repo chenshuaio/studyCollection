@@ -43,4 +43,15 @@ class AuthServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("用户名已存在");
     }
+
+    @Test
+    void duplicateDisplayNameIsRejected() {
+        AuthService service = new AuthService(new InMemoryUserRepository(), new TokenService("test-secret"));
+
+        service.register(new RegisterRequest("alice", "pass123456", "同名用户"));
+
+        assertThatThrownBy(() -> service.register(new RegisterRequest("bob", "another123", "同名用户")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("昵称已存在");
+    }
 }

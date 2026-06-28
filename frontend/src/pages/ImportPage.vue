@@ -4,7 +4,7 @@
       <p class="brand">StudyCollection</p>
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
-        <RouterLink to="/questions">题库管理</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
@@ -21,6 +21,7 @@
         </div>
         <div class="header-actions">
           <button type="button" @click="generatePreview">生成预览</button>
+          <CurrentAccount />
           <LogoutButton />
         </div>
       </header>
@@ -37,7 +38,7 @@
         <article class="table-panel">
           <div class="panel-header">
             <h2>解析预览</h2>
-            <button class="button-link" type="button" aria-label="确认预览题入库" @click="savePreviewQuestions">确认入库</button>
+            <button class="button-link" type="button" aria-label="提交预览题审核" @click="savePreviewQuestions">提交审核</button>
           </div>
           <table>
             <thead>
@@ -75,7 +76,7 @@
           <p v-if="generationStatus" class="form-message">{{ generationStatus }}</p>
           <div class="action-row">
             <button type="button" @click="generateQuestionBank">分析生成题库</button>
-            <button type="button" @click="saveGeneratedQuestions">确认生成题入库</button>
+            <button type="button" @click="saveGeneratedQuestions">提交生成题审核</button>
           </div>
         </article>
 
@@ -111,15 +112,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import {
-  createQuestion,
   generateKnowledgeQuestions,
   previewImport,
+  submitPendingQuestion,
   uploadKnowledgeFile,
   type PreviewQuestion,
   type QuestionPayload
 } from '../api'
+import { getCurrentUser } from '../session'
+import { isAdmin } from '../permissions'
+
+const isAdminUser = isAdmin()
 
 const rawContent = ref(`## 单选题
 题目: Java 中 int 默认值是多少？
@@ -155,18 +161,19 @@ async function savePreviewQuestions() {
   previewStatus.value = ''
   try {
     for (const question of previewQuestions.value) {
-      await createQuestion({
+      await submitPendingQuestion({
+        submitterUserId: currentUserId(),
         title: question.title,
         type: 'SINGLE_CHOICE',
         difficulty: question.difficulty,
         knowledgePoint: question.knowledgePoint,
         answer: question.answer,
-        analysis: '由导入预览确认入库'
+        analysis: '由导入预览提交审核'
       })
     }
-    previewStatus.value = `已入库 ${previewQuestions.value.length} 道预览题。`
+    previewStatus.value = `已提交管理员审核 ${previewQuestions.value.length} 道预览题。`
   } catch (error) {
-    previewStatus.value = error instanceof Error ? error.message : '预览题入库失败，请检查本地后端是否启动。'
+    previewStatus.value = error instanceof Error ? error.message : '预览题提交审核失败，请检查本地后端是否启动。'
   }
 }
 
@@ -201,11 +208,18 @@ async function saveGeneratedQuestions() {
   generationStatus.value = ''
   try {
     for (const question of generatedQuestions.value) {
-      await createQuestion(question)
+      await submitPendingQuestion({
+        submitterUserId: currentUserId(),
+        ...question
+      })
     }
-    generationStatus.value = `已入库 ${generatedQuestions.value.length} 道生成题。`
+    generationStatus.value = `已提交管理员审核 ${generatedQuestions.value.length} 道生成题。`
   } catch (error) {
-    generationStatus.value = error instanceof Error ? error.message : '入库失败，请检查本地后端是否启动。'
+    generationStatus.value = error instanceof Error ? error.message : '提交审核失败，请检查本地后端是否启动。'
   }
+}
+
+function currentUserId() {
+  return getCurrentUser()?.userId ?? 7
 }
 </script>

@@ -39,7 +39,7 @@ export const router = createRouter({
     { path: '/', name: 'login', component: LoginPage },
     { path: '/register', name: 'register', component: RegisterPage },
     { path: '/dashboard', name: 'dashboard', component: DashboardPage, meta: { requiresAuth: true } },
-    { path: '/questions', name: 'questions', component: QuestionBankPage, meta: { requiresAuth: true } },
+    { path: '/questions', name: 'questions', component: QuestionBankPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
     { path: '/import', name: 'import', component: ImportPage, meta: { requiresAuth: true } },
     { path: '/practice', name: 'practice', component: PracticePage, meta: { requiresAuth: true } },
     { path: '/exams', name: 'exams', component: ExamPage, meta: { requiresAuth: true } },

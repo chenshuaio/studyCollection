@@ -4,13 +4,13 @@
       <p class="brand">StudyCollection</p>
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
-        <RouterLink to="/questions">题库管理</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
         <RouterLink to="/mistakes">错题本</RouterLink>
         <RouterLink to="/reports">学习报告</RouterLink>
-        <RouterLink to="/feedback">反馈审核</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
       </nav>
     </aside>
 
@@ -22,6 +22,7 @@
         </div>
         <div class="header-actions">
           <RouterLink class="button-link" to="/practice">强化练习</RouterLink>
+          <CurrentAccount />
           <LogoutButton />
         </div>
       </header>
@@ -70,7 +71,11 @@
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { generateLearningReport, type LearningReport, type LearningReportPayload } from '../api'
+import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
+import { isAdmin } from '../permissions'
+
+const isAdminUser = isAdmin()
 
 const mode = ref<LearningReportPayload['mode']>('OFFLINE_RULES')
 const statusMessage = ref('')

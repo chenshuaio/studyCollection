@@ -22,6 +22,7 @@
         </div>
         <div class="header-actions">
           <button type="button" @click="loadQuestions" aria-label="搜索题库">搜索题库</button>
+          <CurrentAccount />
           <LogoutButton />
         </div>
       </header>
@@ -111,6 +112,42 @@
           </form>
         </aside>
       </section>
+
+      <section class="table-panel review-panel">
+        <div class="panel-header">
+          <h2>待审核导入</h2>
+          <span class="panel-count">{{ pendingQuestions.length }} 题</span>
+        </div>
+        <p v-if="reviewStatus" class="form-message review-message">{{ reviewStatus }}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>题目</th>
+              <th>提交用户</th>
+              <th>知识点</th>
+              <th>难度</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="question in pendingQuestions" :key="question.id">
+              <td>{{ question.title }}</td>
+              <td>{{ question.submitterUserId }}</td>
+              <td>{{ question.knowledgePoint }}</td>
+              <td>{{ question.difficulty }}</td>
+              <td>
+                <div class="action-row">
+                  <button type="button" aria-label="通过待审核题目" @click="approvePending(question.id)">通过</button>
+                  <button type="button" aria-label="拒绝待审核题目" @click="rejectPending(question.id)">拒绝</button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="pendingQuestions.length === 0">
+              <td colspan="5">暂无待审核导入题。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </section>
   </main>
 </template>
@@ -118,7 +155,16 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { createQuestion, searchQuestions, type Question } from '../api'
+import {
+  approvePendingQuestion,
+  createQuestion,
+  listPendingQuestions,
+  rejectPendingQuestion,
+  searchQuestions,
+  type PendingQuestion,
+  type Question
+} from '../api'
+import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 
 const filters = reactive({
@@ -136,14 +182,19 @@ const draft = reactive({
   analysis: 'HashMap 默认负载因子是 0.75。'
 })
 const statusMessage = ref('')
+const reviewStatus = ref('')
 const questions = ref<Question[]>([
   {
     id: 1,
     ...draft
   }
 ])
+const pendingQuestions = ref<PendingQuestion[]>([])
 
-onMounted(loadQuestions)
+onMounted(async () => {
+  await loadQuestions()
+  await loadPendingQuestions()
+})
 
 async function loadQuestions() {
   statusMessage.value = ''
@@ -155,6 +206,15 @@ async function loadQuestions() {
   }
 }
 
+async function loadPendingQuestions() {
+  reviewStatus.value = ''
+  try {
+    pendingQuestions.value = await listPendingQuestions()
+  } catch (error) {
+    reviewStatus.value = error instanceof Error ? error.message : '刷新待审核题失败。'
+  }
+}
+
 async function saveQuestion() {
   statusMessage.value = ''
   try {
@@ -163,6 +223,29 @@ async function saveQuestion() {
     statusMessage.value = '题目已保存到本地后端。'
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '保存失败，请检查本地后端是否启动。'
+  }
+}
+
+async function approvePending(id: number) {
+  reviewStatus.value = ''
+  try {
+    await approvePendingQuestion(id)
+    await loadPendingQuestions()
+    await loadQuestions()
+    reviewStatus.value = '审核通过，题目已入库。'
+  } catch (error) {
+    reviewStatus.value = error instanceof Error ? error.message : '审核通过失败。'
+  }
+}
+
+async function rejectPending(id: number) {
+  reviewStatus.value = ''
+  try {
+    await rejectPendingQuestion(id)
+    await loadPendingQuestions()
+    reviewStatus.value = '已拒绝该导入题。'
+  } catch (error) {
+    reviewStatus.value = error instanceof Error ? error.message : '拒绝失败。'
   }
 }
 </script>

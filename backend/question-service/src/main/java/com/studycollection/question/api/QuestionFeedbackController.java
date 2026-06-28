@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -39,6 +40,11 @@ public class QuestionFeedbackController {
     @GetMapping("/pending")
     public ApiResponse<List<QuestionFeedback>> pending() {
         return ApiResponse.success(feedbackService.pending());
+    }
+
+    @GetMapping
+    public ApiResponse<List<QuestionFeedback>> byUser(@RequestParam("userId") Long userId) {
+        return ApiResponse.success(feedbackService.byUser(userId));
     }
 
     @PostMapping("/{feedbackId}/accept")

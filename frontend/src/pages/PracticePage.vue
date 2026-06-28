@@ -4,13 +4,13 @@
       <p class="brand">StudyCollection</p>
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
-        <RouterLink to="/questions">题库管理</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
         <RouterLink to="/mistakes">错题本</RouterLink>
         <RouterLink to="/reports">学习报告</RouterLink>
-        <RouterLink to="/feedback">反馈审核</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
       </nav>
     </aside>
 
@@ -22,6 +22,7 @@
         </div>
         <div class="header-actions">
           <button type="button" @click="resetPractice">生成练习</button>
+          <CurrentAccount />
           <LogoutButton />
         </div>
       </header>
@@ -92,8 +93,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { recordMistake, submitPractice, submitQuestionFeedback, type PracticeResult } from '../api'
+import { recordMistake, submitQuestionFeedback, submitUserPractice, type PracticeResult } from '../api'
+import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
+import { isAdmin } from '../permissions'
+import { getCurrentUser } from '../session'
+
+const isAdminUser = isAdmin()
 
 const currentQuestion = {
   id: 1,
@@ -115,6 +121,7 @@ const statusMessage = ref('')
 const feedbackStatus = ref('')
 const feedbackContent = ref('标准答案或解析可能有误，请管理员复核。')
 const backendResult = ref<PracticeResult | null>(null)
+const currentUserId = getCurrentUser()?.userId ?? 7
 
 const firstItem = computed(() => backendResult.value?.items[0])
 const isCorrect = computed(() => firstItem.value?.correct ?? selectedAnswer.value === currentQuestion.answer)
@@ -132,7 +139,7 @@ const resultText = computed(() => (isCorrect.value ? '回答正确，继续保�
 async function submitAnswer() {
   statusMessage.value = ''
   try {
-    backendResult.value = await submitPractice([{ questionId: currentQuestion.id, answer: selectedAnswer.value }])
+    backendResult.value = await submitUserPractice(currentUserId, [{ questionId: currentQuestion.id, answer: selectedAnswer.value }])
     submitted.value = true
     const item = backendResult.value.items[0]
     if (item && !item.correct) {

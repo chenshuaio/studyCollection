@@ -164,6 +164,29 @@ body {
   justify-content: flex-end;
 }
 
+.current-account {
+  align-items: flex-end;
+  color: #344054;
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  line-height: 1.2;
+  min-width: 112px;
+}
+
+.current-account .account-name {
+  font-weight: 800;
+}
+
+.current-account small {
+  color: #667085;
+}
+
+.current-account strong {
+  color: #1f6feb;
+  font-size: 13px;
+}
+
 .dashboard-header button,
 .dashboard-header .button-link,
 .workspace-panel button,
@@ -536,6 +559,14 @@ th {
 
 .paper-summary p {
   margin: 0 0 8px;
+}
+
+.review-panel {
+  margin-top: 16px;
+}
+
+.review-message {
+  padding: 0 16px 12px;
 }
 
 .report-card dl {

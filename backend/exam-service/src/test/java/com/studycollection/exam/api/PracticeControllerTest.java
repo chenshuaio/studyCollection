@@ -27,4 +27,23 @@ class PracticeControllerTest {
         assertThat(result.items().get(2).correct()).isFalse();
         assertThat(result.items().get(2).analysis()).contains("ArrayList");
     }
+
+    @Test
+    void tracksSubmittedQuestionCountForUserDashboard() {
+        PracticeController controller = new PracticeController();
+
+        controller.submit(new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(1L, "A"),
+                new PracticeAnswer(2L, "true")
+        ), 7L));
+        controller.submit(new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(3L, "B")
+        ), 7L));
+
+        PracticeStats stats = controller.stats(7L).data();
+
+        assertThat(stats.userId()).isEqualTo(7L);
+        assertThat(stats.answeredQuestionCount()).isEqualTo(3);
+        assertThat(stats.correctQuestionCount()).isEqualTo(2);
+    }
 }

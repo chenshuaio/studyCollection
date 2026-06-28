@@ -23,6 +23,14 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public UserAccount findByDisplayName(String displayName) {
+        return accounts.values().stream()
+                .filter(account -> account.displayName().equals(displayName))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
     public UserAccount save(UserAccount account) {
         Long id = account.id() == null ? ids.getAndIncrement() : account.id();
         UserAccount saved = new UserAccount(

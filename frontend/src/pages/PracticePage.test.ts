@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import PracticePage from './PracticePage.vue'
-import { recordMistake, submitPractice } from '../api'
+import { recordMistake, submitUserPractice } from '../api'
 
 vi.mock('../api', () => ({
-  submitPractice: vi.fn(),
+  submitUserPractice: vi.fn(),
   submitQuestionFeedback: vi.fn(),
   recordMistake: vi.fn()
 }))
@@ -35,7 +35,8 @@ describe('PracticePage', () => {
   })
 
   it('records a mistake when the submitted answer is wrong', async () => {
-    vi.mocked(submitPractice).mockResolvedValue({
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({ userId: 7, role: 'USER', displayName: 'Alice' }))
+    vi.mocked(submitUserPractice).mockResolvedValue({
       score: 0,
       totalScore: 10,
       items: [
@@ -70,6 +71,7 @@ describe('PracticePage', () => {
     await wrapper.findAll('button')[1].trigger('click')
     await flushPromises()
 
+    expect(submitUserPractice).toHaveBeenCalledWith(7, [{ questionId: 1, answer: 'B' }])
     expect(recordMistake).toHaveBeenCalledWith({
       userId: 7,
       questionId: 1,

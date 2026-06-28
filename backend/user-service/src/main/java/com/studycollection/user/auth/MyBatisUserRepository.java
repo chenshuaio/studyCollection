@@ -22,6 +22,12 @@ public class MyBatisUserRepository implements UserRepository {
     }
 
     @Override
+    public UserAccount findByDisplayName(String displayName) {
+        UserEntity entity = userMapper.findByDisplayName(displayName);
+        return entity == null ? null : toAccount(entity);
+    }
+
+    @Override
     public UserAccount save(UserAccount account) {
         UserEntity entity = toEntity(account);
         userMapper.insert(entity);

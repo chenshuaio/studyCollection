@@ -23,10 +23,12 @@ class MyBatisUserRepositoryTest {
         ));
 
         UserAccount found = repository.findByUsername("mysql-user");
+        UserAccount foundByDisplayName = repository.findByDisplayName("MySQL 用户");
 
         assertThat(saved.id()).isEqualTo(1L);
         assertThat(found.displayName()).isEqualTo("MySQL 用户");
         assertThat(found.role()).isEqualTo(Role.USER);
+        assertThat(foundByDisplayName.username()).isEqualTo("mysql-user");
     }
 
     private static class FakeUserMapper implements UserMapper {
@@ -36,6 +38,14 @@ class MyBatisUserRepositoryTest {
         @Override
         public UserEntity findByUsername(String username) {
             return users.get(username);
+        }
+
+        @Override
+        public UserEntity findByDisplayName(String displayName) {
+            return users.values().stream()
+                    .filter(user -> user.getDisplayName().equals(displayName))
+                    .findFirst()
+                    .orElse(null);
         }
 
         @Override

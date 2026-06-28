@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ImportPage from './ImportPage.vue'
-import { createQuestion } from '../api'
+import { submitPendingQuestion } from '../api'
 
 vi.mock('../api', () => ({
   createQuestion: vi.fn(),
   generateKnowledgeQuestions: vi.fn(),
   previewImport: vi.fn(),
+  submitPendingQuestion: vi.fn(),
   uploadKnowledgeFile: vi.fn()
 }))
 
@@ -29,7 +30,7 @@ describe('ImportPage', () => {
     expect(wrapper.text()).toContain('题目导入')
     expect(wrapper.text()).toContain('粘贴题目')
     expect(wrapper.text()).toContain('解析预览')
-    expect(wrapper.text()).toContain('确认入库')
+    expect(wrapper.text()).toContain('提交审核')
     expect(wrapper.text()).toContain('学习内容生成题库')
     expect(wrapper.text()).toContain('上传学习资料')
     expect(wrapper.text()).toContain('分析生成题库')
@@ -41,15 +42,21 @@ describe('ImportPage', () => {
     expect(fileInput.attributes('accept')).toContain('.pdf')
   })
 
-  it('saves parsed preview questions when confirming import', async () => {
-    vi.mocked(createQuestion).mockResolvedValue({
+  it('submits parsed preview questions for administrator review', async () => {
+    window.localStorage.setItem(
+      'studyCollectionUser',
+      JSON.stringify({ userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
+    )
+    vi.mocked(submitPendingQuestion).mockResolvedValue({
       id: 1,
+      submitterUserId: 7,
       title: 'Java 中 int 默认值是多少？',
       type: 'SINGLE_CHOICE',
       difficulty: 'BEGINNER',
       knowledgePoint: 'Java 基础',
       answer: 'A',
-      analysis: '由导入预览确认入库'
+      analysis: '由导入预览提交审核',
+      status: 'PENDING'
     })
 
     const wrapper = mount(ImportPage, {
@@ -61,17 +68,18 @@ describe('ImportPage', () => {
       }
     })
 
-    await wrapper.find('button[aria-label="确认预览题入库"]').trigger('click')
+    await wrapper.find('button[aria-label="提交预览题审核"]').trigger('click')
     await flushPromises()
 
-    expect(createQuestion).toHaveBeenCalledWith({
+    expect(submitPendingQuestion).toHaveBeenCalledWith({
+      submitterUserId: 7,
       title: expect.stringContaining('Java'),
       type: 'SINGLE_CHOICE',
       difficulty: 'BEGINNER',
       knowledgePoint: expect.any(String),
       answer: 'A',
-      analysis: '由导入预览确认入库'
+      analysis: '由导入预览提交审核'
     })
-    expect(wrapper.text()).toContain('已入库')
+    expect(wrapper.text()).toContain('已提交管理员审核')
   })
 })

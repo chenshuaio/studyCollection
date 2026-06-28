@@ -24,6 +24,12 @@ public class AuthService {
         if (userRepository.findByUsername(request.username()) != null) {
             throw new IllegalArgumentException("用户名已存在");
         }
+        if (request.displayName() == null || request.displayName().isBlank()) {
+            throw new IllegalArgumentException("昵称不能为空");
+        }
+        if (userRepository.findByDisplayName(request.displayName()) != null) {
+            throw new IllegalArgumentException("昵称已存在");
+        }
         UserAccount account = userRepository.save(new UserAccount(
                 null,
                 request.username(),

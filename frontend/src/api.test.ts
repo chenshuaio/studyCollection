@@ -1,18 +1,25 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   acceptQuestionFeedback,
+  approvePendingQuestion,
   composeCustomExam,
   generateKnowledgeQuestions,
   generateLearningReport,
+  getPracticeStats,
   listPendingFeedback,
+  listPendingQuestions,
   listMistakes,
+  listUserFeedback,
   login,
   markFeedbackNeedsReview,
   previewImport,
   recordMistake,
+  rejectPendingQuestion,
   rejectQuestionFeedback,
   searchQuestions,
+  submitPendingQuestion,
   submitPractice,
+  submitUserPractice,
   submitQuestionFeedback,
   uploadKnowledgeFile
 } from './api'
@@ -54,12 +61,22 @@ describe('api client', () => {
         ok: true,
         json: async () => ({ code: 'OK', data: { score: 10, totalScore: 10, items: [] } })
       })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 'OK', data: { score: 10, totalScore: 10, items: [] } })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 'OK', data: { userId: 7, answeredQuestionCount: 2, correctQuestionCount: 1 } })
+      })
     vi.stubGlobal('fetch', fetchMock)
 
     const preview = await previewImport('题目: Java 中 int 默认值是多少？')
     const generated = await generateKnowledgeQuestions('HashMap 默认负载因子是 0.75。')
     const uploaded = await uploadKnowledgeFile(new File(['HashMap 默认负载因子是 0.75。'], 'hashmap.md', { type: 'text/markdown' }))
     await submitPractice([{ questionId: 1, answer: 'A' }])
+    await submitUserPractice(7, [{ questionId: 2, answer: 'B' }])
+    const stats = await getPracticeStats(7)
 
     expect(preview[0].title).toBe('Java 中 int 默认值是多少？')
     expect(generated[0].title).toBe('HashMap 默认负载因子是多少？')
@@ -68,6 +85,8 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/imports/knowledge/generate', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/imports/knowledge/upload', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/practice/submit', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/practice/stats?userId=7', expect.objectContaining({ method: 'GET' }))
+    expect(stats.answeredQuestionCount).toBe(2)
   })
 
   it('searches all questions and supports fuzzy title keyword', async () => {
@@ -90,6 +109,62 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/questions?keyword=HashMap', expect.objectContaining({ method: 'GET' }))
   })
 
+  it('submits and reviews pending imported questions', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: {
+            id: 1,
+            submitterUserId: 7,
+            title: 'HashMap 默认负载因子是多少？',
+            type: 'SINGLE_CHOICE',
+            difficulty: 'INTERMEDIATE',
+            knowledgePoint: '集合框架',
+            answer: 'A',
+            analysis: '由导入预览提交审核',
+            status: 'PENDING'
+          }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 'OK', data: [{ id: 1, title: 'HashMap 默认负载因子是多少？', status: 'PENDING' }] })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 'OK', data: { id: 9, title: 'HashMap 默认负载因子是多少？' } })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 'OK', data: { id: 2, title: '错误题目', status: 'REJECTED' } })
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const submitted = await submitPendingQuestion({
+      submitterUserId: 7,
+      title: 'HashMap 默认负载因子是多少？',
+      type: 'SINGLE_CHOICE',
+      difficulty: 'INTERMEDIATE',
+      knowledgePoint: '集合框架',
+      answer: 'A',
+      analysis: '由导入预览提交审核'
+    })
+    const pending = await listPendingQuestions()
+    await approvePendingQuestion(1)
+    const rejected = await rejectPendingQuestion(2)
+
+    expect(submitted.status).toBe('PENDING')
+    expect(pending).toHaveLength(1)
+    expect(rejected.status).toBe('REJECTED')
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending/1/approve', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending/2/reject', expect.objectContaining({ method: 'POST' }))
+  })
+
   it('posts and reviews question feedback', async () => {
     const fetchMock = vi
       .fn()
@@ -105,6 +180,22 @@ describe('api client', () => {
             content: '标准答案应为 B',
             status: 'PENDING'
           }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: [
+            {
+              id: 1,
+              userId: 7,
+              questionId: 101,
+              type: 'ANSWER_ERROR',
+              content: '标准答案应为 B',
+              status: 'PENDING'
+            }
+          ]
         })
       })
       .mockResolvedValueOnce({
@@ -146,6 +237,7 @@ describe('api client', () => {
       content: '标准答案应为 B'
     })
     const pending = await listPendingFeedback()
+    const userFeedback = await listUserFeedback(7)
     const revision = await acceptQuestionFeedback(1, {
       adminUserId: 1,
       changeSummary: '答案从 A 修改为 B',
@@ -154,9 +246,11 @@ describe('api client', () => {
 
     expect(submitted.status).toBe('PENDING')
     expect(pending).toHaveLength(1)
+    expect(userFeedback).toHaveLength(1)
     expect(revision.changeSummary).toContain('答案从 A 修改为 B')
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/pending', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback?userId=7', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/1/accept', expect.objectContaining({ method: 'POST' }))
   })
 
