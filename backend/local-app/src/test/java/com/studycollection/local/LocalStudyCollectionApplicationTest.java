@@ -35,6 +35,16 @@ class LocalStudyCollectionApplicationTest {
                 "answer", "A",
                 "analysis", "HashMap 默认负载因子是 0.75。"
         )));
+        assertOk(post("/questions", Map.of(
+                "title", "Java 中 int 默认值是多少？",
+                "type", "SINGLE_CHOICE",
+                "difficulty", "BEGINNER",
+                "knowledgePoint", "Java 基础",
+                "answer", "A",
+                "analysis", "int 成员变量默认值为 0。"
+        )));
+        assertOk(get("/questions"));
+        assertOk(get("/questions?keyword=HashMap"));
         assertOk(get("/questions?knowledgePoint=集合框架&difficulty=INTERMEDIATE&type=SINGLE_CHOICE"));
         assertOk(post("/imports/preview", Map.of("content", """
                 ## 单选题

@@ -12,10 +12,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class QuestionControllerTest {
     @Test
-    void createsAndSearchesQuestions() {
+    void createsAndSearchesQuestionsWithOptionalFilters() {
         QuestionController controller = new QuestionController(new InMemoryQuestionRepository());
 
-        Question created = controller.create(new CreateQuestionRequest(
+        Question hashMap = controller.create(new CreateQuestionRequest(
                 "Java 中 HashMap 默认负载因子是多少？",
                 QuestionType.SINGLE_CHOICE,
                 Difficulty.INTERMEDIATE,
@@ -23,11 +23,23 @@ class QuestionControllerTest {
                 "0.75",
                 "HashMap 默认负载因子是 0.75。"
         )).data();
+        Question jvm = controller.create(new CreateQuestionRequest(
+                "JVM 栈内存主要保存什么？",
+                QuestionType.SHORT_ANSWER,
+                Difficulty.BEGINNER,
+                "JVM",
+                "栈帧",
+                "虚拟机栈保存方法调用的栈帧。"
+        )).data();
 
-        List<Question> result = controller.search("集合框架", Difficulty.INTERMEDIATE, QuestionType.SINGLE_CHOICE).data();
+        List<Question> all = controller.search(null, null, null, null).data();
+        List<Question> fuzzy = controller.search("HashMap", null, null, null).data();
+        List<Question> filtered = controller.search(null, "集合框架", Difficulty.INTERMEDIATE, QuestionType.SINGLE_CHOICE).data();
 
-        assertThat(created.id()).isEqualTo(1L);
-        assertThat(result).extracting(Question::title)
-                .containsExactly("Java 中 HashMap 默认负载因子是多少？");
+        assertThat(hashMap.id()).isEqualTo(1L);
+        assertThat(jvm.id()).isEqualTo(2L);
+        assertThat(all).extracting(Question::id).containsExactly(1L, 2L);
+        assertThat(fuzzy).extracting(Question::id).containsExactly(1L);
+        assertThat(filtered).extracting(Question::id).containsExactly(1L);
     }
 }

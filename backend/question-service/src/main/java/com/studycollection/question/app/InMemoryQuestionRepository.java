@@ -32,11 +32,19 @@ public class InMemoryQuestionRepository implements QuestionRepository {
     }
 
     @Override
-    public List<Question> search(String knowledgePoint, Difficulty difficulty, QuestionType type) {
+    public List<Question> search(String keyword, String knowledgePoint, Difficulty difficulty, QuestionType type) {
         return questions.stream()
-                .filter(question -> question.knowledgePoint().equals(knowledgePoint))
-                .filter(question -> question.difficulty() == difficulty)
-                .filter(question -> question.type() == type)
+                .filter(question -> matchesKeyword(question, keyword))
+                .filter(question -> knowledgePoint == null || knowledgePoint.isBlank() || question.knowledgePoint().equals(knowledgePoint))
+                .filter(question -> difficulty == null || question.difficulty() == difficulty)
+                .filter(question -> type == null || question.type() == type)
                 .toList();
+    }
+
+    private boolean matchesKeyword(Question question, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return true;
+        }
+        return question.title().toLowerCase().contains(keyword.toLowerCase());
     }
 }

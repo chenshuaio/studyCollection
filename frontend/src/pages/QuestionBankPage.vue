@@ -21,31 +21,43 @@
           <h1>题库管理</h1>
         </div>
         <div class="header-actions">
-          <button type="button" @click="loadQuestions">刷新题库</button>
+          <button type="button" @click="loadQuestions" aria-label="搜索题库">搜索题库</button>
           <LogoutButton />
         </div>
       </header>
 
       <section class="filter-bar" aria-label="题目筛选">
         <label>
+          题干搜索
+          <input v-model="filters.keyword" aria-label="题干搜索" placeholder="输入题干关键词" />
+        </label>
+        <label>
           知识点
           <select v-model="filters.knowledgePoint">
+            <option value="">全部</option>
             <option>集合框架</option>
+            <option>Java 基础</option>
             <option>JVM</option>
+            <option>并发编程</option>
           </select>
         </label>
         <label>
           难度
           <select v-model="filters.difficulty">
-            <option>INTERMEDIATE</option>
+            <option value="">全部</option>
             <option>BEGINNER</option>
+            <option>INTERMEDIATE</option>
             <option>ADVANCED</option>
           </select>
         </label>
         <label>
           题型
           <select v-model="filters.type">
+            <option value="">全部</option>
             <option>SINGLE_CHOICE</option>
+            <option>MULTIPLE_CHOICE</option>
+            <option>TRUE_FALSE</option>
+            <option>FILL_BLANK</option>
             <option>SHORT_ANSWER</option>
             <option>PROGRAMMING</option>
           </select>
@@ -71,6 +83,9 @@
                 <td>{{ question.difficulty }}</td>
                 <td>{{ question.type }}</td>
                 <td>{{ question.answer }}</td>
+              </tr>
+              <tr v-if="questions.length === 0">
+                <td colspan="5">暂无题目，请先导入或新增题目。</td>
               </tr>
             </tbody>
           </table>
@@ -101,15 +116,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { createQuestion, searchQuestions, type Question } from '../api'
 import LogoutButton from '../components/LogoutButton.vue'
 
 const filters = reactive({
-  knowledgePoint: '集合框架',
-  difficulty: 'INTERMEDIATE',
-  type: 'SINGLE_CHOICE'
+  keyword: '',
+  knowledgePoint: '',
+  difficulty: '',
+  type: ''
 })
 const draft = reactive({
   title: 'HashMap 默认负载因子是多少？',
@@ -127,10 +143,13 @@ const questions = ref<Question[]>([
   }
 ])
 
+onMounted(loadQuestions)
+
 async function loadQuestions() {
   statusMessage.value = ''
   try {
-    questions.value = await searchQuestions()
+    const result = await searchQuestions({ ...filters })
+    questions.value = Array.isArray(result) ? result : []
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '刷新题库失败。'
   }

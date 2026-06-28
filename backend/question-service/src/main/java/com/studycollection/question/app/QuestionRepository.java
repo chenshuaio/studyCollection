@@ -9,5 +9,5 @@ import java.util.List;
 public interface QuestionRepository {
     Question save(Question question);
 
-    List<Question> search(String knowledgePoint, Difficulty difficulty, QuestionType type);
+    List<Question> search(String keyword, String knowledgePoint, Difficulty difficulty, QuestionType type);
 }

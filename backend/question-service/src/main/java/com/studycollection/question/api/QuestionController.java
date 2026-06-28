@@ -38,10 +38,11 @@ public class QuestionController {
 
     @GetMapping
     public ApiResponse<List<Question>> search(
-            @RequestParam("knowledgePoint") String knowledgePoint,
-            @RequestParam("difficulty") Difficulty difficulty,
-            @RequestParam("type") QuestionType type
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "knowledgePoint", required = false) String knowledgePoint,
+            @RequestParam(value = "difficulty", required = false) Difficulty difficulty,
+            @RequestParam(value = "type", required = false) QuestionType type
     ) {
-        return ApiResponse.success(questionRepository.search(knowledgePoint, difficulty, type));
+        return ApiResponse.success(questionRepository.search(keyword, knowledgePoint, difficulty, type));
     }
 }

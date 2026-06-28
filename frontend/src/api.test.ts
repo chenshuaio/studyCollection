@@ -11,6 +11,7 @@ import {
   previewImport,
   recordMistake,
   rejectQuestionFeedback,
+  searchQuestions,
   submitPractice,
   submitQuestionFeedback,
   uploadKnowledgeFile
@@ -67,6 +68,26 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/imports/knowledge/generate', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/imports/knowledge/upload', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/practice/submit', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('searches all questions and supports fuzzy title keyword', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 'OK', data: [] })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 'OK', data: [{ id: 1, title: 'HashMap 默认负载因子是多少？' }] })
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await searchQuestions()
+    await searchQuestions({ keyword: 'HashMap' })
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions?keyword=HashMap', expect.objectContaining({ method: 'GET' }))
   })
 
   it('posts and reviews question feedback', async () => {

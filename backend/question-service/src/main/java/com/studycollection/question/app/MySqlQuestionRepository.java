@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 
 @Primary
@@ -65,12 +66,30 @@ public class MySqlQuestionRepository implements QuestionRepository {
     }
 
     @Override
-    public List<Question> search(String knowledgePoint, Difficulty difficulty, QuestionType type) {
-        return jdbcTemplate.query("""
+    public List<Question> search(String keyword, String knowledgePoint, Difficulty difficulty, QuestionType type) {
+        List<Object> args = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("""
                 select id, title, type, difficulty, knowledge_point, answer, analysis
                 from questions
-                where knowledge_point = ? and difficulty = ? and type = ?
-                order by id desc
-                """, rowMapper, knowledgePoint, difficulty.name(), type.name());
+                where 1 = 1
+                """);
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append(" and lower(title) like ?");
+            args.add("%" + keyword.toLowerCase() + "%");
+        }
+        if (knowledgePoint != null && !knowledgePoint.isBlank()) {
+            sql.append(" and knowledge_point = ?");
+            args.add(knowledgePoint);
+        }
+        if (difficulty != null) {
+            sql.append(" and difficulty = ?");
+            args.add(difficulty.name());
+        }
+        if (type != null) {
+            sql.append(" and type = ?");
+            args.add(type.name());
+        }
+        sql.append(" order by id desc");
+        return jdbcTemplate.query(sql.toString(), rowMapper, args.toArray());
     }
 }

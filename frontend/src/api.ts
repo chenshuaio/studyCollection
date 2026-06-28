@@ -41,6 +41,13 @@ export type Question = QuestionPayload & {
   id: number
 }
 
+export type QuestionSearchParams = {
+  keyword?: string
+  knowledgePoint?: string
+  difficulty?: string
+  type?: string
+}
+
 export type PreviewQuestion = {
   title: string
   answer: string
@@ -175,13 +182,15 @@ export function createQuestion(payload: QuestionPayload) {
   return post<Question>('/questions', payload)
 }
 
-export function searchQuestions() {
-  const params = new URLSearchParams({
-    knowledgePoint: '集合框架',
-    difficulty: 'INTERMEDIATE',
-    type: 'SINGLE_CHOICE'
+export function searchQuestions(filters: QuestionSearchParams = {}) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value)
+    }
   })
-  return request<Question[]>(`/questions?${params.toString()}`)
+  const query = params.toString()
+  return request<Question[]>(query ? `/questions?${query}` : '/questions', { method: 'GET' })
 }
 
 export function previewImport(content: string) {

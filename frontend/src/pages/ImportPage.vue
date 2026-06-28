@@ -37,7 +37,7 @@
         <article class="table-panel">
           <div class="panel-header">
             <h2>解析预览</h2>
-            <RouterLink class="button-link" to="/questions">确认入库</RouterLink>
+            <button class="button-link" type="button" aria-label="确认预览题入库" @click="savePreviewQuestions">确认入库</button>
           </div>
           <table>
             <thead>
@@ -128,9 +128,7 @@ B. null
 答案: A
 知识点: Java 基础
 难度: BEGINNER`)
-const knowledgeContent = ref(`HashMap 是 Java 集合框架中的常用 Map 实现。
-HashMap 默认负载因子是 0.75，达到阈值后会进行扩容。
-Java 中局部变量没有默认值，必须先赋值再使用。`)
+const knowledgeContent = ref('HashMap 是 Java 集合框架中的常用 Map 实现。HashMap 默认负载因子是 0.75，达到阈值后会进行扩容。Java 中局部变量没有默认值，必须先赋值再使用。')
 const previewStatus = ref('')
 const generationStatus = ref('')
 const previewQuestions = ref<PreviewQuestion[]>([
@@ -150,6 +148,25 @@ async function generatePreview() {
     previewStatus.value = '预览已由本地后端生成。'
   } catch (error) {
     previewStatus.value = error instanceof Error ? error.message : '生成预览失败，请检查本地后端是否启动。'
+  }
+}
+
+async function savePreviewQuestions() {
+  previewStatus.value = ''
+  try {
+    for (const question of previewQuestions.value) {
+      await createQuestion({
+        title: question.title,
+        type: 'SINGLE_CHOICE',
+        difficulty: question.difficulty,
+        knowledgePoint: question.knowledgePoint,
+        answer: question.answer,
+        analysis: '由导入预览确认入库'
+      })
+    }
+    previewStatus.value = `已入库 ${previewQuestions.value.length} 道预览题。`
+  } catch (error) {
+    previewStatus.value = error instanceof Error ? error.message : '预览题入库失败，请检查本地后端是否启动。'
   }
 }
 
