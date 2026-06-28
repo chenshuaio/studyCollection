@@ -307,6 +307,28 @@ th {
   width: 100%;
 }
 
+.file-upload {
+  align-items: center;
+  border: 1px dashed #b9c7da;
+  border-radius: 7px;
+  color: #344054;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  min-height: 46px;
+  padding: 0 12px;
+}
+
+.file-upload span {
+  color: #1f6feb;
+  font-weight: 700;
+}
+
+.file-upload input {
+  max-width: 220px;
+}
+
 .panel-header {
   align-items: center;
   display: flex;

@@ -22,8 +22,10 @@ describe('ImportPage', () => {
     expect(wrapper.text()).toContain('解析预览')
     expect(wrapper.text()).toContain('确认入库')
     expect(wrapper.text()).toContain('学习内容生成题库')
+    expect(wrapper.text()).toContain('上传学习资料')
     expect(wrapper.text()).toContain('分析生成题库')
     const knowledgeEditor = wrapper.find('textarea[aria-label="Java 学习知识内容"]').element as HTMLTextAreaElement
     expect(knowledgeEditor.value).toContain('HashMap 默认负载因子是 0.75')
+    expect(wrapper.find('input[aria-label="上传 Java 学习资料"]').exists()).toBe(true)
   })
 })

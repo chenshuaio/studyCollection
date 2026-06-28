@@ -55,7 +55,16 @@
 
         <article class="workspace-panel">
           <h2>学习内容生成题库</h2>
-          <p>粘贴 Java 学习知识内容，本地规则会提取知识点并生成可入库题目。</p>
+          <p>粘贴或上传 Java 学习资料，本地规则会提取知识点并生成可入库题目。</p>
+          <label class="file-upload">
+            <span>上传学习资料</span>
+            <input
+              type="file"
+              accept=".txt,.md,.csv,text/plain,text/markdown,text/csv"
+              aria-label="上传 Java 学习资料"
+              @change="uploadKnowledgeMaterial"
+            />
+          </label>
           <textarea class="import-editor" v-model="knowledgeContent" aria-label="Java 学习知识内容"></textarea>
           <p v-if="generationStatus" class="form-message">{{ generationStatus }}</p>
           <div class="action-row">
@@ -100,6 +109,7 @@ import {
   createQuestion,
   generateKnowledgeQuestions,
   previewImport,
+  uploadKnowledgeFile,
   type PreviewQuestion,
   type QuestionPayload
 } from '../api'
@@ -143,6 +153,23 @@ async function generateQuestionBank() {
     generationStatus.value = `已生成 ${generatedQuestions.value.length} 道题。`
   } catch (error) {
     generationStatus.value = error instanceof Error ? error.message : '分析失败，请检查本地后端是否启动。'
+  }
+}
+
+async function uploadKnowledgeMaterial(event: Event) {
+  generationStatus.value = ''
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) {
+    return
+  }
+  try {
+    generatedQuestions.value = await uploadKnowledgeFile(file)
+    generationStatus.value = `已从 ${file.name} 生成 ${generatedQuestions.value.length} 道题。`
+  } catch (error) {
+    generationStatus.value = error instanceof Error ? error.message : '上传分析失败，请检查文件格式或本地后端。'
+  } finally {
+    input.value = ''
   }
 }
 

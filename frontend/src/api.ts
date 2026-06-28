@@ -74,14 +74,7 @@ export type PracticeResult = {
   }>
 }
 
-async function request<T>(path: string, options: RequestInit = {}) {
-  const response = await fetch(`/api${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers
-    },
-    ...options
-  })
+async function parseApiResponse<T>(response: Response) {
   if (!response.ok) {
     throw new Error(`请求失败：${response.status}`)
   }
@@ -90,6 +83,17 @@ async function request<T>(path: string, options: RequestInit = {}) {
     throw new Error(payload.message)
   }
   return payload.data
+}
+
+async function request<T>(path: string, options: RequestInit = {}) {
+  const response = await fetch(`/api${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers
+    },
+    ...options
+  })
+  return parseApiResponse<T>(response)
 }
 
 function post<T>(path: string, body: unknown) {
@@ -126,6 +130,17 @@ export function previewImport(content: string) {
 
 export function generateKnowledgeQuestions(content: string) {
   return post<GeneratedQuestionBank>('/imports/knowledge/generate', { content }).then((bank) => bank.questions)
+}
+
+export function uploadKnowledgeFile(file: File) {
+  const body = new FormData()
+  body.append('file', file)
+  return fetch('/api/imports/knowledge/upload', {
+    method: 'POST',
+    body
+  })
+    .then((response) => parseApiResponse<GeneratedQuestionBank>(response))
+    .then((bank) => bank.questions)
 }
 
 export function submitPractice(answers: PracticeAnswer[]) {
