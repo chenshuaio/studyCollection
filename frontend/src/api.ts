@@ -92,6 +92,11 @@ export type AcceptFeedbackPayload = {
   reviewNote: string
 }
 
+export type ReviewFeedbackPayload = {
+  adminUserId: number
+  reviewNote: string
+}
+
 export type QuestionRevision = AcceptFeedbackPayload & {
   id: number
   questionId: number
@@ -212,6 +217,14 @@ export function listPendingFeedback() {
 
 export function acceptQuestionFeedback(feedbackId: number, payload: AcceptFeedbackPayload) {
   return post<QuestionRevision>(`/questions/feedback/${feedbackId}/accept`, payload)
+}
+
+export function rejectQuestionFeedback(feedbackId: number, payload: ReviewFeedbackPayload) {
+  return post<QuestionFeedback>(`/questions/feedback/${feedbackId}/reject`, payload)
+}
+
+export function markFeedbackNeedsReview(feedbackId: number, payload: ReviewFeedbackPayload) {
+  return post<QuestionFeedback>(`/questions/feedback/${feedbackId}/needs-review`, payload)
 }
 
 export function composeCustomExam(payload: CustomExamPayload) {

@@ -76,6 +76,26 @@ class LocalStudyCollectionApplicationTest {
                 "changeSummary", "根据反馈修订答案",
                 "reviewNote", "用户反馈属实"
         )));
+        assertOk(post("/questions/feedback", Map.of(
+                "userId", 7,
+                "questionId", 1,
+                "type", "ANSWER_ERROR",
+                "content", "原答案正确，请驳回"
+        )));
+        assertOk(post("/questions/feedback/2/reject", Map.of(
+                "adminUserId", 1,
+                "reviewNote", "核对后确认原答案正确"
+        )));
+        assertOk(post("/questions/feedback", Map.of(
+                "userId", 8,
+                "questionId", 2,
+                "type", "EXPLANATION_ERROR",
+                "content", "解析需要教研复核"
+        )));
+        assertOk(post("/questions/feedback/3/needs-review", Map.of(
+                "adminUserId", 1,
+                "reviewNote", "交给教研二次确认"
+        )));
     }
 
     private ResponseEntity<String> post(String path, Object body) {

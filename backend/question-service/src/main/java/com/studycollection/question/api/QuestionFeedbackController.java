@@ -53,4 +53,28 @@ public class QuestionFeedbackController {
                 request.reviewNote()
         ));
     }
+
+    @PostMapping("/{feedbackId}/reject")
+    public ApiResponse<QuestionFeedback> reject(
+            @PathVariable("feedbackId") Long feedbackId,
+            @RequestBody ReviewFeedbackRequest request
+    ) {
+        return ApiResponse.success(feedbackService.reject(
+                feedbackId,
+                request.adminUserId(),
+                request.reviewNote()
+        ));
+    }
+
+    @PostMapping("/{feedbackId}/needs-review")
+    public ApiResponse<QuestionFeedback> markNeedsReview(
+            @PathVariable("feedbackId") Long feedbackId,
+            @RequestBody ReviewFeedbackRequest request
+    ) {
+        return ApiResponse.success(feedbackService.markNeedsReview(
+                feedbackId,
+                request.adminUserId(),
+                request.reviewNote()
+        ));
+    }
 }

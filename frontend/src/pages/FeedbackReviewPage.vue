@@ -59,7 +59,7 @@
         </article>
 
         <article class="workspace-panel question-form">
-          <h2>采纳反馈</h2>
+          <h2>处理反馈</h2>
           <label>
             修订说明
             <textarea v-model="changeSummary" aria-label="修订说明"></textarea>
@@ -69,7 +69,11 @@
             <textarea v-model="reviewNote" aria-label="审核备注"></textarea>
           </label>
           <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
-          <button type="button" @click="acceptSelected">采纳并记录修订</button>
+          <div class="header-actions">
+            <button type="button" @click="acceptSelected">采纳并记录修订</button>
+            <button type="button" @click="rejectSelected">驳回反馈</button>
+            <button type="button" @click="markSelectedNeedsReview">标记待复核</button>
+          </div>
         </article>
       </section>
     </section>
@@ -79,7 +83,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { acceptQuestionFeedback, listPendingFeedback, type QuestionFeedback } from '../api'
+import {
+  acceptQuestionFeedback,
+  listPendingFeedback,
+  markFeedbackNeedsReview,
+  rejectQuestionFeedback,
+  type QuestionFeedback
+} from '../api'
 import LogoutButton from '../components/LogoutButton.vue'
 
 const feedbackItems = ref<QuestionFeedback[]>([])
@@ -101,8 +111,7 @@ async function loadFeedback() {
 }
 
 async function acceptSelected() {
-  if (!selectedFeedbackId.value) {
-    statusMessage.value = '请选择一条待处理反馈。'
+  if (!ensureSelected()) {
     return
   }
 
@@ -119,11 +128,68 @@ async function acceptSelected() {
   }
 }
 
+async function rejectSelected() {
+  if (!ensureSelected()) {
+    return
+  }
+
+  try {
+    await rejectQuestionFeedback(selectedFeedbackId.value, {
+      adminUserId: 1,
+      reviewNote: reviewNote.value
+    })
+    statusMessage.value = '反馈已驳回。'
+    await loadFeedback()
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '驳回反馈失败，请检查本地后端是否启动。'
+  }
+}
+
+async function markSelectedNeedsReview() {
+  if (!ensureSelected()) {
+    return
+  }
+
+  try {
+    await markFeedbackNeedsReview(selectedFeedbackId.value, {
+      adminUserId: 1,
+      reviewNote: reviewNote.value
+    })
+    statusMessage.value = '反馈已标记为待复核。'
+    await loadFeedback()
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '标记待复核失败，请检查本地后端是否启动。'
+  }
+}
+
+function ensureSelected() {
+  if (!selectedFeedbackId.value) {
+    statusMessage.value = '请选择一条待处理反馈。'
+    return false
+  }
+  return true
+}
+
 function typeText(type: string) {
-  return type === 'ANSWER_ERROR' ? '答案错误' : type
+  const names: Record<string, string> = {
+    ANSWER_ERROR: '答案错误',
+    EXPLANATION_ERROR: '解析错误',
+    STEM_ERROR: '题干错误',
+    OPTION_ERROR: '选项错误',
+    KNOWLEDGE_POINT_ERROR: '知识点错误',
+    DIFFICULTY_ERROR: '难度错误',
+    OTHER: '其他'
+  }
+  return names[type] ?? type
 }
 
 function statusText(status: string) {
-  return status === 'PENDING' ? '待处理' : status
+  const names: Record<string, string> = {
+    PENDING: '待处理',
+    ACCEPTED: '已采纳',
+    REJECTED: '已驳回',
+    NEEDS_REVIEW: '待复核'
+  }
+  return names[status] ?? status
 }
 </script>

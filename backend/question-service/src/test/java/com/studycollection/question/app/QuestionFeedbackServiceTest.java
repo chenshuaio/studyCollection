@@ -30,4 +30,28 @@ class QuestionFeedbackServiceTest {
         assertThat(revision.questionId()).isEqualTo(101L);
         assertThat(revision.changeSummary()).contains("答案从 A 修改为 B");
     }
+
+    @Test
+    void adminCanRejectFeedbackOrMarkItNeedsReview() {
+        QuestionFeedbackService service = new QuestionFeedbackService();
+        QuestionFeedback rejected = service.submit(
+                7L,
+                101L,
+                FeedbackType.ANSWER_ERROR,
+                "题目答案无误，用户理解有偏差"
+        );
+        QuestionFeedback needsReview = service.submit(
+                8L,
+                102L,
+                FeedbackType.EXPLANATION_ERROR,
+                "解析可能遗漏边界条件"
+        );
+
+        service.reject(rejected.id(), 1L, "核对题库后确认原答案正确");
+        service.markNeedsReview(needsReview.id(), 1L, "需要教研二次确认");
+
+        assertThat(service.find(rejected.id()).status()).isEqualTo(FeedbackStatus.REJECTED);
+        assertThat(service.find(needsReview.id()).status()).isEqualTo(FeedbackStatus.NEEDS_REVIEW);
+        assertThat(service.pending()).isEmpty();
+    }
 }

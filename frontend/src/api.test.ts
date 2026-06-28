@@ -7,8 +7,10 @@ import {
   listPendingFeedback,
   listMistakes,
   login,
+  markFeedbackNeedsReview,
   previewImport,
   recordMistake,
+  rejectQuestionFeedback,
   submitPractice,
   submitQuestionFeedback,
   uploadKnowledgeFile
@@ -236,5 +238,53 @@ describe('api client', () => {
     expect(mistakes).toHaveLength(1)
     expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/mistakes?userId=7', expect.objectContaining({ method: 'GET' }))
+  })
+
+  it('posts feedback rejection and needs-review actions', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: {
+            id: 1,
+            userId: 7,
+            questionId: 101,
+            type: 'ANSWER_ERROR',
+            content: '标准答案应为 B',
+            status: 'REJECTED'
+          }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: {
+            id: 2,
+            userId: 8,
+            questionId: 102,
+            type: 'EXPLANATION_ERROR',
+            content: '解析需要补充',
+            status: 'NEEDS_REVIEW'
+          }
+        })
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const rejected = await rejectQuestionFeedback(1, {
+      adminUserId: 1,
+      reviewNote: '原答案正确'
+    })
+    const needsReview = await markFeedbackNeedsReview(2, {
+      adminUserId: 1,
+      reviewNote: '需要二次复核'
+    })
+
+    expect(rejected.status).toBe('REJECTED')
+    expect(needsReview.status).toBe('NEEDS_REVIEW')
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/1/reject', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/2/needs-review', expect.objectContaining({ method: 'POST' }))
   })
 })

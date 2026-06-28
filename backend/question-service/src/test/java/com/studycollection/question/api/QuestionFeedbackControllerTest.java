@@ -37,4 +37,34 @@ class QuestionFeedbackControllerTest {
         assertThat(revision.questionId()).isEqualTo(101L);
         assertThat(controller.pending().data()).isEmpty();
     }
+
+    @Test
+    void adminCanRejectFeedbackOrMarkItNeedsReview() {
+        QuestionFeedbackController controller = new QuestionFeedbackController();
+        QuestionFeedback rejected = controller.submit(new SubmitFeedbackRequest(
+                7L,
+                101L,
+                FeedbackType.ANSWER_ERROR,
+                "标准答案应为 B"
+        )).data();
+        QuestionFeedback needsReview = controller.submit(new SubmitFeedbackRequest(
+                8L,
+                102L,
+                FeedbackType.EXPLANATION_ERROR,
+                "解析需要补充"
+        )).data();
+
+        QuestionFeedback rejectedResult = controller.reject(rejected.id(), new ReviewFeedbackRequest(
+                1L,
+                "原答案正确，驳回反馈"
+        )).data();
+        QuestionFeedback needsReviewResult = controller.markNeedsReview(needsReview.id(), new ReviewFeedbackRequest(
+                1L,
+                "交给教研复核"
+        )).data();
+
+        assertThat(rejectedResult.status()).isEqualTo(FeedbackStatus.REJECTED);
+        assertThat(needsReviewResult.status()).isEqualTo(FeedbackStatus.NEEDS_REVIEW);
+        assertThat(controller.pending().data()).isEmpty();
+    }
 }

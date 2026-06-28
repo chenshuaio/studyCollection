@@ -41,15 +41,7 @@ public class QuestionFeedbackService {
 
     public QuestionRevision accept(Long feedbackId, Long adminUserId, String changeSummary, String reviewNote) {
         QuestionFeedback feedback = find(feedbackId);
-        QuestionFeedback accepted = new QuestionFeedback(
-                feedback.id(),
-                feedback.userId(),
-                feedback.questionId(),
-                feedback.type(),
-                feedback.content(),
-                FeedbackStatus.ACCEPTED
-        );
-        feedbacks.put(feedbackId, accepted);
+        updateStatus(feedback, FeedbackStatus.ACCEPTED);
         return new QuestionRevision(
                 revisionIds.getAndIncrement(),
                 feedback.questionId(),
@@ -58,5 +50,37 @@ public class QuestionFeedbackService {
                 changeSummary,
                 reviewNote
         );
+    }
+
+    public QuestionFeedback reject(Long feedbackId, Long adminUserId, String reviewNote) {
+        return review(feedbackId, adminUserId, reviewNote, FeedbackStatus.REJECTED);
+    }
+
+    public QuestionFeedback markNeedsReview(Long feedbackId, Long adminUserId, String reviewNote) {
+        return review(feedbackId, adminUserId, reviewNote, FeedbackStatus.NEEDS_REVIEW);
+    }
+
+    private QuestionFeedback review(Long feedbackId, Long adminUserId, String reviewNote, FeedbackStatus status) {
+        QuestionFeedback feedback = find(feedbackId);
+        if (adminUserId == null) {
+            throw new IllegalArgumentException("管理员用户不能为空");
+        }
+        if (reviewNote == null || reviewNote.isBlank()) {
+            throw new IllegalArgumentException("审核备注不能为空");
+        }
+        return updateStatus(feedback, status);
+    }
+
+    private QuestionFeedback updateStatus(QuestionFeedback feedback, FeedbackStatus status) {
+        QuestionFeedback reviewed = new QuestionFeedback(
+                feedback.id(),
+                feedback.userId(),
+                feedback.questionId(),
+                feedback.type(),
+                feedback.content(),
+                status
+        );
+        feedbacks.put(feedback.id(), reviewed);
+        return reviewed;
     }
 }
