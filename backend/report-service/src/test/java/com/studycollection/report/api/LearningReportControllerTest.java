@@ -26,4 +26,21 @@ class LearningReportControllerTest {
         assertThat(report.adviceSource()).isEqualTo("RULES");
         assertThat(report.adviceContent()).contains("JVM");
     }
+
+    @Test
+    void onlineModeFallsBackToRulesWhenEndpointIsNotConfigured() {
+        LearningReportController controller = new LearningReportController();
+
+        LearningReportResponse report = controller.generate(new LearningReportRequest(
+                "ONLINE_MODEL",
+                List.of(
+                        new ReportResultRequest("集合框架", true),
+                        new ReportResultRequest("并发编程", false)
+                )
+        )).data();
+
+        assertThat(report.weakestKnowledgePoint()).isEqualTo("并发编程");
+        assertThat(report.adviceSource()).isEqualTo("RULES");
+        assertThat(report.adviceContent()).contains("在线模型暂不可用");
+    }
 }
