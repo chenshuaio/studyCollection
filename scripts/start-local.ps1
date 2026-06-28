@@ -4,6 +4,47 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Test-PortOpen {
+  param(
+    [string]$HostName,
+    [int]$Port
+  )
+
+  $client = [System.Net.Sockets.TcpClient]::new()
+  try {
+    $connect = $client.BeginConnect($HostName, $Port, $null, $null)
+    if (-not $connect.AsyncWaitHandle.WaitOne(500)) {
+      return $false
+    }
+    $client.EndConnect($connect)
+    return $true
+  } catch {
+    return $false
+  } finally {
+    $client.Close()
+  }
+}
+
+function Wait-LocalPort {
+  param(
+    [string]$Name,
+    [int]$Port,
+    [string]$LogPath,
+    [int]$TimeoutSeconds = 120
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  while ((Get-Date) -lt $deadline) {
+    if (Test-PortOpen -HostName "127.0.0.1" -Port $Port) {
+      Write-Host "$Name is ready on port $Port."
+      return
+    }
+    Start-Sleep -Seconds 1
+  }
+
+  throw "$Name did not become ready on port $Port within $TimeoutSeconds seconds. Check log: $LogPath"
+}
+
 $root = Split-Path -Parent $PSScriptRoot
 $stateDir = Join-Path $root ".local"
 $logDir = Join-Path $stateDir "logs"
@@ -50,7 +91,11 @@ $frontend = Start-Process powershell `
   "frontend=$($frontend.Id)"
 ) | Set-Content -Path $pidFile
 
-Write-Host "Local services are starting:"
+Write-Host "Local services are starting. Waiting for ports to become ready..."
+Wait-LocalPort -Name "Backend API" -Port 18080 -LogPath $backendLog
+Wait-LocalPort -Name "Frontend" -Port 5173 -LogPath $frontendLog
+
+Write-Host "Local services are ready:"
 Write-Host "- Backend API: http://127.0.0.1:18080"
 Write-Host "- Frontend: http://127.0.0.1:5173"
 Write-Host "- Logs: $logDir"
