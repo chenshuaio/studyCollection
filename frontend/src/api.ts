@@ -74,6 +74,30 @@ export type PracticeResult = {
   }>
 }
 
+export type QuestionFeedbackPayload = {
+  userId: number
+  questionId: number
+  type: string
+  content: string
+}
+
+export type QuestionFeedback = QuestionFeedbackPayload & {
+  id: number
+  status: string
+}
+
+export type AcceptFeedbackPayload = {
+  adminUserId: number
+  changeSummary: string
+  reviewNote: string
+}
+
+export type QuestionRevision = AcceptFeedbackPayload & {
+  id: number
+  questionId: number
+  feedbackId: number
+}
+
 async function parseApiResponse<T>(response: Response) {
   if (!response.ok) {
     throw new Error(`请求失败：${response.status}`)
@@ -145,4 +169,16 @@ export function uploadKnowledgeFile(file: File) {
 
 export function submitPractice(answers: PracticeAnswer[]) {
   return post<PracticeResult>('/practice/submit', { answers })
+}
+
+export function submitQuestionFeedback(payload: QuestionFeedbackPayload) {
+  return post<QuestionFeedback>('/questions/feedback', payload)
+}
+
+export function listPendingFeedback() {
+  return request<QuestionFeedback[]>('/questions/feedback/pending', { method: 'GET' })
+}
+
+export function acceptQuestionFeedback(feedbackId: number, payload: AcceptFeedbackPayload) {
+  return post<QuestionRevision>(`/questions/feedback/${feedbackId}/accept`, payload)
 }

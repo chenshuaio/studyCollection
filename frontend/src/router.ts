@@ -5,6 +5,7 @@ import RegisterPage from './pages/RegisterPage.vue'
 import QuestionBankPage from './pages/QuestionBankPage.vue'
 import ImportPage from './pages/ImportPage.vue'
 import PracticePage from './pages/PracticePage.vue'
+import FeedbackReviewPage from './pages/FeedbackReviewPage.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -14,6 +15,7 @@ export const router = createRouter({
     { path: '/dashboard', name: 'dashboard', component: DashboardPage },
     { path: '/questions', name: 'questions', component: QuestionBankPage },
     { path: '/import', name: 'import', component: ImportPage },
-    { path: '/practice', name: 'practice', component: PracticePage }
+    { path: '/practice', name: 'practice', component: PracticePage },
+    { path: '/feedback', name: 'feedback', component: FeedbackReviewPage }
   ]
 })

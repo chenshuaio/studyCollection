@@ -7,6 +7,7 @@
         <RouterLink to="/questions">题库管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
+        <RouterLink to="/feedback">反馈审核</RouterLink>
       </nav>
     </aside>
 
@@ -64,6 +65,19 @@
             </div>
           </dl>
         </article>
+
+        <article class="workspace-panel analysis-panel">
+          <h2>反馈题目问题</h2>
+          <p>如果你认为答案、解析或题干有误，可以提交给管理员审核。</p>
+          <textarea
+            class="feedback-editor"
+            v-model="feedbackContent"
+            aria-label="题目反馈内容"
+            placeholder="例如：标准答案应为 B，当前解析遗漏了扩容阈值。"
+          ></textarea>
+          <p v-if="feedbackStatus" class="form-message">{{ feedbackStatus }}</p>
+          <button type="button" @click="sendFeedback">提交反馈</button>
+        </article>
       </section>
     </section>
   </main>
@@ -72,7 +86,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { submitPractice, type PracticeResult } from '../api'
+import { submitPractice, submitQuestionFeedback, type PracticeResult } from '../api'
 
 const currentQuestion = {
   id: 1,
@@ -89,6 +103,8 @@ const currentQuestion = {
 const selectedAnswer = ref('A')
 const submitted = ref(false)
 const statusMessage = ref('')
+const feedbackStatus = ref('')
+const feedbackContent = ref('标准答案或解析可能有误，请管理员复核。')
 const backendResult = ref<PracticeResult | null>(null)
 
 const firstItem = computed(() => backendResult.value?.items[0])
@@ -114,10 +130,26 @@ async function submitAnswer() {
   }
 }
 
+async function sendFeedback() {
+  feedbackStatus.value = ''
+  try {
+    await submitQuestionFeedback({
+      userId: 7,
+      questionId: currentQuestion.id,
+      type: 'ANSWER_ERROR',
+      content: feedbackContent.value
+    })
+    feedbackStatus.value = '反馈已提交，管理员可在反馈审核页处理。'
+  } catch (error) {
+    feedbackStatus.value = error instanceof Error ? error.message : '反馈提交失败，请检查本地后端是否启动。'
+  }
+}
+
 function resetPractice() {
   selectedAnswer.value = 'A'
   submitted.value = false
   backendResult.value = null
   statusMessage.value = ''
+  feedbackStatus.value = ''
 }
 </script>

@@ -44,6 +44,18 @@ class LocalStudyCollectionApplicationTest {
                 难度: BEGINNER
                 """)));
         assertOk(post("/practice/submit", Map.of("answers", List.of(Map.of("questionId", 1, "answer", "A")))));
+        assertOk(post("/questions/feedback", Map.of(
+                "userId", 7,
+                "questionId", 1,
+                "type", "ANSWER_ERROR",
+                "content", "标准答案应为 B"
+        )));
+        assertOk(get("/questions/feedback/pending"));
+        assertOk(post("/questions/feedback/1/accept", Map.of(
+                "adminUserId", 1,
+                "changeSummary", "根据反馈修订答案",
+                "reviewNote", "用户反馈属实"
+        )));
     }
 
     private ResponseEntity<String> post(String path, Object body) {

@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { generateKnowledgeQuestions, login, previewImport, submitPractice, uploadKnowledgeFile } from './api'
+import {
+  acceptQuestionFeedback,
+  generateKnowledgeQuestions,
+  listPendingFeedback,
+  login,
+  previewImport,
+  submitPractice,
+  submitQuestionFeedback,
+  uploadKnowledgeFile
+} from './api'
 
 describe('api client', () => {
   afterEach(() => {
@@ -52,5 +61,75 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/imports/knowledge/generate', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/imports/knowledge/upload', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/practice/submit', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('posts and reviews question feedback', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: {
+            id: 1,
+            userId: 7,
+            questionId: 101,
+            type: 'ANSWER_ERROR',
+            content: '标准答案应为 B',
+            status: 'PENDING'
+          }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: [
+            {
+              id: 1,
+              userId: 7,
+              questionId: 101,
+              type: 'ANSWER_ERROR',
+              content: '标准答案应为 B',
+              status: 'PENDING'
+            }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: {
+            id: 1,
+            questionId: 101,
+            feedbackId: 1,
+            adminUserId: 1,
+            changeSummary: '答案从 A 修改为 B',
+            reviewNote: '用户反馈属实'
+          }
+        })
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const submitted = await submitQuestionFeedback({
+      userId: 7,
+      questionId: 101,
+      type: 'ANSWER_ERROR',
+      content: '标准答案应为 B'
+    })
+    const pending = await listPendingFeedback()
+    const revision = await acceptQuestionFeedback(1, {
+      adminUserId: 1,
+      changeSummary: '答案从 A 修改为 B',
+      reviewNote: '用户反馈属实'
+    })
+
+    expect(submitted.status).toBe('PENDING')
+    expect(pending).toHaveLength(1)
+    expect(revision.changeSummary).toContain('答案从 A 修改为 B')
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/pending', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/1/accept', expect.objectContaining({ method: 'POST' }))
   })
 })

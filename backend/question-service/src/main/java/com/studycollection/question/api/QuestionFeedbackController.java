@@ -43,7 +43,7 @@ public class QuestionFeedbackController {
 
     @PostMapping("/{feedbackId}/accept")
     public ApiResponse<QuestionRevision> accept(
-            @PathVariable Long feedbackId,
+            @PathVariable("feedbackId") Long feedbackId,
             @RequestBody AcceptFeedbackRequest request
     ) {
         return ApiResponse.success(feedbackService.accept(

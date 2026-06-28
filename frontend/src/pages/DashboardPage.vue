@@ -8,7 +8,7 @@
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <a href="#exam">自定义组卷</a>
-        <a href="#feedback">错题反馈</a>
+        <RouterLink to="/feedback">反馈审核</RouterLink>
         <a href="#report">AI 分析</a>
       </nav>
     </aside>
@@ -54,7 +54,7 @@
         <article id="feedback" class="workspace-panel">
           <h2>错题反馈</h2>
           <p>发现答案或解析错误时提交反馈，管理员审核后修订题库。</p>
-          <button type="button">查看反馈</button>
+          <RouterLink class="button-link" to="/feedback">查看反馈</RouterLink>
         </article>
         <article id="report" class="workspace-panel">
           <h2>AI 分析</h2>
