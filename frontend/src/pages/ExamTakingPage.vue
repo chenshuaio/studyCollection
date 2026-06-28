@@ -133,7 +133,7 @@ const currentUserId = getCurrentUser()?.userId ?? 7
 
 if (paper.value) {
   paper.value.questions.forEach((question) => {
-    answers[question.id] = question.options[0]?.value ?? ''
+    answers[question.id] = ''
   })
 }
 
@@ -156,6 +156,10 @@ async function submitExam() {
     return
   }
   statusMessage.value = ''
+  if (paper.value.questions.some((question) => !answers[question.id])) {
+    statusMessage.value = '请先完成所有题目后再提交。'
+    return
+  }
   try {
     result.value = await submitUserPractice(
       currentUserId,

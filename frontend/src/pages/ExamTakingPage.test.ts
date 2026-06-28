@@ -119,7 +119,16 @@ describe('ExamTakingPage', () => {
     expect(wrapper.text()).toContain('HashMap 默认负载因子是多少？')
     expect(wrapper.text()).toContain('Java 局部变量必须先赋值再使用')
     expect(wrapper.text()).toContain('ArrayList 扩容通常发生在什么时候？')
+    expect(wrapper.findAll('input[type="radio"]:checked')).toHaveLength(0)
 
+    await wrapper.find('button[type="button"]').trigger('click')
+    await flushPromises()
+
+    expect(submitUserPractice).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('请先完成所有题目后再提交。')
+
+    await wrapper.find('input[name="question-1"][value="A"]').setValue()
+    await wrapper.find('input[name="question-2"][value="true"]').setValue()
     await wrapper.find('input[name="question-3"][value="B"]').setValue()
     await wrapper.find('button[type="button"]').trigger('click')
     await flushPromises()
