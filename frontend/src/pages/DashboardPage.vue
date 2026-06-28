@@ -7,7 +7,7 @@
         <RouterLink to="/questions">题库管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
-        <a href="#exam">自定义组卷</a>
+        <RouterLink to="/exams">考试中心</RouterLink>
         <RouterLink to="/feedback">反馈审核</RouterLink>
         <a href="#report">AI 分析</a>
       </nav>
@@ -52,7 +52,7 @@
         <article id="exam" class="workspace-panel">
           <h2>自定义组卷</h2>
           <p>按知识点、难度、题型筛选题目，也可以手动组合生成考试卷。</p>
-          <RouterLink class="button-link" to="/practice">开始练习</RouterLink>
+          <RouterLink class="button-link" to="/exams">创建考试卷</RouterLink>
         </article>
         <article id="feedback" class="workspace-panel">
           <h2>错题反馈</h2>

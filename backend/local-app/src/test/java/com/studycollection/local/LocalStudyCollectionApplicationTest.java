@@ -44,6 +44,11 @@ class LocalStudyCollectionApplicationTest {
                 难度: BEGINNER
                 """)));
         assertOk(post("/practice/submit", Map.of("answers", List.of(Map.of("questionId", 1, "answer", "A")))));
+        assertOk(post("/exams/custom", Map.of(
+                "name", "集合专项测试",
+                "durationMinutes", 45,
+                "questionIds", List.of(1, 2)
+        )));
         assertOk(post("/questions/feedback", Map.of(
                 "userId", 7,
                 "questionId", 1,

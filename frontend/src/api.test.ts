@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   acceptQuestionFeedback,
+  composeCustomExam,
   generateKnowledgeQuestions,
   listPendingFeedback,
   login,
@@ -131,5 +132,30 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/pending', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/1/accept', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('creates custom exam papers', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 'OK',
+        data: {
+          name: '集合专项测试',
+          durationMinutes: 45,
+          questionIds: [1, 2, 3]
+        }
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const paper = await composeCustomExam({
+      name: '集合专项测试',
+      durationMinutes: 45,
+      questionIds: [1, 2, 3]
+    })
+
+    expect(paper.name).toBe('集合专项测试')
+    expect(paper.questionIds).toEqual([1, 2, 3])
+    expect(fetchMock).toHaveBeenCalledWith('/api/exams/custom', expect.objectContaining({ method: 'POST' }))
   })
 })

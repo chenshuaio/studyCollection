@@ -98,6 +98,14 @@ export type QuestionRevision = AcceptFeedbackPayload & {
   feedbackId: number
 }
 
+export type CustomExamPayload = {
+  name: string
+  durationMinutes: number
+  questionIds: number[]
+}
+
+export type CustomExamPaper = CustomExamPayload
+
 async function parseApiResponse<T>(response: Response) {
   if (!response.ok) {
     throw new Error(`请求失败：${response.status}`)
@@ -181,4 +189,8 @@ export function listPendingFeedback() {
 
 export function acceptQuestionFeedback(feedbackId: number, payload: AcceptFeedbackPayload) {
   return post<QuestionRevision>(`/questions/feedback/${feedbackId}/accept`, payload)
+}
+
+export function composeCustomExam(payload: CustomExamPayload) {
+  return post<CustomExamPaper>('/exams/custom', payload)
 }

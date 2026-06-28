@@ -7,6 +7,7 @@
         <RouterLink to="/questions">题库管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
+        <RouterLink to="/exams">考试中心</RouterLink>
         <a href="#new-question">新增题目</a>
       </nav>
     </aside>
