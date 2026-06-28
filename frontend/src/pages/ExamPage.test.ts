@@ -1,13 +1,21 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ExamPage from './ExamPage.vue'
 
 const routerLinkStub = {
   props: ['to'],
-  template: '<a><slot /></a>'
+  template: '<a :href="to"><slot /></a>'
 }
 
 describe('ExamPage', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('renders custom exam composition workflow', async () => {
     vi.stubGlobal(
       'fetch',
@@ -44,7 +52,11 @@ describe('ExamPage', () => {
     expect(wrapper.text()).toContain('集合专项测试')
     expect(wrapper.text()).toContain('45 分钟')
     expect(wrapper.text()).toContain('共 3 题')
+    expect(wrapper.find('a[href="/exams/take"]').exists()).toBe(true)
 
-    vi.unstubAllGlobals()
+    const savedPaper = JSON.parse(window.sessionStorage.getItem('studyCollectionExamPaper') ?? '{}')
+    expect(savedPaper.questionIds).toEqual([1, 2, 3])
+    expect(savedPaper.questions).toHaveLength(3)
+    expect(savedPaper.questions[0].title).toBe('HashMap 默认负载因子是多少？')
   })
 })

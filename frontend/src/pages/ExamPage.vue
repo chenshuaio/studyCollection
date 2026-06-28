@@ -73,7 +73,7 @@
             <h3>{{ createdPaper.name }}</h3>
             <p>{{ createdPaper.durationMinutes }} 分钟</p>
             <p>共 {{ createdPaper.questionIds.length }} 题</p>
-            <RouterLink class="button-link" to="/practice">进入答题</RouterLink>
+            <RouterLink class="button-link" to="/exams/take">进入答题</RouterLink>
           </section>
         </aside>
       </section>
@@ -91,20 +91,45 @@ const availableQuestions = [
   {
     id: 1,
     title: 'HashMap 默认负载因子是多少？',
+    type: 'SINGLE_CHOICE',
     knowledgePoint: '集合框架',
-    difficulty: 'INTERMEDIATE'
+    difficulty: 'INTERMEDIATE',
+    answer: 'A',
+    analysis: 'HashMap 默认负载因子是 0.75，达到阈值后会触发扩容。',
+    options: [
+      { value: 'A', label: '0.75' },
+      { value: 'B', label: '0.5' },
+      { value: 'C', label: '1.0' },
+      { value: 'D', label: '2.0' }
+    ]
   },
   {
     id: 2,
-    title: 'Java 局部变量是否有默认值？',
+    title: 'Java 局部变量必须先赋值再使用，这句话是否正确？',
+    type: 'TRUE_FALSE',
     knowledgePoint: 'Java 基础',
-    difficulty: 'BEGINNER'
+    difficulty: 'BEGINNER',
+    answer: 'true',
+    analysis: 'Java 局部变量没有默认值，必须先赋值再使用。',
+    options: [
+      { value: 'true', label: '正确' },
+      { value: 'false', label: '错误' }
+    ]
   },
   {
     id: 3,
     title: 'ArrayList 扩容通常发生在什么时候？',
+    type: 'SINGLE_CHOICE',
     knowledgePoint: '集合框架',
-    difficulty: 'INTERMEDIATE'
+    difficulty: 'INTERMEDIATE',
+    answer: 'A',
+    analysis: 'ArrayList 在容量不足以容纳新增元素时会触发扩容。',
+    options: [
+      { value: 'A', label: '容量不足以容纳新增元素时' },
+      { value: 'B', label: '每次新增元素时' },
+      { value: 'C', label: '调用 get 方法时' },
+      { value: 'D', label: '创建对象时立即扩容' }
+    ]
   }
 ]
 
@@ -118,12 +143,26 @@ const createdPaper = ref<CustomExamPaper | null>(null)
 
 async function createPaper() {
   statusMessage.value = ''
+  if (selectedQuestionIds.value.length === 0) {
+    createdPaper.value = null
+    statusMessage.value = '请至少选择一道题。'
+    return
+  }
+
   try {
     createdPaper.value = await composeCustomExam({
       name: draft.name,
       durationMinutes: draft.durationMinutes,
       questionIds: selectedQuestionIds.value
     })
+    const selectedQuestions = availableQuestions.filter((question) => selectedQuestionIds.value.includes(question.id))
+    window.sessionStorage.setItem(
+      'studyCollectionExamPaper',
+      JSON.stringify({
+        ...createdPaper.value,
+        questions: selectedQuestions
+      })
+    )
     statusMessage.value = '考试卷已生成，可以进入答题流程。'
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '生成考试卷失败，请检查本地后端是否启动。'

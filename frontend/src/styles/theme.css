@@ -387,6 +387,45 @@ th {
   grid-template-columns: minmax(0, 1fr) 320px;
 }
 
+.exam-taking-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.exam-paper-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.paper-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.paper-toolbar span {
+  background: #eef2f7;
+  border-radius: 999px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.exam-question-card {
+  border-top: 1px solid #edf1f6;
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+}
+
+.exam-question-card h2 {
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .practice-question {
   display: grid;
   gap: 18px;
@@ -533,6 +572,7 @@ th {
   .filter-bar,
   .question-layout,
   .import-layout,
+  .exam-taking-layout,
   .practice-layout,
   .analysis-panel dl {
     grid-template-columns: 1fr;

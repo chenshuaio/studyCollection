@@ -42,6 +42,7 @@ public class PracticeController {
         Map<Long, PracticeQuestion> questions = new LinkedHashMap<>();
         questions.put(1L, new PracticeQuestion("A", "HashMap 默认负载因子是 0.75，达到阈值后会触发扩容。"));
         questions.put(2L, new PracticeQuestion("true", "Java 基本类型局部变量没有默认值，必须先赋值再使用。"));
+        questions.put(3L, new PracticeQuestion("A", "ArrayList 在容量不足以容纳新增元素时会触发扩容。"));
         return questions;
     }
 
