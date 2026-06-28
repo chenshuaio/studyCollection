@@ -3,6 +3,7 @@ import {
   acceptQuestionFeedback,
   composeCustomExam,
   generateKnowledgeQuestions,
+  generateLearningReport,
   listPendingFeedback,
   login,
   previewImport,
@@ -157,5 +158,33 @@ describe('api client', () => {
     expect(paper.name).toBe('集合专项测试')
     expect(paper.questionIds).toEqual([1, 2, 3])
     expect(fetchMock).toHaveBeenCalledWith('/api/exams/custom', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('generates learning reports with selectable analysis mode', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 'OK',
+        data: {
+          weakestKnowledgePoint: 'JVM',
+          recommendation: '建议优先强化 JVM',
+          adviceSource: 'RULES',
+          adviceContent: '规则分析建议：请针对 JVM 继续练习。'
+        }
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const report = await generateLearningReport({
+      mode: 'OFFLINE_RULES',
+      results: [
+        { knowledgePoint: '集合框架', correct: true },
+        { knowledgePoint: 'JVM', correct: false }
+      ]
+    })
+
+    expect(report.weakestKnowledgePoint).toBe('JVM')
+    expect(report.adviceSource).toBe('RULES')
+    expect(fetchMock).toHaveBeenCalledWith('/api/reports/learning', expect.objectContaining({ method: 'POST' }))
   })
 })

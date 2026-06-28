@@ -499,6 +499,32 @@ th {
   margin: 0 0 8px;
 }
 
+.report-card dl {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 0 16px;
+}
+
+.report-card dl div {
+  background: #f8fafc;
+  border: 1px solid #edf1f6;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.report-card dt {
+  color: #667085;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.report-card dd {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+}
+
 @media (max-width: 860px) {
   .login-shell,
   .dashboard-shell,

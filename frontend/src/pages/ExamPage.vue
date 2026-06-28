@@ -8,6 +8,7 @@
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
+        <RouterLink to="/reports">学习报告</RouterLink>
         <RouterLink to="/feedback">反馈审核</RouterLink>
       </nav>
     </aside>

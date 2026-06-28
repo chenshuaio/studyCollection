@@ -9,7 +9,7 @@
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
         <RouterLink to="/feedback">反馈审核</RouterLink>
-        <a href="#report">AI 分析</a>
+        <RouterLink to="/reports">学习报告</RouterLink>
       </nav>
     </aside>
 
@@ -62,7 +62,7 @@
         <article id="report" class="workspace-panel">
           <h2>AI 分析</h2>
           <p>在线模型开启时生成学习建议；关闭时使用规则分析薄弱点。</p>
-          <button type="button">生成报告</button>
+          <RouterLink class="button-link" to="/reports">生成报告</RouterLink>
         </article>
       </section>
     </section>

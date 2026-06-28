@@ -106,6 +106,21 @@ export type CustomExamPayload = {
 
 export type CustomExamPaper = CustomExamPayload
 
+export type LearningReportPayload = {
+  mode: 'ONLINE_MODEL' | 'OFFLINE_RULES'
+  results: Array<{
+    knowledgePoint: string
+    correct: boolean
+  }>
+}
+
+export type LearningReport = {
+  weakestKnowledgePoint: string
+  recommendation: string
+  adviceSource: string
+  adviceContent: string
+}
+
 async function parseApiResponse<T>(response: Response) {
   if (!response.ok) {
     throw new Error(`请求失败：${response.status}`)
@@ -193,4 +208,8 @@ export function acceptQuestionFeedback(feedbackId: number, payload: AcceptFeedba
 
 export function composeCustomExam(payload: CustomExamPayload) {
   return post<CustomExamPaper>('/exams/custom', payload)
+}
+
+export function generateLearningReport(payload: LearningReportPayload) {
+  return post<LearningReport>('/reports/learning', payload)
 }

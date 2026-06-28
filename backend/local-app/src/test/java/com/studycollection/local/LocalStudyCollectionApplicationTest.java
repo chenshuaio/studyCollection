@@ -49,6 +49,13 @@ class LocalStudyCollectionApplicationTest {
                 "durationMinutes", 45,
                 "questionIds", List.of(1, 2)
         )));
+        assertOk(post("/reports/learning", Map.of(
+                "mode", "OFFLINE_RULES",
+                "results", List.of(
+                        Map.of("knowledgePoint", "集合框架", "correct", true),
+                        Map.of("knowledgePoint", "JVM", "correct", false)
+                )
+        )));
         assertOk(post("/questions/feedback", Map.of(
                 "userId", 7,
                 "questionId", 1,
