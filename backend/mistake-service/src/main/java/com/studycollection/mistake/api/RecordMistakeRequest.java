@@ -1,6 +1,6 @@
-package com.studycollection.mistake.domain;
+package com.studycollection.mistake.api;
 
-public record MistakeRecord(
+public record RecordMistakeRequest(
         Long userId,
         Long questionId,
         String questionTitle,

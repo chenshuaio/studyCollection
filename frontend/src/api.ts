@@ -121,6 +121,14 @@ export type LearningReport = {
   adviceContent: string
 }
 
+export type MistakeRecord = {
+  userId: number
+  questionId: number
+  questionTitle: string
+  knowledgePoint: string
+  status: string
+}
+
 async function parseApiResponse<T>(response: Response) {
   if (!response.ok) {
     throw new Error(`请求失败：${response.status}`)
@@ -212,4 +220,13 @@ export function composeCustomExam(payload: CustomExamPayload) {
 
 export function generateLearningReport(payload: LearningReportPayload) {
   return post<LearningReport>('/reports/learning', payload)
+}
+
+export function recordMistake(payload: MistakeRecord) {
+  return post<MistakeRecord>('/mistakes', payload)
+}
+
+export function listMistakes(userId: number) {
+  const params = new URLSearchParams({ userId: String(userId) })
+  return request<MistakeRecord[]>(`/mistakes?${params.toString()}`, { method: 'GET' })
 }

@@ -56,6 +56,14 @@ class LocalStudyCollectionApplicationTest {
                         Map.of("knowledgePoint", "JVM", "correct", false)
                 )
         )));
+        assertOk(post("/mistakes", Map.of(
+                "userId", 7,
+                "questionId", 1,
+                "questionTitle", "HashMap 默认负载因子是多少？",
+                "knowledgePoint", "集合框架",
+                "status", "PENDING"
+        )));
+        assertOk(get("/mistakes?userId=7"));
         assertOk(post("/questions/feedback", Map.of(
                 "userId", 7,
                 "questionId", 1,

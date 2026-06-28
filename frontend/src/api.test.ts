@@ -5,8 +5,10 @@ import {
   generateKnowledgeQuestions,
   generateLearningReport,
   listPendingFeedback,
+  listMistakes,
   login,
   previewImport,
+  recordMistake,
   submitPractice,
   submitQuestionFeedback,
   uploadKnowledgeFile
@@ -186,5 +188,53 @@ describe('api client', () => {
     expect(report.weakestKnowledgePoint).toBe('JVM')
     expect(report.adviceSource).toBe('RULES')
     expect(fetchMock).toHaveBeenCalledWith('/api/reports/learning', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('records and lists user mistakes', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: {
+            userId: 7,
+            questionId: 1,
+            questionTitle: 'HashMap 默认负载因子是多少？',
+            knowledgePoint: '集合框架',
+            status: 'PENDING'
+          }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: [
+            {
+              userId: 7,
+              questionId: 1,
+              questionTitle: 'HashMap 默认负载因子是多少？',
+              knowledgePoint: '集合框架',
+              status: 'PENDING'
+            }
+          ]
+        })
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const recorded = await recordMistake({
+      userId: 7,
+      questionId: 1,
+      questionTitle: 'HashMap 默认负载因子是多少？',
+      knowledgePoint: '集合框架',
+      status: 'PENDING'
+    })
+    const mistakes = await listMistakes(7)
+
+    expect(recorded.status).toBe('PENDING')
+    expect(mistakes).toHaveLength(1)
+    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes?userId=7', expect.objectContaining({ method: 'GET' }))
   })
 })
