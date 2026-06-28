@@ -65,7 +65,7 @@ mysql -u root -proot < scripts/mysql-init.sql
 
 - `POST /imports/preview`：提交结构化 Markdown/TXT 题目内容，返回题目预览列表。
 - `POST /imports/knowledge/generate`：提交 Java 学习知识内容，返回可入库的题库草稿。
-- `POST /imports/knowledge/upload`：上传 Java 学习资料文件，字段名为 `file`，当前支持 `.txt`、`.md`、`.csv` 等 UTF-8 文本类资料，返回可入库的题库草稿。
+- `POST /imports/knowledge/upload`：上传 Java 学习资料文件，字段名为 `file`，当前支持 `.txt`、`.md`、`.csv`、`.docx`、`.pdf`，返回可入库的题库草稿。
 
 结构化题目格式示例：
 

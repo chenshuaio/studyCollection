@@ -60,7 +60,7 @@
             <span>上传学习资料</span>
             <input
               type="file"
-              accept=".txt,.md,.csv,text/plain,text/markdown,text/csv"
+              accept=".txt,.md,.csv,.docx,.pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
               aria-label="上传 Java 学习资料"
               @change="uploadKnowledgeMaterial"
             />
