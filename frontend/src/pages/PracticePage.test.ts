@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import PracticePage from './PracticePage.vue'
-import { recordMistake, submitUserPractice } from '../api'
+import { recordMistake, searchQuestions, submitUserPractice } from '../api'
 
 vi.mock('../api', () => ({
+  searchQuestions: vi.fn(),
   submitUserPractice: vi.fn(),
   submitQuestionFeedback: vi.fn(),
   recordMistake: vi.fn()
@@ -15,7 +16,24 @@ const routerLinkStub = {
 }
 
 describe('PracticePage', () => {
-  it('renders practice answering and question feedback workflow', () => {
+  beforeEach(() => {
+    vi.mocked(searchQuestions).mockReset()
+    vi.mocked(submitUserPractice).mockReset()
+    vi.mocked(recordMistake).mockReset()
+    vi.mocked(searchQuestions).mockResolvedValue([
+      {
+        id: 88,
+        title: 'JVM 栈内存主要保存什么？',
+        type: 'SHORT_ANSWER',
+        difficulty: 'BEGINNER',
+        knowledgePoint: 'JVM',
+        answer: '栈帧',
+        analysis: '虚拟机栈保存方法调用的栈帧。'
+      }
+    ])
+  })
+
+  it('renders practice answering and question feedback workflow', async () => {
     const wrapper = mount(PracticePage, {
       global: {
         stubs: {
@@ -24,9 +42,11 @@ describe('PracticePage', () => {
         }
       }
     })
+    await flushPromises()
 
     expect(wrapper.text()).toContain('练习中心')
-    expect(wrapper.text()).toContain('HashMap 默认负载因子是多少？')
+    expect(searchQuestions).toHaveBeenCalledWith()
+    expect(wrapper.text()).toContain('JVM 栈内存主要保存什么？')
     expect(wrapper.text()).toContain('提交答案')
     expect(wrapper.text()).toContain('答案解析')
     expect(wrapper.text()).toContain('得分')
@@ -41,20 +61,20 @@ describe('PracticePage', () => {
       totalScore: 10,
       items: [
         {
-          questionId: 1,
-          submittedAnswer: 'B',
-          correctAnswer: 'A',
+          questionId: 88,
+          submittedAnswer: '堆对象',
+          correctAnswer: '栈帧',
           correct: false,
           score: 0,
-          analysis: 'HashMap 默认负载因子是 0.75'
+          analysis: '虚拟机栈保存方法调用的栈帧。'
         }
       ]
     })
     vi.mocked(recordMistake).mockResolvedValue({
       userId: 7,
-      questionId: 1,
-      questionTitle: 'HashMap 默认负载因子是多少？',
-      knowledgePoint: '集合框架',
+      questionId: 88,
+      questionTitle: 'JVM 栈内存主要保存什么？',
+      knowledgePoint: 'JVM',
       status: 'PENDING'
     })
 
@@ -66,17 +86,23 @@ describe('PracticePage', () => {
         }
       }
     })
+    await flushPromises()
 
-    await wrapper.find('input[value="B"]').setValue()
+    await wrapper.find('input[aria-label="练习答案"]').setValue('堆对象')
     await wrapper.findAll('button')[1].trigger('click')
     await flushPromises()
 
-    expect(submitUserPractice).toHaveBeenCalledWith(7, [{ questionId: 1, answer: 'B' }])
+    expect(submitUserPractice).toHaveBeenCalledWith(7, [{
+      questionId: 88,
+      answer: '堆对象',
+      correctAnswer: '栈帧',
+      analysis: '虚拟机栈保存方法调用的栈帧。'
+    }])
     expect(recordMistake).toHaveBeenCalledWith({
       userId: 7,
-      questionId: 1,
-      questionTitle: expect.stringContaining('HashMap'),
-      knowledgePoint: expect.any(String),
+      questionId: 88,
+      questionTitle: 'JVM 栈内存主要保存什么？',
+      knowledgePoint: 'JVM',
       status: 'PENDING'
     })
   })

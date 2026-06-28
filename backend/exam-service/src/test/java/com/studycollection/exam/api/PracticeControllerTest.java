@@ -46,4 +46,19 @@ class PracticeControllerTest {
         assertThat(stats.answeredQuestionCount()).isEqualTo(3);
         assertThat(stats.correctQuestionCount()).isEqualTo(2);
     }
+
+    @Test
+    void scoresQuestionBankSnapshotAnswers() {
+        PracticeController controller = new PracticeController();
+
+        PracticeResult result = controller.submit(new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(99L, "0.75", "0.75", "HashMap 默认负载因子是 0.75。")
+        ), 7L)).data();
+
+        assertThat(result.score()).isEqualTo(10);
+        assertThat(result.totalScore()).isEqualTo(10);
+        assertThat(result.items().get(0).questionId()).isEqualTo(99L);
+        assertThat(result.items().get(0).correct()).isTrue();
+        assertThat(result.items().get(0).analysis()).contains("HashMap");
+    }
 }

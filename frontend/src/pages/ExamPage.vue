@@ -83,68 +83,36 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { composeCustomExam, type CustomExamPaper } from '../api'
+import { composeCustomExam, searchQuestions, type CustomExamPaper, type Question } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
 
 const isAdminUser = isAdmin()
 
-const availableQuestions = [
-  {
-    id: 1,
-    title: 'HashMap 默认负载因子是多少？',
-    type: 'SINGLE_CHOICE',
-    knowledgePoint: '集合框架',
-    difficulty: 'INTERMEDIATE',
-    answer: 'A',
-    analysis: 'HashMap 默认负载因子是 0.75，达到阈值后会触发扩容。',
-    options: [
-      { value: 'A', label: '0.75' },
-      { value: 'B', label: '0.5' },
-      { value: 'C', label: '1.0' },
-      { value: 'D', label: '2.0' }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Java 局部变量必须先赋值再使用，这句话是否正确？',
-    type: 'TRUE_FALSE',
-    knowledgePoint: 'Java 基础',
-    difficulty: 'BEGINNER',
-    answer: 'true',
-    analysis: 'Java 局部变量没有默认值，必须先赋值再使用。',
-    options: [
-      { value: 'true', label: '正确' },
-      { value: 'false', label: '错误' }
-    ]
-  },
-  {
-    id: 3,
-    title: 'ArrayList 扩容通常发生在什么时候？',
-    type: 'SINGLE_CHOICE',
-    knowledgePoint: '集合框架',
-    difficulty: 'INTERMEDIATE',
-    answer: 'A',
-    analysis: 'ArrayList 在容量不足以容纳新增元素时会触发扩容。',
-    options: [
-      { value: 'A', label: '容量不足以容纳新增元素时' },
-      { value: 'B', label: '每次新增元素时' },
-      { value: 'C', label: '调用 get 方法时' },
-      { value: 'D', label: '创建对象时立即扩容' }
-    ]
-  }
-]
+const availableQuestions = ref<Question[]>([])
 
 const draft = reactive({
   name: '集合专项测试',
   durationMinutes: 45
 })
-const selectedQuestionIds = ref<number[]>([1, 2, 3])
+const selectedQuestionIds = ref<number[]>([])
 const statusMessage = ref('')
 const createdPaper = ref<CustomExamPaper | null>(null)
+
+onMounted(loadQuestions)
+
+async function loadQuestions() {
+  statusMessage.value = ''
+  try {
+    availableQuestions.value = await searchQuestions()
+    selectedQuestionIds.value = availableQuestions.value.map((question) => question.id)
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '加载题库失败，请检查本地后端是否启动。'
+  }
+}
 
 async function createPaper() {
   statusMessage.value = ''
@@ -160,7 +128,7 @@ async function createPaper() {
       durationMinutes: draft.durationMinutes,
       questionIds: selectedQuestionIds.value
     })
-    const selectedQuestions = availableQuestions.filter((question) => selectedQuestionIds.value.includes(question.id))
+    const selectedQuestions = availableQuestions.value.filter((question) => selectedQuestionIds.value.includes(question.id))
     window.sessionStorage.setItem(
       'studyCollectionExamPaper',
       JSON.stringify({

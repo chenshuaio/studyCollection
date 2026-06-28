@@ -75,6 +75,8 @@ type GeneratedQuestionBank = {
 export type PracticeAnswer = {
   questionId: number
   answer: string
+  correctAnswer?: string
+  analysis?: string
 }
 
 export type PracticeResult = {

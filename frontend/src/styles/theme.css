@@ -494,6 +494,21 @@ th {
   padding: 0 14px;
 }
 
+.answer-field {
+  color: #344054;
+  display: grid;
+  gap: 8px;
+}
+
+.answer-field input {
+  border: 1px solid #cfd8e6;
+  border-radius: 7px;
+  color: #172033;
+  font: inherit;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
 .score-panel strong {
   display: block;
   font-size: 34px;

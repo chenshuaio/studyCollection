@@ -29,18 +29,16 @@
 
       <section class="practice-layout">
         <article class="workspace-panel practice-question">
-          <div class="question-meta">
-            <span>单选题</span>
-            <span>集合框架</span>
-            <span>中等</span>
+          <div class="question-meta" v-if="currentQuestion">
+            <span>{{ currentQuestion.type }}</span>
+            <span>{{ currentQuestion.knowledgePoint }}</span>
+            <span>{{ currentQuestion.difficulty }}</span>
           </div>
-          <h2>HashMap 默认负载因子是多少？</h2>
-          <form class="option-list" aria-label="练习选项">
-            <label v-for="option in currentQuestion.options" :key="option.value">
-              <input v-model="selectedAnswer" type="radio" name="practice-answer" :value="option.value" />
-              <span>{{ option.value }}. {{ option.label }}</span>
-            </label>
-          </form>
+          <h2>{{ currentQuestion?.title ?? '暂无可练习题目' }}</h2>
+          <label class="answer-field">
+            作答
+            <input v-model="selectedAnswer" aria-label="练习答案" placeholder="请输入你的答案" />
+          </label>
           <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
           <button type="button" @click="submitAnswer">提交答案</button>
         </article>
@@ -91,9 +89,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { recordMistake, submitQuestionFeedback, submitUserPractice, type PracticeResult } from '../api'
+import {
+  recordMistake,
+  searchQuestions,
+  submitQuestionFeedback,
+  submitUserPractice,
+  type PracticeResult,
+  type Question
+} from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
@@ -101,21 +106,9 @@ import { getCurrentUser } from '../session'
 
 const isAdminUser = isAdmin()
 
-const currentQuestion = {
-  id: 1,
-  title: 'HashMap 默认负载因子是多少？',
-  knowledgePoint: '集合框架',
-  answer: 'A',
-  analysis: 'HashMap 默认负载因子是 0.75，达到阈值后会触发扩容。',
-  options: [
-    { value: 'A', label: '0.75' },
-    { value: 'B', label: '0.5' },
-    { value: 'C', label: '1.0' },
-    { value: 'D', label: '2.0' }
-  ]
-}
-
-const selectedAnswer = ref('A')
+const questions = ref<Question[]>([])
+const currentQuestion = computed(() => questions.value[0] ?? null)
+const selectedAnswer = ref('')
 const submitted = ref(false)
 const statusMessage = ref('')
 const feedbackStatus = ref('')
@@ -124,9 +117,9 @@ const backendResult = ref<PracticeResult | null>(null)
 const currentUserId = getCurrentUser()?.userId ?? 7
 
 const firstItem = computed(() => backendResult.value?.items[0])
-const isCorrect = computed(() => firstItem.value?.correct ?? selectedAnswer.value === currentQuestion.answer)
-const correctAnswer = computed(() => firstItem.value?.correctAnswer ?? currentQuestion.answer)
-const analysisText = computed(() => firstItem.value?.analysis ?? currentQuestion.analysis)
+const isCorrect = computed(() => firstItem.value?.correct ?? selectedAnswer.value === currentQuestion.value?.answer)
+const correctAnswer = computed(() => firstItem.value?.correctAnswer ?? currentQuestion.value?.answer ?? '')
+const analysisText = computed(() => firstItem.value?.analysis ?? currentQuestion.value?.analysis ?? '')
 const scoreText = computed(() => {
   if (!backendResult.value) {
     return isCorrect.value ? '10/10' : '0/10'
@@ -136,18 +129,42 @@ const scoreText = computed(() => {
 const progressWidth = computed(() => (isCorrect.value ? '100%' : '0%'))
 const resultText = computed(() => (isCorrect.value ? '回答正确，继续保持。' : '回答错误，已加入错题整理候选。'))
 
-async function submitAnswer() {
+onMounted(loadPracticeQuestion)
+
+async function loadPracticeQuestion() {
   statusMessage.value = ''
   try {
-    backendResult.value = await submitUserPractice(currentUserId, [{ questionId: currentQuestion.id, answer: selectedAnswer.value }])
+    questions.value = await searchQuestions()
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '加载练习题失败，请检查本地后端是否启动。'
+  }
+}
+
+async function submitAnswer() {
+  statusMessage.value = ''
+  if (!currentQuestion.value) {
+    statusMessage.value = '暂无可提交的练习题。'
+    return
+  }
+  if (!selectedAnswer.value) {
+    statusMessage.value = '请先填写答案。'
+    return
+  }
+  try {
+    backendResult.value = await submitUserPractice(currentUserId, [{
+      questionId: currentQuestion.value.id,
+      answer: selectedAnswer.value,
+      correctAnswer: currentQuestion.value.answer,
+      analysis: currentQuestion.value.analysis
+    }])
     submitted.value = true
     const item = backendResult.value.items[0]
     if (item && !item.correct) {
       await recordMistake({
         userId: 7,
-        questionId: currentQuestion.id,
-        questionTitle: currentQuestion.title,
-        knowledgePoint: currentQuestion.knowledgePoint,
+        questionId: currentQuestion.value.id,
+        questionTitle: currentQuestion.value.title,
+        knowledgePoint: currentQuestion.value.knowledgePoint,
         status: 'PENDING'
       })
     }
@@ -158,10 +175,14 @@ async function submitAnswer() {
 
 async function sendFeedback() {
   feedbackStatus.value = ''
+  if (!currentQuestion.value) {
+    feedbackStatus.value = '暂无可反馈的题目。'
+    return
+  }
   try {
     await submitQuestionFeedback({
       userId: 7,
-      questionId: currentQuestion.id,
+      questionId: currentQuestion.value.id,
       type: 'ANSWER_ERROR',
       content: feedbackContent.value
     })
@@ -172,10 +193,11 @@ async function sendFeedback() {
 }
 
 function resetPractice() {
-  selectedAnswer.value = 'A'
+  selectedAnswer.value = ''
   submitted.value = false
   backendResult.value = null
   statusMessage.value = ''
   feedbackStatus.value = ''
+  loadPracticeQuestion()
 }
 </script>

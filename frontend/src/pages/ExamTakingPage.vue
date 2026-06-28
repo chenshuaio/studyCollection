@@ -47,7 +47,7 @@
               <span>{{ question.difficulty }}</span>
             </div>
             <h2>{{ question.title }}</h2>
-            <form class="option-list" :aria-label="`第 ${index + 1} 题选项`">
+            <form v-if="hasOptions(question)" class="option-list" :aria-label="`第 ${index + 1} 题选项`">
               <label v-for="option in question.options" :key="option.value">
                 <input
                   v-model="answers[question.id]"
@@ -59,6 +59,15 @@
                 <span>{{ option.value }}. {{ option.label }}</span>
               </label>
             </form>
+            <label v-else class="answer-field">
+              作答
+              <input
+                v-model="answers[question.id]"
+                :aria-label="`第 ${index + 1} 题答案`"
+                :disabled="submitted"
+                placeholder="请输入你的答案"
+              />
+            </label>
           </section>
 
           <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
@@ -111,7 +120,7 @@ type ExamQuestion = {
   knowledgePoint: string
   answer: string
   analysis: string
-  options: Array<{
+  options?: Array<{
     value: string
     label: string
   }>
@@ -165,7 +174,9 @@ async function submitExam() {
       currentUserId,
       paper.value.questions.map((question) => ({
         questionId: question.id,
-        answer: answers[question.id]
+        answer: answers[question.id],
+        correctAnswer: question.answer,
+        analysis: question.analysis
       }))
     )
     submitted.value = true
@@ -192,6 +203,10 @@ async function submitExam() {
 
 function questionTitle(questionId: number) {
   return paper.value?.questions.find((question) => question.id === questionId)?.title ?? `题目 ${questionId}`
+}
+
+function hasOptions(question: ExamQuestion) {
+  return Array.isArray(question.options) && question.options.length > 0
 }
 
 function loadPaper() {

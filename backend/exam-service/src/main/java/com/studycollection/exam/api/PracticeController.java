@@ -37,14 +37,19 @@ public class PracticeController {
 
     private PracticeResultItem scoreAnswer(PracticeAnswer answer) {
         PracticeQuestion question = questionBank.get(answer.questionId());
-        boolean correct = question.correctAnswer().equalsIgnoreCase(answer.answer());
+        String correctAnswer = question == null ? answer.correctAnswer() : question.correctAnswer();
+        String analysis = question == null ? answer.analysis() : question.analysis();
+        if (correctAnswer == null || correctAnswer.isBlank()) {
+            throw new IllegalArgumentException("标准答案不能为空");
+        }
+        boolean correct = correctAnswer.equalsIgnoreCase(answer.answer());
         return new PracticeResultItem(
                 answer.questionId(),
                 answer.answer(),
-                question.correctAnswer(),
+                correctAnswer,
                 correct,
                 correct ? POINTS_PER_QUESTION : 0,
-                question.analysis()
+                analysis == null ? "" : analysis
         );
     }
 

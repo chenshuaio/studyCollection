@@ -75,7 +75,7 @@ describe('api client', () => {
     const generated = await generateKnowledgeQuestions('HashMap 默认负载因子是 0.75。')
     const uploaded = await uploadKnowledgeFile(new File(['HashMap 默认负载因子是 0.75。'], 'hashmap.md', { type: 'text/markdown' }))
     await submitPractice([{ questionId: 1, answer: 'A' }])
-    await submitUserPractice(7, [{ questionId: 2, answer: 'B' }])
+    await submitUserPractice(7, [{ questionId: 2, answer: 'B', correctAnswer: 'A', analysis: '真实题库解析' }])
     const stats = await getPracticeStats(7)
 
     expect(preview[0].title).toBe('Java 中 int 默认值是多少？')
@@ -85,6 +85,15 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/imports/knowledge/generate', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/imports/knowledge/upload', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/practice/submit', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/practice/submit',
+      expect.objectContaining({
+        body: JSON.stringify({
+          userId: 7,
+          answers: [{ questionId: 2, answer: 'B', correctAnswer: 'A', analysis: '真实题库解析' }]
+        })
+      })
+    )
     expect(fetchMock).toHaveBeenCalledWith('/api/practice/stats?userId=7', expect.objectContaining({ method: 'GET' }))
     expect(stats.answeredQuestionCount).toBe(2)
   })

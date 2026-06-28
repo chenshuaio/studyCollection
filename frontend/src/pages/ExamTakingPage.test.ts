@@ -59,10 +59,7 @@ describe('ExamTakingPage', () => {
             difficulty: 'INTERMEDIATE',
             knowledgePoint: '集合框架',
             answer: 'A',
-            options: [
-              { value: 'A', label: '容量不足以容纳新增元素时' },
-              { value: 'B', label: '每次新增元素时' }
-            ]
+            analysis: 'ArrayList 在容量不足以容纳新增元素时会触发扩容。'
           }
         ]
       })
@@ -129,14 +126,19 @@ describe('ExamTakingPage', () => {
 
     await wrapper.find('input[name="question-1"][value="A"]').setValue()
     await wrapper.find('input[name="question-2"][value="true"]').setValue()
-    await wrapper.find('input[name="question-3"][value="B"]').setValue()
+    await wrapper.find('input[aria-label="第 3 题答案"]').setValue('B')
     await wrapper.find('button[type="button"]').trigger('click')
     await flushPromises()
 
     expect(submitUserPractice).toHaveBeenCalledWith(7, [
-      { questionId: 1, answer: 'A' },
-      { questionId: 2, answer: 'true' },
-      { questionId: 3, answer: 'B' }
+      { questionId: 1, answer: 'A', correctAnswer: 'A', analysis: undefined },
+      { questionId: 2, answer: 'true', correctAnswer: 'true', analysis: undefined },
+      {
+        questionId: 3,
+        answer: 'B',
+        correctAnswer: 'A',
+        analysis: 'ArrayList 在容量不足以容纳新增元素时会触发扩容。'
+      }
     ])
     expect(recordMistake).toHaveBeenCalledWith({
       userId: 7,
