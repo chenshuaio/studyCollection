@@ -92,11 +92,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { submitPractice, submitQuestionFeedback, type PracticeResult } from '../api'
+import { recordMistake, submitPractice, submitQuestionFeedback, type PracticeResult } from '../api'
 import LogoutButton from '../components/LogoutButton.vue'
 
 const currentQuestion = {
   id: 1,
+  title: 'HashMap 默认负载因子是多少？',
+  knowledgePoint: '集合框架',
   answer: 'A',
   analysis: 'HashMap 默认负载因子是 0.75，达到阈值后会触发扩容。',
   options: [
@@ -132,6 +134,16 @@ async function submitAnswer() {
   try {
     backendResult.value = await submitPractice([{ questionId: currentQuestion.id, answer: selectedAnswer.value }])
     submitted.value = true
+    const item = backendResult.value.items[0]
+    if (item && !item.correct) {
+      await recordMistake({
+        userId: 7,
+        questionId: currentQuestion.id,
+        questionTitle: currentQuestion.title,
+        knowledgePoint: currentQuestion.knowledgePoint,
+        status: 'PENDING'
+      })
+    }
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '提交失败，请检查本地后端是否启动。'
   }
