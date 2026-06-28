@@ -29,7 +29,8 @@ describe('FeedbackReviewPage', () => {
     const wrapper = mount(FeedbackReviewPage, {
       global: {
         stubs: {
-          RouterLink: routerLinkStub
+          RouterLink: routerLinkStub,
+          LogoutButton: true
         }
       }
     })

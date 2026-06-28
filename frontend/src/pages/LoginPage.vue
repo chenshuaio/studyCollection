@@ -34,6 +34,7 @@
 import { reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { login } from '../api'
+import { saveLoggedInUser } from '../session'
 
 const router = useRouter()
 const submitting = ref(false)
@@ -48,7 +49,7 @@ async function goDashboard() {
   errorMessage.value = ''
   try {
     const result = await login(form)
-    window.localStorage.setItem('studyCollectionUser', JSON.stringify(result))
+    saveLoggedInUser(result)
     router.push('/dashboard')
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '登录失败，请检查本地后端是否启动。'

@@ -16,7 +16,10 @@
           <p class="eyebrow">导入预览</p>
           <h1>题目导入</h1>
         </div>
-        <button type="button" @click="generatePreview">生成预览</button>
+        <div class="header-actions">
+          <button type="button" @click="generatePreview">生成预览</button>
+          <LogoutButton />
+        </div>
       </header>
 
       <section class="import-layout">
@@ -105,6 +108,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import LogoutButton from '../components/LogoutButton.vue'
 import {
   createQuestion,
   generateKnowledgeQuestions,

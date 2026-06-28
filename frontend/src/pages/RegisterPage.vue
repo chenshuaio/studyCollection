@@ -38,6 +38,7 @@
 import { reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { register } from '../api'
+import { saveRegisteredUser } from '../session'
 
 const router = useRouter()
 const submitting = ref(false)
@@ -52,7 +53,8 @@ async function goDashboard() {
   submitting.value = true
   errorMessage.value = ''
   try {
-    await register(form)
+    const registered = await register(form)
+    saveRegisteredUser(registered)
     router.push('/dashboard')
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '注册失败，请检查本地后端是否启动。'

@@ -12,7 +12,8 @@ describe('PracticePage', () => {
     const wrapper = mount(PracticePage, {
       global: {
         stubs: {
-          RouterLink: routerLinkStub
+          RouterLink: routerLinkStub,
+          LogoutButton: true
         }
       }
     })

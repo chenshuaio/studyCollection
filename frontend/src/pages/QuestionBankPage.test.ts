@@ -12,7 +12,8 @@ describe('QuestionBankPage', () => {
     const wrapper = mount(QuestionBankPage, {
       global: {
         stubs: {
-          RouterLink: routerLinkStub
+          RouterLink: routerLinkStub,
+          LogoutButton: true
         }
       }
     })

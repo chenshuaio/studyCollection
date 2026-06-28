@@ -19,7 +19,10 @@
           <p class="eyebrow">本地学习工作台</p>
           <h1>学习控制台</h1>
         </div>
-        <RouterLink class="button-link" to="/practice">新建练习</RouterLink>
+        <div class="header-actions">
+          <RouterLink class="button-link" to="/practice">新建练习</RouterLink>
+          <LogoutButton />
+        </div>
       </header>
 
       <section id="overview" class="metric-grid" aria-label="学习概览">
@@ -68,4 +71,5 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import LogoutButton from '../components/LogoutButton.vue'
 </script>

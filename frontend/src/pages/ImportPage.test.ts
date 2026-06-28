@@ -12,7 +12,8 @@ describe('ImportPage', () => {
     const wrapper = mount(ImportPage, {
       global: {
         stubs: {
-          RouterLink: routerLinkStub
+          RouterLink: routerLinkStub,
+          LogoutButton: true
         }
       }
     })

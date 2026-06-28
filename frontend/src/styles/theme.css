@@ -157,6 +157,13 @@ body {
   margin: 0;
 }
 
+.header-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .dashboard-header button,
 .dashboard-header .button-link,
 .workspace-panel button,
@@ -174,6 +181,15 @@ body {
   min-height: 42px;
   padding: 0 16px;
   text-decoration: none;
+}
+
+.dashboard-header .logout-button {
+  background: #eef2f7;
+  color: #344054;
+}
+
+.dashboard-header .logout-button:hover {
+  background: #e4e9f2;
 }
 
 .metric-grid,

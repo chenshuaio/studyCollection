@@ -17,7 +17,10 @@
           <p class="eyebrow">题库工作台</p>
           <h1>题库管理</h1>
         </div>
-        <button type="button" @click="loadQuestions">刷新题库</button>
+        <div class="header-actions">
+          <button type="button" @click="loadQuestions">刷新题库</button>
+          <LogoutButton />
+        </div>
       </header>
 
       <section class="filter-bar" aria-label="题目筛选">
@@ -98,6 +101,7 @@
 import { reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { createQuestion, searchQuestions, type Question } from '../api'
+import LogoutButton from '../components/LogoutButton.vue'
 
 const filters = reactive({
   knowledgePoint: '集合框架',

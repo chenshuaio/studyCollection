@@ -17,7 +17,10 @@
           <p class="eyebrow">自适应刷题</p>
           <h1>练习中心</h1>
         </div>
-        <button type="button" @click="resetPractice">生成练习</button>
+        <div class="header-actions">
+          <button type="button" @click="resetPractice">生成练习</button>
+          <LogoutButton />
+        </div>
       </header>
 
       <section class="practice-layout">
@@ -87,6 +90,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { submitPractice, submitQuestionFeedback, type PracticeResult } from '../api'
+import LogoutButton from '../components/LogoutButton.vue'
 
 const currentQuestion = {
   id: 1,

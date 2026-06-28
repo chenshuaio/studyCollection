@@ -17,7 +17,10 @@
           <p class="eyebrow">管理员工作台</p>
           <h1>反馈审核</h1>
         </div>
-        <button type="button" @click="loadFeedback">刷新反馈</button>
+        <div class="header-actions">
+          <button type="button" @click="loadFeedback">刷新反馈</button>
+          <LogoutButton />
+        </div>
       </header>
 
       <section class="question-layout">
@@ -74,6 +77,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { acceptQuestionFeedback, listPendingFeedback, type QuestionFeedback } from '../api'
+import LogoutButton from '../components/LogoutButton.vue'
 
 const feedbackItems = ref<QuestionFeedback[]>([])
 const selectedFeedbackId = ref<number | null>(null)
