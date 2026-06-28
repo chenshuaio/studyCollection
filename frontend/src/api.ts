@@ -199,6 +199,10 @@ export function createQuestion(payload: QuestionPayload) {
   return post<Question>('/questions', payload)
 }
 
+export function deleteQuestion(id: number) {
+  return request<number>(`/questions/${id}`, { method: 'DELETE' })
+}
+
 export function submitPendingQuestion(payload: PendingQuestionPayload) {
   return post<PendingQuestion>('/questions/pending', payload)
 }

@@ -75,6 +75,7 @@
                 <th>难度</th>
                 <th>题型</th>
                 <th>答案</th>
+                <th v-if="canDeleteQuestions">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -84,9 +85,12 @@
                 <td>{{ question.difficulty }}</td>
                 <td>{{ question.type }}</td>
                 <td>{{ question.answer }}</td>
+                <td v-if="canDeleteQuestions">
+                  <button type="button" aria-label="删除题目" @click="deleteFormalQuestion(question.id)">删除</button>
+                </td>
               </tr>
               <tr v-if="questions.length === 0">
-                <td colspan="5">暂无题目，请先导入或新增题目。</td>
+                <td :colspan="canDeleteQuestions ? 6 : 5">暂无题目，请先导入或新增题目。</td>
               </tr>
             </tbody>
           </table>
@@ -158,6 +162,7 @@ import { RouterLink } from 'vue-router'
 import {
   approvePendingQuestion,
   createQuestion,
+  deleteQuestion,
   listPendingQuestions,
   rejectPendingQuestion,
   searchQuestions,
@@ -166,6 +171,7 @@ import {
 } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
+import { isAdmin } from '../permissions'
 
 const filters = reactive({
   keyword: '',
@@ -190,6 +196,7 @@ const questions = ref<Question[]>([
   }
 ])
 const pendingQuestions = ref<PendingQuestion[]>([])
+const canDeleteQuestions = isAdmin()
 
 onMounted(async () => {
   await loadQuestions()
@@ -223,6 +230,20 @@ async function saveQuestion() {
     statusMessage.value = '题目已保存到本地后端。'
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '保存失败，请检查本地后端是否启动。'
+  }
+}
+
+async function deleteFormalQuestion(id: number) {
+  statusMessage.value = ''
+  if (!window.confirm('确认删除这道题目吗？删除后题库中将不再展示。')) {
+    return
+  }
+  try {
+    await deleteQuestion(id)
+    await loadQuestions()
+    statusMessage.value = '题目已删除。'
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '删除题目失败。'
   }
 }
 

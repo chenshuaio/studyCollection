@@ -41,6 +41,11 @@ public class InMemoryQuestionRepository implements QuestionRepository {
                 .toList();
     }
 
+    @Override
+    public void deleteById(Long id) {
+        questions.removeIf(question -> question.id().equals(id));
+    }
+
     private boolean matchesKeyword(Question question, String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return true;

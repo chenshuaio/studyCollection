@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import QuestionBankPage from './QuestionBankPage.vue'
-import { approvePendingQuestion, listPendingQuestions, rejectPendingQuestion, searchQuestions } from '../api'
+import { approvePendingQuestion, deleteQuestion, listPendingQuestions, rejectPendingQuestion, searchQuestions } from '../api'
 
 vi.mock('../api', () => ({
   approvePendingQuestion: vi.fn(),
   createQuestion: vi.fn(),
+  deleteQuestion: vi.fn(),
   listPendingQuestions: vi.fn(),
   rejectPendingQuestion: vi.fn(),
   searchQuestions: vi.fn()
@@ -19,6 +20,7 @@ const routerLinkStub = {
 describe('QuestionBankPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.localStorage.clear()
     vi.mocked(listPendingQuestions).mockResolvedValue([])
   })
 
@@ -95,6 +97,79 @@ describe('QuestionBankPage', () => {
       type: ''
     })
     expect(wrapper.text()).toContain('ConcurrentHashMap')
+  })
+
+  it('allows administrators to delete formal questions and refreshes the current list', async () => {
+    window.localStorage.setItem(
+      'studyCollectionUser',
+      JSON.stringify({ userId: 1, username: 'admin', displayName: '系统管理员', role: 'ADMIN' })
+    )
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+    vi.mocked(searchQuestions)
+      .mockResolvedValueOnce([
+        {
+          id: 9,
+          title: 'HashMap 默认负载因子是多少？',
+          type: 'SINGLE_CHOICE',
+          difficulty: 'INTERMEDIATE',
+          knowledgePoint: '集合框架',
+          answer: '0.75',
+          analysis: 'HashMap 默认负载因子是 0.75。'
+        }
+      ])
+      .mockResolvedValueOnce([])
+    vi.mocked(deleteQuestion).mockResolvedValue(9)
+
+    const wrapper = mount(QuestionBankPage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+
+    await flushPromises()
+    expect(wrapper.text()).toContain('HashMap 默认负载因子是多少？')
+
+    await wrapper.find('button[aria-label="删除题目"]').trigger('click')
+    await flushPromises()
+
+    expect(window.confirm).toHaveBeenCalledWith('确认删除这道题目吗？删除后题库中将不再展示。')
+    expect(deleteQuestion).toHaveBeenCalledWith(9)
+    expect(searchQuestions).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('题目已删除。')
+  })
+
+  it('does not show delete actions to normal users', async () => {
+    window.localStorage.setItem(
+      'studyCollectionUser',
+      JSON.stringify({ userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
+    )
+    vi.mocked(searchQuestions).mockResolvedValue([
+      {
+        id: 9,
+        title: 'HashMap 默认负载因子是多少？',
+        type: 'SINGLE_CHOICE',
+        difficulty: 'INTERMEDIATE',
+        knowledgePoint: '集合框架',
+        answer: '0.75',
+        analysis: 'HashMap 默认负载因子是 0.75。'
+      }
+    ])
+
+    const wrapper = mount(QuestionBankPage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.find('button[aria-label="删除题目"]').exists()).toBe(false)
   })
 
   it('reviews pending imported questions and refreshes the formal question bank after approval', async () => {

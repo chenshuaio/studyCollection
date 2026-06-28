@@ -92,4 +92,9 @@ public class MySqlQuestionRepository implements QuestionRepository {
         sql.append(" order by id desc");
         return jdbcTemplate.query(sql.toString(), rowMapper, args.toArray());
     }
+
+    @Override
+    public void deleteById(Long id) {
+        jdbcTemplate.update("delete from questions where id = ?", id);
+    }
 }

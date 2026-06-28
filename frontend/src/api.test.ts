@@ -3,6 +3,7 @@ import {
   acceptQuestionFeedback,
   approvePendingQuestion,
   composeCustomExam,
+  deleteQuestion,
   generateKnowledgeQuestions,
   generateLearningReport,
   getPracticeStats,
@@ -116,6 +117,19 @@ describe('api client', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/questions', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions?keyword=HashMap', expect.objectContaining({ method: 'GET' }))
+  })
+
+  it('deletes formal questions by id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ code: 'OK', data: 9 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const deletedId = await deleteQuestion(9)
+
+    expect(deletedId).toBe(9)
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/9', expect.objectContaining({ method: 'DELETE' }))
   })
 
   it('submits and reviews pending imported questions', async () => {

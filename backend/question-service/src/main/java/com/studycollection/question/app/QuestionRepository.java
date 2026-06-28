@@ -10,4 +10,6 @@ public interface QuestionRepository {
     Question save(Question question);
 
     List<Question> search(String keyword, String knowledgePoint, Difficulty difficulty, QuestionType type);
+
+    void deleteById(Long id);
 }
