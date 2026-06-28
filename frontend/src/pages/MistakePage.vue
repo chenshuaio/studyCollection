@@ -47,7 +47,18 @@
                 <td>{{ mistake.questionTitle }}</td>
                 <td>{{ mistake.knowledgePoint }}</td>
                 <td>{{ statusText(mistake.status) }}</td>
-                <td><RouterLink class="button-link" to="/practice">重新练习</RouterLink></td>
+                <td>
+                  <div class="action-row">
+                    <RouterLink class="button-link" to="/practice">重新练习</RouterLink>
+                    <button
+                      type="button"
+                      :aria-label="statusActionLabel(mistake.status)"
+                      @click="toggleMistakeStatus(mistake)"
+                    >
+                      {{ statusActionLabel(mistake.status) }}
+                    </button>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -67,7 +78,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { listMistakes, type MistakeRecord } from '../api'
+import { listMistakes, updateMistakeStatus, type MistakeRecord } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
@@ -91,6 +102,32 @@ async function loadMistakes() {
 }
 
 function statusText(status: string) {
-  return status === 'PENDING' ? '待巩固' : status
+  if (status === 'PENDING') {
+    return '待巩固'
+  }
+  if (status === 'MASTERED') {
+    return '已掌握'
+  }
+  return status
+}
+
+function statusActionLabel(status: string) {
+  return status === 'MASTERED' ? '重新标记待巩固' : '标记已掌握'
+}
+
+async function toggleMistakeStatus(mistake: MistakeRecord) {
+  statusMessage.value = ''
+  const nextStatus = mistake.status === 'MASTERED' ? 'PENDING' : 'MASTERED'
+  try {
+    await updateMistakeStatus({
+      userId: currentUserId,
+      questionId: mistake.questionId,
+      status: nextStatus
+    })
+    await loadMistakes()
+    statusMessage.value = nextStatus === 'MASTERED' ? '已标记为已掌握。' : '已重新标记为待巩固。'
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '更新错题状态失败。'
+  }
 }
 </script>

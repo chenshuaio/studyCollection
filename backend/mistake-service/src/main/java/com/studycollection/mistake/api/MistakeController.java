@@ -40,4 +40,13 @@ public class MistakeController {
     public ApiResponse<List<MistakeRecord>> list(@RequestParam("userId") Long userId) {
         return ApiResponse.success(mistakeService.list(userId));
     }
+
+    @PostMapping("/status")
+    public ApiResponse<MistakeRecord> updateStatus(@RequestBody UpdateMistakeStatusRequest request) {
+        return ApiResponse.success(mistakeService.updateStatus(
+                request.userId(),
+                request.questionId(),
+                request.status()
+        ));
+    }
 }

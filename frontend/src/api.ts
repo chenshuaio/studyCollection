@@ -158,6 +158,12 @@ export type MistakeRecord = {
   status: string
 }
 
+export type UpdateMistakeStatusPayload = {
+  userId: number
+  questionId: number
+  status: string
+}
+
 async function parseApiResponse<T>(response: Response) {
   if (!response.ok) {
     throw new Error(`请求失败：${response.status}`)
@@ -297,6 +303,10 @@ export function generateLearningReport(payload: LearningReportPayload) {
 
 export function recordMistake(payload: MistakeRecord) {
   return post<MistakeRecord>('/mistakes', payload)
+}
+
+export function updateMistakeStatus(payload: UpdateMistakeStatusPayload) {
+  return post<MistakeRecord>('/mistakes/status', payload)
 }
 
 export function listMistakes(userId: number) {

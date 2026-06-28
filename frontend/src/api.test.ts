@@ -22,6 +22,7 @@ import {
   submitPractice,
   submitUserPractice,
   submitQuestionFeedback,
+  updateMistakeStatus,
   uploadKnowledgeFile
 } from './api'
 
@@ -376,6 +377,34 @@ describe('api client', () => {
     expect(mistakes).toHaveLength(1)
     expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/mistakes?userId=7', expect.objectContaining({ method: 'GET' }))
+  })
+
+  it('updates mistake mastery status', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 'OK',
+        data: {
+          userId: 7,
+          questionId: 1,
+          questionTitle: 'HashMap 默认负载因子是多少？',
+          knowledgePoint: '集合框架',
+          status: 'MASTERED'
+        }
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const updated = await updateMistakeStatus({ userId: 7, questionId: 1, status: 'MASTERED' })
+
+    expect(updated.status).toBe('MASTERED')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/mistakes/status',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ userId: 7, questionId: 1, status: 'MASTERED' })
+      })
+    )
   })
 
   it('posts feedback rejection and needs-review actions', async () => {

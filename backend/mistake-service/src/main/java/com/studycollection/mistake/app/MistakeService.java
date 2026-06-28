@@ -15,6 +15,20 @@ public class MistakeService {
         return record;
     }
 
+    public MistakeRecord updateStatus(Long userId, Long questionId, String status) {
+        MistakeRecord existing = records.stream()
+                .filter(record -> record.userId().equals(userId) && record.questionId().equals(questionId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("错题记录不存在"));
+        return record(
+                existing.userId(),
+                existing.questionId(),
+                existing.questionTitle(),
+                existing.knowledgePoint(),
+                status
+        );
+    }
+
     public List<MistakeRecord> list(Long userId) {
         return records.stream()
                 .filter(record -> record.userId().equals(userId))
