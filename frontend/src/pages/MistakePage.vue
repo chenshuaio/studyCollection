@@ -27,11 +27,46 @@
         </div>
       </header>
 
+      <section class="metric-grid" aria-label="错题统计">
+        <article>
+          <span>全部错题</span>
+          <strong>{{ summaryCounts.total }}</strong>
+        </article>
+        <article>
+          <span>待巩固</span>
+          <strong>{{ summaryCounts.pending }}</strong>
+        </article>
+        <article>
+          <span>已掌握</span>
+          <strong>{{ summaryCounts.mastered }}</strong>
+        </article>
+      </section>
+
+      <section class="filter-bar" aria-label="错题筛选">
+        <label>
+          知识点
+          <select v-model="filters.knowledgePoint" aria-label="错题知识点筛选">
+            <option value="">全部</option>
+            <option v-for="knowledgePoint in knowledgePoints" :key="knowledgePoint" :value="knowledgePoint">
+              {{ knowledgePoint }}
+            </option>
+          </select>
+        </label>
+        <label>
+          掌握状态
+          <select v-model="filters.status" aria-label="错题状态筛选">
+            <option value="">全部</option>
+            <option value="PENDING">待巩固</option>
+            <option value="MASTERED">已掌握</option>
+          </select>
+        </label>
+      </section>
+
       <section class="question-layout">
         <article class="table-panel">
           <div class="panel-header">
-            <h2>待巩固错题</h2>
-            <span class="panel-count">{{ mistakes.length }} 题</span>
+            <h2>错题列表</h2>
+            <span class="panel-count">{{ filteredMistakes.length }} 题</span>
           </div>
           <table>
             <thead>
@@ -43,7 +78,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="mistake in mistakes" :key="mistake.questionId">
+              <tr v-for="mistake in filteredMistakes" :key="mistake.questionId">
                 <td>{{ mistake.questionTitle }}</td>
                 <td>{{ mistake.knowledgePoint }}</td>
                 <td>{{ statusText(mistake.status) }}</td>
@@ -59,6 +94,9 @@
                     </button>
                   </div>
                 </td>
+              </tr>
+              <tr v-if="filteredMistakes.length === 0">
+                <td colspan="4">暂无符合条件的错题。</td>
               </tr>
             </tbody>
           </table>
@@ -76,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listMistakes, updateMistakeStatus, type MistakeRecord } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
@@ -87,8 +125,28 @@ import { getCurrentUser } from '../session'
 const isAdminUser = isAdmin()
 const currentUserId = getCurrentUser()?.userId ?? 7
 
+const filters = reactive({
+  knowledgePoint: '',
+  status: ''
+})
 const mistakes = ref<MistakeRecord[]>([])
 const statusMessage = ref('')
+
+const knowledgePoints = computed(() => {
+  return Array.from(new Set(mistakes.value.map((mistake) => mistake.knowledgePoint))).sort()
+})
+
+const filteredMistakes = computed(() => {
+  return mistakes.value
+    .filter((mistake) => !filters.knowledgePoint || mistake.knowledgePoint === filters.knowledgePoint)
+    .filter((mistake) => !filters.status || mistake.status === filters.status)
+})
+
+const summaryCounts = computed(() => ({
+  total: mistakes.value.length,
+  pending: mistakes.value.filter((mistake) => mistake.status === 'PENDING').length,
+  mastered: mistakes.value.filter((mistake) => mistake.status === 'MASTERED').length
+}))
 
 onMounted(loadMistakes)
 

@@ -7,35 +7,48 @@ const routerLinkStub = {
   template: '<a><slot /></a>'
 }
 
-describe('MistakePage', () => {
-  it('renders user mistake book workflow', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          code: 'OK',
-          data: [
-            {
-              userId: 7,
-              questionId: 1,
-              questionTitle: 'HashMap 默认负载因子是多少？',
-              knowledgePoint: '集合框架',
-              status: 'PENDING'
-            }
-          ]
-        })
-      })
-    )
+const mistakes = [
+  {
+    userId: 7,
+    questionId: 1,
+    questionTitle: 'HashMap 默认负载因子是多少？',
+    knowledgePoint: '集合框架',
+    status: 'PENDING'
+  },
+  {
+    userId: 7,
+    questionId: 2,
+    questionTitle: 'JVM 栈内存主要保存什么？',
+    knowledgePoint: 'JVM',
+    status: 'PENDING'
+  },
+  {
+    userId: 7,
+    questionId: 3,
+    questionTitle: 'JVM 堆内存保存什么？',
+    knowledgePoint: 'JVM',
+    status: 'MASTERED'
+  }
+]
 
-    const wrapper = mount(MistakePage, {
-      global: {
-        stubs: {
-          RouterLink: routerLinkStub,
-          LogoutButton: true
-        }
+function mountMistakePage(fetchMock = vi.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ code: 'OK', data: mistakes })
+})) {
+  vi.stubGlobal('fetch', fetchMock)
+  return mount(MistakePage, {
+    global: {
+      stubs: {
+        RouterLink: routerLinkStub,
+        LogoutButton: true
       }
-    })
+    }
+  })
+}
+
+describe('MistakePage', () => {
+  it('renders user mistake book workflow with summary counts', async () => {
+    const wrapper = mountMistakePage()
 
     await flushPromises()
 
@@ -43,6 +56,23 @@ describe('MistakePage', () => {
     expect(wrapper.text()).toContain('HashMap 默认负载因子是多少？')
     expect(wrapper.text()).toContain('集合框架')
     expect(wrapper.text()).toContain('重新练习')
+    expect(wrapper.text()).toContain('全部错题3')
+    expect(wrapper.text()).toContain('待巩固2')
+    expect(wrapper.text()).toContain('已掌握1')
+
+    vi.unstubAllGlobals()
+  })
+
+  it('filters mistakes by knowledge point and mastery status', async () => {
+    const wrapper = mountMistakePage()
+
+    await flushPromises()
+    await wrapper.find('select[aria-label="错题知识点筛选"]').setValue('JVM')
+    await wrapper.find('select[aria-label="错题状态筛选"]').setValue('PENDING')
+
+    expect(wrapper.text()).toContain('JVM 栈内存主要保存什么？')
+    expect(wrapper.text()).not.toContain('HashMap 默认负载因子是多少？')
+    expect(wrapper.text()).not.toContain('JVM 堆内存保存什么？')
 
     vi.unstubAllGlobals()
   })
@@ -54,15 +84,7 @@ describe('MistakePage', () => {
         ok: true,
         json: async () => ({
           code: 'OK',
-          data: [
-            {
-              userId: 7,
-              questionId: 1,
-              questionTitle: 'HashMap 默认负载因子是多少？',
-              knowledgePoint: '集合框架',
-              status: 'PENDING'
-            }
-          ]
+          data: [mistakes[0]]
         })
       })
       .mockResolvedValueOnce({
@@ -70,10 +92,7 @@ describe('MistakePage', () => {
         json: async () => ({
           code: 'OK',
           data: {
-            userId: 7,
-            questionId: 1,
-            questionTitle: 'HashMap 默认负载因子是多少？',
-            knowledgePoint: '集合框架',
+            ...mistakes[0],
             status: 'MASTERED'
           }
         })
@@ -82,27 +101,11 @@ describe('MistakePage', () => {
         ok: true,
         json: async () => ({
           code: 'OK',
-          data: [
-            {
-              userId: 7,
-              questionId: 1,
-              questionTitle: 'HashMap 默认负载因子是多少？',
-              knowledgePoint: '集合框架',
-              status: 'MASTERED'
-            }
-          ]
+          data: [{ ...mistakes[0], status: 'MASTERED' }]
         })
       })
-    vi.stubGlobal('fetch', fetchMock)
 
-    const wrapper = mount(MistakePage, {
-      global: {
-        stubs: {
-          RouterLink: routerLinkStub,
-          LogoutButton: true
-        }
-      }
-    })
+    const wrapper = mountMistakePage(fetchMock)
 
     await flushPromises()
     await wrapper.find('button[aria-label="标记已掌握"]').trigger('click')
