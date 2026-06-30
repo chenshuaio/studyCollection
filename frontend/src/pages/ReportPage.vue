@@ -27,6 +27,21 @@
         </div>
       </header>
 
+      <section class="metric-grid" aria-label="报告样本">
+        <article>
+          <span>错题样本</span>
+          <strong>{{ mistakes.length }}</strong>
+        </article>
+        <article>
+          <span>待巩固</span>
+          <strong>{{ pendingMistakeCount }}</strong>
+        </article>
+        <article>
+          <span>已掌握</span>
+          <strong>{{ masteredMistakeCount }}</strong>
+        </article>
+      </section>
+
       <section class="question-layout">
         <article class="workspace-panel">
           <h2>分析设置</h2>
@@ -38,7 +53,7 @@
                 <option value="ONLINE_MODEL">在线模型</option>
               </select>
             </label>
-            <p>系统会根据知识点正确率、错题频率和练习表现生成薄弱点建议。</p>
+            <p>系统会根据当前用户错题本中的知识点和掌握状态生成薄弱点建议。</p>
             <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
             <button type="submit">生成报告</button>
           </form>
@@ -68,32 +83,61 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { generateLearningReport, type LearningReport, type LearningReportPayload } from '../api'
+import {
+  generateLearningReport,
+  listMistakes,
+  type LearningReport,
+  type LearningReportPayload,
+  type MistakeRecord
+} from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
+import { getCurrentUser } from '../session'
 
 const isAdminUser = isAdmin()
+const currentUserId = getCurrentUser()?.userId ?? 7
 
 const mode = ref<LearningReportPayload['mode']>('OFFLINE_RULES')
 const statusMessage = ref('')
 const report = ref<LearningReport | null>(null)
+const mistakes = ref<MistakeRecord[]>([])
 
-const sampleResults = [
-  { knowledgePoint: '集合框架', correct: true },
-  { knowledgePoint: '集合框架', correct: false },
-  { knowledgePoint: 'JVM', correct: false },
-  { knowledgePoint: 'JVM', correct: false }
-]
+const pendingMistakeCount = computed(() => mistakes.value.filter((mistake) => mistake.status !== 'MASTERED').length)
+const masteredMistakeCount = computed(() => mistakes.value.filter((mistake) => mistake.status === 'MASTERED').length)
+
+onMounted(loadMistakes)
+
+async function loadMistakes() {
+  statusMessage.value = ''
+  try {
+    mistakes.value = await listMistakes(currentUserId)
+  } catch (error) {
+    statusMessage.value = error instanceof Error ? error.message : '加载错题样本失败，请检查本地后端是否启动。'
+  }
+}
+
+function buildReportResults() {
+  return mistakes.value.map((mistake) => ({
+    knowledgePoint: mistake.knowledgePoint,
+    correct: mistake.status === 'MASTERED'
+  }))
+}
 
 async function createReport() {
   statusMessage.value = ''
+  report.value = null
+  const results = buildReportResults()
+  if (results.length === 0) {
+    statusMessage.value = '暂无错题数据，先完成练习或考试后再生成报告。'
+    return
+  }
   try {
     report.value = await generateLearningReport({
       mode: mode.value,
-      results: sampleResults
+      results
     })
     statusMessage.value = '报告已生成。'
   } catch (error) {
