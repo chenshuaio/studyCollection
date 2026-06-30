@@ -4,17 +4,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class KnowledgeQuestionGenerator {
+    private static final List<String> OPTION_LABELS = List.of("A", "B", "C", "D");
+
     public GeneratedQuestionBank generate(String content) {
         String normalized = content == null ? "" : content;
         List<GeneratedQuestion> questions = new ArrayList<>();
 
         if (containsAny(normalized, "HashMap", "哈希表")) {
-            questions.add(new GeneratedQuestion(
+            questions.add(singleChoice(
                     "HashMap 默认负载因子是多少？",
-                    "SINGLE_CHOICE",
                     "INTERMEDIATE",
                     "集合框架",
-                    "A",
+                    "0.75",
+                    List.of("0.5", "0.75", "1.0", "2.0"),
+                    normalized,
                     "HashMap 默认负载因子是 0.75，达到阈值后会触发扩容。"
             ));
         }
@@ -62,5 +65,50 @@ public class KnowledgeQuestionGenerator {
             }
         }
         return false;
+    }
+
+    private static GeneratedQuestion singleChoice(
+            String stem,
+            String difficulty,
+            String knowledgePoint,
+            String correctOption,
+            List<String> options,
+            String content,
+            String analysis
+    ) {
+        int correctIndex = Math.floorMod((stem + content).hashCode(), OPTION_LABELS.size());
+        List<String> arranged = arrangeOptions(correctOption, options, correctIndex);
+        String answer = OPTION_LABELS.get(correctIndex);
+        return new GeneratedQuestion(
+                stem + System.lineSeparator() + formatOptions(arranged),
+                "SINGLE_CHOICE",
+                difficulty,
+                knowledgePoint,
+                answer,
+                analysis + " 正确选项为 " + answer + "：" + correctOption + "。"
+        );
+    }
+
+    private static List<String> arrangeOptions(String correctOption, List<String> options, int correctIndex) {
+        List<String> distractors = options.stream()
+                .filter(option -> !option.equals(correctOption))
+                .toList();
+        List<String> arranged = new ArrayList<>(List.of("", "", "", ""));
+        arranged.set(correctIndex, correctOption);
+        int distractorIndex = 0;
+        for (int index = 0; index < arranged.size(); index++) {
+            if (arranged.get(index).isBlank()) {
+                arranged.set(index, distractors.get(distractorIndex++));
+            }
+        }
+        return arranged;
+    }
+
+    private static String formatOptions(List<String> options) {
+        List<String> lines = new ArrayList<>();
+        for (int index = 0; index < options.size(); index++) {
+            lines.add(OPTION_LABELS.get(index) + ". " + options.get(index));
+        }
+        return String.join(System.lineSeparator(), lines);
     }
 }
