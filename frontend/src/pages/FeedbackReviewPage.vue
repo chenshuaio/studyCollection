@@ -48,7 +48,7 @@
                 v-for="item in feedbackItems"
                 :key="item.id"
                 :class="{ selected: selectedFeedbackId === item.id }"
-                @click="selectedFeedbackId = item.id"
+                @click="selectFeedback(item.id)"
               >
                 <td>{{ item.questionId }}</td>
                 <td>{{ typeText(item.type) }}</td>
@@ -69,9 +69,17 @@
             审核备注
             <textarea v-model="reviewNote" aria-label="审核备注"></textarea>
           </label>
+          <label>
+            新标准答案
+            <textarea v-model="correctedAnswer" aria-label="新标准答案"></textarea>
+          </label>
+          <label>
+            新题目解析
+            <textarea v-model="correctedAnalysis" aria-label="新题目解析"></textarea>
+          </label>
           <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
           <div class="header-actions">
-            <button type="button" @click="acceptSelected">采纳并记录修订</button>
+            <button type="button" @click="acceptSelected">采纳并修订题库</button>
             <button type="button" @click="rejectSelected">驳回反馈</button>
             <button type="button" @click="markSelectedNeedsReview">标记待复核</button>
           </div>
@@ -98,18 +106,24 @@ const feedbackItems = ref<QuestionFeedback[]>([])
 const selectedFeedbackId = ref<number | null>(null)
 const changeSummary = ref('答案从 A 修改为 B')
 const reviewNote = ref('用户反馈属实')
+const correctedAnswer = ref('')
+const correctedAnalysis = ref('')
 const statusMessage = ref('')
 
 onMounted(loadFeedback)
 
 async function loadFeedback() {
-  statusMessage.value = ''
   try {
     feedbackItems.value = await listPendingFeedback()
     selectedFeedbackId.value = feedbackItems.value[0]?.id ?? null
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '加载反馈失败，请检查本地后端是否启动。'
   }
+}
+
+function selectFeedback(id: number) {
+  selectedFeedbackId.value = id
+  statusMessage.value = ''
 }
 
 async function acceptSelected() {
@@ -121,10 +135,12 @@ async function acceptSelected() {
     await acceptQuestionFeedback(selectedFeedbackId.value, {
       adminUserId: 1,
       changeSummary: changeSummary.value,
-      reviewNote: reviewNote.value
+      reviewNote: reviewNote.value,
+      correctedAnswer: correctedAnswer.value,
+      correctedAnalysis: correctedAnalysis.value
     })
-    statusMessage.value = '反馈已采纳并记录修订。'
     await loadFeedback()
+    statusMessage.value = '反馈已采纳，题库已同步修订。'
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '采纳反馈失败，请检查本地后端是否启动。'
   }
@@ -140,8 +156,8 @@ async function rejectSelected() {
       adminUserId: 1,
       reviewNote: reviewNote.value
     })
-    statusMessage.value = '反馈已驳回。'
     await loadFeedback()
+    statusMessage.value = '反馈已驳回。'
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '驳回反馈失败，请检查本地后端是否启动。'
   }
@@ -157,8 +173,8 @@ async function markSelectedNeedsReview() {
       adminUserId: 1,
       reviewNote: reviewNote.value
     })
-    statusMessage.value = '反馈已标记为待复核。'
     await loadFeedback()
+    statusMessage.value = '反馈已标记为待复核。'
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '标记待复核失败，请检查本地后端是否启动。'
   }

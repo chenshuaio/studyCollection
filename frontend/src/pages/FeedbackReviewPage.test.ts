@@ -16,7 +16,7 @@ const routerLinkStub = {
 }
 
 describe('FeedbackReviewPage', () => {
-  it('renders and handles feedback review actions', async () => {
+  it('renders feedback review actions and submits corrected question fields', async () => {
     vi.mocked(listPendingFeedback).mockResolvedValue([
       {
         id: 1,
@@ -33,7 +33,9 @@ describe('FeedbackReviewPage', () => {
       feedbackId: 1,
       adminUserId: 1,
       changeSummary: '答案从 A 修改为 B',
-      reviewNote: '用户反馈属实'
+      reviewNote: '用户反馈属实',
+      correctedAnswer: 'B',
+      correctedAnalysis: 'Java 基本类型 int 的默认值是 0。'
     })
     vi.mocked(rejectQuestionFeedback).mockResolvedValue({
       id: 1,
@@ -56,6 +58,7 @@ describe('FeedbackReviewPage', () => {
       global: {
         stubs: {
           RouterLink: routerLinkStub,
+          CurrentAccount: true,
           LogoutButton: true
         }
       }
@@ -67,16 +70,21 @@ describe('FeedbackReviewPage', () => {
     expect(wrapper.text()).toContain('待处理反馈')
     expect(wrapper.text()).toContain('标准答案应为 B')
     expect(wrapper.find('textarea[aria-label="修订说明"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('采纳并记录修订')
-    expect(wrapper.text()).toContain('驳回反馈')
-    expect(wrapper.text()).toContain('标记待复核')
+    expect(wrapper.find('textarea[aria-label="新标准答案"]').exists()).toBe(true)
+    expect(wrapper.find('textarea[aria-label="新题目解析"]').exists()).toBe(true)
 
-    await wrapper.findAll('button').find((button) => button.text() === '采纳并记录修订')?.trigger('click')
+    await wrapper.find('textarea[aria-label="新标准答案"]').setValue('B')
+    await wrapper.find('textarea[aria-label="新题目解析"]').setValue('Java 基本类型 int 的默认值是 0。')
+    await wrapper.findAll('button').find((button) => button.text() === '采纳并修订题库')?.trigger('click')
     await wrapper.findAll('button').find((button) => button.text() === '驳回反馈')?.trigger('click')
     await wrapper.findAll('button').find((button) => button.text() === '标记待复核')?.trigger('click')
     await flushPromises()
 
-    expect(acceptQuestionFeedback).toHaveBeenCalledWith(1, expect.objectContaining({ adminUserId: 1 }))
+    expect(acceptQuestionFeedback).toHaveBeenCalledWith(1, expect.objectContaining({
+      adminUserId: 1,
+      correctedAnswer: 'B',
+      correctedAnalysis: 'Java 基本类型 int 的默认值是 0。'
+    }))
     expect(rejectQuestionFeedback).toHaveBeenCalledWith(1, expect.objectContaining({ adminUserId: 1 }))
     expect(markFeedbackNeedsReview).toHaveBeenCalledWith(1, expect.objectContaining({ adminUserId: 1 }))
   })

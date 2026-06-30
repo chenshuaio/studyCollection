@@ -2,8 +2,10 @@ package com.studycollection.question.api;
 
 import com.studycollection.common.api.ApiResponse;
 import com.studycollection.question.app.QuestionFeedbackService;
+import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.QuestionFeedback;
 import com.studycollection.question.domain.QuestionRevision;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +23,11 @@ public class QuestionFeedbackController {
 
     public QuestionFeedbackController() {
         this(new QuestionFeedbackService());
+    }
+
+    @Autowired
+    public QuestionFeedbackController(QuestionRepository questionRepository) {
+        this(new QuestionFeedbackService(questionRepository));
     }
 
     public QuestionFeedbackController(QuestionFeedbackService feedbackService) {
@@ -56,7 +63,9 @@ public class QuestionFeedbackController {
                 feedbackId,
                 request.adminUserId(),
                 request.changeSummary(),
-                request.reviewNote()
+                request.reviewNote(),
+                request.correctedAnswer(),
+                request.correctedAnalysis()
         ));
     }
 

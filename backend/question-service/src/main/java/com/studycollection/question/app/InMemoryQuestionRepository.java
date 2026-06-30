@@ -27,8 +27,23 @@ public class InMemoryQuestionRepository implements QuestionRepository {
                 question.answer(),
                 question.analysis()
         );
+        questions.removeIf(existing -> existing.id().equals(saved.id()));
         questions.add(saved);
         return saved;
+    }
+
+    @Override
+    public Question findById(Long id) {
+        return questions.stream()
+                .filter(question -> question.id().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("题目不存在"));
+    }
+
+    @Override
+    public Question update(Question question) {
+        findById(question.id());
+        return save(question);
     }
 
     @Override

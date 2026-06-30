@@ -1,20 +1,33 @@
 package com.studycollection.question.app;
 
+import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.FeedbackStatus;
 import com.studycollection.question.domain.FeedbackType;
+import com.studycollection.question.domain.Question;
 import com.studycollection.question.domain.QuestionFeedback;
 import com.studycollection.question.domain.QuestionRevision;
+import com.studycollection.question.domain.QuestionType;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class QuestionFeedbackServiceTest {
     @Test
-    void acceptedFeedbackCreatesRevisionHistory() {
-        QuestionFeedbackService service = new QuestionFeedbackService();
+    void acceptedFeedbackUpdatesQuestionAndCreatesRevisionHistory() {
+        InMemoryQuestionRepository questionRepository = new InMemoryQuestionRepository();
+        Question savedQuestion = questionRepository.save(new Question(
+                null,
+                "Java 中 int 默认值是多少？",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "默认值是 1"
+        ));
+        QuestionFeedbackService service = new QuestionFeedbackService(questionRepository);
         QuestionFeedback feedback = service.submit(
                 7L,
-                101L,
+                savedQuestion.id(),
                 FeedbackType.ANSWER_ERROR,
                 "标准答案应为 B，当前答案 A 不正确"
         );
@@ -23,12 +36,17 @@ class QuestionFeedbackServiceTest {
                 feedback.id(),
                 1L,
                 "答案从 A 修改为 B",
-                "用户反馈属实"
+                "用户反馈属实",
+                "B",
+                "Java 基本类型 int 的默认值是 0。"
         );
 
         assertThat(service.find(feedback.id()).status()).isEqualTo(FeedbackStatus.ACCEPTED);
-        assertThat(revision.questionId()).isEqualTo(101L);
+        assertThat(revision.questionId()).isEqualTo(savedQuestion.id());
         assertThat(revision.changeSummary()).contains("答案从 A 修改为 B");
+        Question revisedQuestion = questionRepository.findById(savedQuestion.id());
+        assertThat(revisedQuestion.answer()).isEqualTo("B");
+        assertThat(revisedQuestion.analysis()).contains("默认值是 0");
     }
 
     @Test

@@ -94,6 +94,39 @@ public class MySqlQuestionRepository implements QuestionRepository {
     }
 
     @Override
+    public Question findById(Long id) {
+        List<Question> matches = jdbcTemplate.query("""
+                select id, title, type, difficulty, knowledge_point, answer, analysis
+                from questions
+                where id = ?
+                """, rowMapper, id);
+        if (matches.isEmpty()) {
+            throw new IllegalArgumentException("题目不存在");
+        }
+        return matches.get(0);
+    }
+
+    @Override
+    public Question update(Question question) {
+        int updated = jdbcTemplate.update("""
+                update questions
+                set title = ?, type = ?, difficulty = ?, knowledge_point = ?, answer = ?, analysis = ?
+                where id = ?
+                """,
+                question.title(),
+                question.type().name(),
+                question.difficulty().name(),
+                question.knowledgePoint(),
+                question.answer(),
+                question.analysis(),
+                question.id());
+        if (updated == 0) {
+            throw new IllegalArgumentException("题目不存在");
+        }
+        return question;
+    }
+
+    @Override
     public void deleteById(Long id) {
         jdbcTemplate.update("delete from questions where id = ?", id);
     }

@@ -114,6 +114,8 @@ export type AcceptFeedbackPayload = {
   adminUserId: number
   changeSummary: string
   reviewNote: string
+  correctedAnswer?: string
+  correctedAnalysis?: string
 }
 
 export type ReviewFeedbackPayload = {

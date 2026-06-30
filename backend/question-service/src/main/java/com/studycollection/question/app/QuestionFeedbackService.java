@@ -2,6 +2,7 @@ package com.studycollection.question.app;
 
 import com.studycollection.question.domain.FeedbackStatus;
 import com.studycollection.question.domain.FeedbackType;
+import com.studycollection.question.domain.Question;
 import com.studycollection.question.domain.QuestionFeedback;
 import com.studycollection.question.domain.QuestionRevision;
 
@@ -14,6 +15,15 @@ public class QuestionFeedbackService {
     private final AtomicLong feedbackIds = new AtomicLong(1);
     private final AtomicLong revisionIds = new AtomicLong(1);
     private final Map<Long, QuestionFeedback> feedbacks = new HashMap<>();
+    private final QuestionRepository questionRepository;
+
+    public QuestionFeedbackService() {
+        this(null);
+    }
+
+    public QuestionFeedbackService(QuestionRepository questionRepository) {
+        this.questionRepository = questionRepository;
+    }
 
     public QuestionFeedback submit(Long userId, Long questionId, FeedbackType type, String content) {
         if (content == null || content.isBlank()) {
@@ -45,8 +55,20 @@ public class QuestionFeedbackService {
                 .toList();
     }
 
-    public QuestionRevision accept(Long feedbackId, Long adminUserId, String changeSummary, String reviewNote) {
+    public QuestionRevision accept(
+            Long feedbackId,
+            Long adminUserId,
+            String changeSummary,
+            String reviewNote,
+            String correctedAnswer,
+            String correctedAnalysis
+    ) {
         QuestionFeedback feedback = find(feedbackId);
+        validateReview(adminUserId, reviewNote);
+        if (changeSummary == null || changeSummary.isBlank()) {
+            throw new IllegalArgumentException("修订说明不能为空");
+        }
+        applyQuestionRevision(feedback.questionId(), correctedAnswer, correctedAnalysis);
         updateStatus(feedback, FeedbackStatus.ACCEPTED);
         return new QuestionRevision(
                 revisionIds.getAndIncrement(),
@@ -68,13 +90,38 @@ public class QuestionFeedbackService {
 
     private QuestionFeedback review(Long feedbackId, Long adminUserId, String reviewNote, FeedbackStatus status) {
         QuestionFeedback feedback = find(feedbackId);
+        validateReview(adminUserId, reviewNote);
+        return updateStatus(feedback, status);
+    }
+
+    private void validateReview(Long adminUserId, String reviewNote) {
         if (adminUserId == null) {
             throw new IllegalArgumentException("管理员用户不能为空");
         }
         if (reviewNote == null || reviewNote.isBlank()) {
             throw new IllegalArgumentException("审核备注不能为空");
         }
-        return updateStatus(feedback, status);
+    }
+
+    private void applyQuestionRevision(Long questionId, String correctedAnswer, String correctedAnalysis) {
+        if (questionRepository == null || (isBlank(correctedAnswer) && isBlank(correctedAnalysis))) {
+            return;
+        }
+        Question current = questionRepository.findById(questionId);
+        Question revised = new Question(
+                current.id(),
+                current.title(),
+                current.type(),
+                current.difficulty(),
+                current.knowledgePoint(),
+                isBlank(correctedAnswer) ? current.answer() : correctedAnswer,
+                isBlank(correctedAnalysis) ? current.analysis() : correctedAnalysis
+        );
+        questionRepository.update(revised);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private QuestionFeedback updateStatus(QuestionFeedback feedback, FeedbackStatus status) {

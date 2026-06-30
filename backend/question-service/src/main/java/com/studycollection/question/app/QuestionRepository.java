@@ -9,6 +9,10 @@ import java.util.List;
 public interface QuestionRepository {
     Question save(Question question);
 
+    Question findById(Long id);
+
+    Question update(Question question);
+
     List<Question> search(String keyword, String knowledgePoint, Difficulty difficulty, QuestionType type);
 
     void deleteById(Long id);
