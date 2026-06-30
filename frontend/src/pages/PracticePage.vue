@@ -29,6 +29,7 @@
 
       <section class="practice-layout">
         <article class="workspace-panel practice-question">
+          <p v-if="retryTarget" class="eyebrow">错题重练</p>
           <div class="question-meta" v-if="currentQuestion">
             <span>{{ currentQuestion.type }}</span>
             <span>{{ currentQuestion.knowledgePoint }}</span>
@@ -107,6 +108,7 @@ import { getCurrentUser } from '../session'
 const isAdminUser = isAdmin()
 
 const questions = ref<Question[]>([])
+const retryTarget = ref<RetryMistakeTarget | null>(loadRetryTarget())
 const currentQuestion = computed(() => questions.value[0] ?? null)
 const selectedAnswer = ref('')
 const submitted = ref(false)
@@ -115,6 +117,11 @@ const feedbackStatus = ref('')
 const feedbackContent = ref('标准答案或解析可能有误，请管理员复核。')
 const backendResult = ref<PracticeResult | null>(null)
 const currentUserId = getCurrentUser()?.userId ?? 7
+
+type RetryMistakeTarget = {
+  questionId: number
+  questionTitle: string
+}
 
 const firstItem = computed(() => backendResult.value?.items[0])
 const isCorrect = computed(() => firstItem.value?.correct ?? selectedAnswer.value === currentQuestion.value?.answer)
@@ -134,10 +141,38 @@ onMounted(loadPracticeQuestion)
 async function loadPracticeQuestion() {
   statusMessage.value = ''
   try {
-    questions.value = await searchQuestions()
+    questions.value = prioritizeRetryQuestion(await searchQuestions())
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '加载练习题失败，请检查本地后端是否启动。'
   }
+}
+
+function loadRetryTarget() {
+  const raw = window.sessionStorage.getItem('studyCollectionRetryMistake')
+  if (!raw) {
+    return null
+  }
+  try {
+    return JSON.parse(raw) as RetryMistakeTarget
+  } catch {
+    window.sessionStorage.removeItem('studyCollectionRetryMistake')
+    return null
+  }
+}
+
+function prioritizeRetryQuestion(loadedQuestions: Question[]) {
+  if (!retryTarget.value) {
+    return loadedQuestions
+  }
+  const targetIndex = loadedQuestions.findIndex((question) => question.id === retryTarget.value?.questionId)
+  if (targetIndex === -1) {
+    statusMessage.value = '未找到这道错题，已切换为普通练习。'
+    retryTarget.value = null
+    window.sessionStorage.removeItem('studyCollectionRetryMistake')
+    return loadedQuestions
+  }
+  const target = loadedQuestions[targetIndex]
+  return [target, ...loadedQuestions.filter((question) => question.id !== target.id)]
 }
 
 async function submitAnswer() {

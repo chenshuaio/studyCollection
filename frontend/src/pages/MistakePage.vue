@@ -84,7 +84,14 @@
                 <td>{{ statusText(mistake.status) }}</td>
                 <td>
                   <div class="action-row">
-                    <RouterLink class="button-link" to="/practice">重新练习</RouterLink>
+                    <RouterLink
+                      class="button-link"
+                      to="/practice"
+                      :aria-label="`重练 ${mistake.questionTitle}`"
+                      @click="prepareRetryPractice(mistake)"
+                    >
+                      重新练习
+                    </RouterLink>
                     <button
                       type="button"
                       :aria-label="statusActionLabel(mistake.status)"
@@ -187,5 +194,12 @@ async function toggleMistakeStatus(mistake: MistakeRecord) {
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '更新错题状态失败。'
   }
+}
+
+function prepareRetryPractice(mistake: MistakeRecord) {
+  window.sessionStorage.setItem('studyCollectionRetryMistake', JSON.stringify({
+    questionId: mistake.questionId,
+    questionTitle: mistake.questionTitle
+  }))
 }
 </script>

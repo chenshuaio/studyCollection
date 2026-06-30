@@ -17,6 +17,7 @@ const routerLinkStub = {
 
 describe('PracticePage', () => {
   beforeEach(() => {
+    window.sessionStorage.clear()
     vi.mocked(searchQuestions).mockReset()
     vi.mocked(submitUserPractice).mockReset()
     vi.mocked(recordMistake).mockReset()
@@ -105,5 +106,46 @@ describe('PracticePage', () => {
       knowledgePoint: 'JVM',
       status: 'PENDING'
     })
+  })
+
+  it('prioritizes the selected mistake when retrying from mistake book', async () => {
+    window.sessionStorage.setItem('studyCollectionRetryMistake', JSON.stringify({
+      questionId: 2,
+      questionTitle: 'HashMap 默认负载因子是多少？'
+    }))
+    vi.mocked(searchQuestions).mockResolvedValue([
+      {
+        id: 1,
+        title: 'JVM 栈内存主要保存什么？',
+        type: 'SHORT_ANSWER',
+        difficulty: 'BEGINNER',
+        knowledgePoint: 'JVM',
+        answer: '栈帧',
+        analysis: '虚拟机栈保存方法调用的栈帧。'
+      },
+      {
+        id: 2,
+        title: 'HashMap 默认负载因子是多少？',
+        type: 'SINGLE_CHOICE',
+        difficulty: 'INTERMEDIATE',
+        knowledgePoint: '集合框架',
+        answer: '0.75',
+        analysis: 'HashMap 默认负载因子是 0.75。'
+      }
+    ])
+
+    const wrapper = mount(PracticePage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('错题重练')
+    expect(wrapper.text()).toContain('HashMap 默认负载因子是多少？')
+    expect(wrapper.text()).not.toContain('JVM 栈内存主要保存什么？')
   })
 })

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import MistakePage from './MistakePage.vue'
 
@@ -47,6 +47,10 @@ function mountMistakePage(fetchMock = vi.fn().mockResolvedValue({
 }
 
 describe('MistakePage', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear()
+  })
+
   it('renders user mistake book workflow with summary counts', async () => {
     const wrapper = mountMistakePage()
 
@@ -120,6 +124,20 @@ describe('MistakePage', () => {
     )
     expect(fetchMock).toHaveBeenCalledWith('/api/mistakes?userId=7', expect.objectContaining({ method: 'GET' }))
     expect(wrapper.text()).toContain('已掌握')
+
+    vi.unstubAllGlobals()
+  })
+
+  it('stores selected mistake before retrying practice', async () => {
+    const wrapper = mountMistakePage()
+
+    await flushPromises()
+    await wrapper.find('a[aria-label="重练 HashMap 默认负载因子是多少？"]').trigger('click')
+
+    expect(window.sessionStorage.getItem('studyCollectionRetryMistake')).toBe(JSON.stringify({
+      questionId: 1,
+      questionTitle: 'HashMap 默认负载因子是多少？'
+    }))
 
     vi.unstubAllGlobals()
   })
