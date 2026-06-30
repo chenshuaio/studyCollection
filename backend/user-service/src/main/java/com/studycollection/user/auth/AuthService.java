@@ -4,6 +4,8 @@ import com.studycollection.common.security.Role;
 import com.studycollection.common.security.TokenService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class AuthService {
     private final UserRepository userRepository;
@@ -47,5 +49,16 @@ public class AuthService {
         }
         String token = tokenService.issue(account.id(), account.username(), account.role());
         return new LoginResponse(token, account.role().name(), account.displayName());
+    }
+
+    public List<UserSummary> listUsers() {
+        return userRepository.findAll().stream()
+                .map(account -> new UserSummary(
+                        account.id(),
+                        account.username(),
+                        account.displayName(),
+                        account.role().name()
+                ))
+                .toList();
     }
 }

@@ -5,11 +5,12 @@
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
         <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/users">用户管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
         <RouterLink to="/mistakes">错题本</RouterLink>
-        <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
         <RouterLink to="/reports">学习报告</RouterLink>
       </nav>
     </aside>
@@ -48,7 +49,7 @@
       <section class="workspace-grid">
         <article id="import" class="workspace-panel">
           <h2>题库导入</h2>
-          <p>支持 JSON、CSV、XLSX、TXT、MD、PDF、DOCX 文件预览后入库。</p>
+          <p>支持 JSON、CSV、XLSX、TXT、MD、PDF、DOCX 文件预览后提交管理员审核。</p>
           <RouterLink class="button-link" to="/import">导入题目</RouterLink>
         </article>
         <article id="exam" class="workspace-panel">
@@ -100,7 +101,7 @@ const accuracyText = computed(() => {
   return `${Math.round((dashboardMetrics.correctQuestionCount / dashboardMetrics.answeredQuestionCount) * 100)}%`
 })
 const weakestKnowledgeText = computed(() => (
-  dashboardMetrics.weakestKnowledgePoint ? `优先复习${dashboardMetrics.weakestKnowledgePoint}` : '暂无待复盘知识点'
+  dashboardMetrics.weakestKnowledgePoint ? `优先复习 ${dashboardMetrics.weakestKnowledgePoint}` : '暂无待复盘知识点'
 ))
 const feedbackText = computed(() => (
   dashboardMetrics.feedbackCount > 0 ? '等待管理员审核或处理' : '暂无题目反馈'

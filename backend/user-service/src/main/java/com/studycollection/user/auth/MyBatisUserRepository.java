@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Primary
 @Repository
 @Profile("local-mysql")
@@ -25,6 +27,13 @@ public class MyBatisUserRepository implements UserRepository {
     public UserAccount findByDisplayName(String displayName) {
         UserEntity entity = userMapper.findByDisplayName(displayName);
         return entity == null ? null : toAccount(entity);
+    }
+
+    @Override
+    public List<UserAccount> findAll() {
+        return userMapper.findAll().stream()
+                .map(this::toAccount)
+                .toList();
     }
 
     @Override

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { flushPromises } from '@vue/test-utils'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import DashboardPage from './DashboardPage.vue'
 
 const mocks = vi.hoisted(() => ({
@@ -38,7 +37,7 @@ describe('DashboardPage', () => {
     window.localStorage.clear()
   })
 
-  it('renders the main local learning workspace', () => {
+  it('renders the main local learning workspace in Chinese', () => {
     window.localStorage.setItem(
       'studyCollectionUser',
       JSON.stringify({ username: 'alice', role: 'USER', displayName: 'Alice' })
@@ -65,8 +64,22 @@ describe('DashboardPage', () => {
 
     expect(wrapper.text()).not.toContain('题库管理')
     expect(wrapper.text()).not.toContain('反馈审核')
+    expect(wrapper.text()).not.toContain('用户管理')
     expect(wrapper.text()).toContain('题目导入')
     expect(wrapper.text()).toContain('练习中心')
+  })
+
+  it('shows user management navigation to administrators', () => {
+    window.localStorage.setItem(
+      'studyCollectionUser',
+      JSON.stringify({ username: 'admin', role: 'ADMIN', displayName: '系统管理员' })
+    )
+
+    const wrapper = mount(DashboardPage)
+
+    expect(wrapper.text()).toContain('题库管理')
+    expect(wrapper.text()).toContain('反馈审核')
+    expect(wrapper.text()).toContain('用户管理')
   })
 
   it('loads dashboard metrics from the signed-in user activity', async () => {

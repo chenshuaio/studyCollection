@@ -28,6 +28,13 @@ export type RegisterResult = {
   role: string
 }
 
+export type UserSummary = {
+  id: number
+  username: string
+  displayName: string
+  role: string
+}
+
 export type QuestionPayload = {
   title: string
   type: string
@@ -201,6 +208,10 @@ export function login(payload: LoginPayload) {
 
 export function register(payload: RegisterPayload) {
   return post<RegisterResult>('/auth/register', payload)
+}
+
+export function listUsers() {
+  return request<UserSummary[]>('/users', { method: 'GET' })
 }
 
 export function createQuestion(payload: QuestionPayload) {

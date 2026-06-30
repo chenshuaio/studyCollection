@@ -10,6 +10,7 @@ import ExamPage from './pages/ExamPage.vue'
 import ExamTakingPage from './pages/ExamTakingPage.vue'
 import ReportPage from './pages/ReportPage.vue'
 import MistakePage from './pages/MistakePage.vue'
+import UserManagementPage from './pages/UserManagementPage.vue'
 import { getCurrentUser, type CurrentUser } from './session'
 
 type AccessRoute = {
@@ -46,7 +47,8 @@ export const router = createRouter({
     { path: '/exams/take', name: 'exam-taking', component: ExamTakingPage, meta: { requiresAuth: true } },
     { path: '/mistakes', name: 'mistakes', component: MistakePage, meta: { requiresAuth: true } },
     { path: '/reports', name: 'reports', component: ReportPage, meta: { requiresAuth: true } },
-    { path: '/feedback', name: 'feedback', component: FeedbackReviewPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } }
+    { path: '/feedback', name: 'feedback', component: FeedbackReviewPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
+    { path: '/users', name: 'users', component: UserManagementPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } }
   ]
 })
 

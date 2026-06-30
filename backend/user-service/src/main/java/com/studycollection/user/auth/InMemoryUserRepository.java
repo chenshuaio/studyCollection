@@ -3,6 +3,7 @@ package com.studycollection.user.auth;
 import com.studycollection.common.security.Role;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -28,6 +29,11 @@ public class InMemoryUserRepository implements UserRepository {
                 .filter(account -> account.displayName().equals(displayName))
                 .findFirst()
                 .orElse(null);
+    }
+
+    @Override
+    public List<UserAccount> findAll() {
+        return List.copyOf(accounts.values());
     }
 
     @Override

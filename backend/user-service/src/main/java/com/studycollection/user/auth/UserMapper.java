@@ -5,6 +5,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+
 @Mapper
 public interface UserMapper {
     @Select("select id, username, password_hash as passwordHash, display_name as displayName, role from users where username = #{username}")
@@ -12,6 +14,9 @@ public interface UserMapper {
 
     @Select("select id, username, password_hash as passwordHash, display_name as displayName, role from users where display_name = #{displayName}")
     UserEntity findByDisplayName(String displayName);
+
+    @Select("select id, username, password_hash as passwordHash, display_name as displayName, role from users order by id")
+    List<UserEntity> findAll();
 
     @Insert("""
             insert into users (username, password_hash, display_name, role)

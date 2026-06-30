@@ -10,6 +10,7 @@ import {
   listPendingFeedback,
   listPendingQuestions,
   listMistakes,
+  listUsers,
   listUserFeedback,
   login,
   markFeedbackNeedsReview,
@@ -42,6 +43,27 @@ describe('api client', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({ method: 'POST' }))
     expect(response.token).toBe('token-1')
+  })
+
+  it('lists administrator user summaries', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 'OK',
+        data: [
+          { id: 1, username: 'admin', displayName: '系统管理员', role: 'ADMIN' },
+          { id: 2, username: 'alice', displayName: 'Alice', role: 'USER' }
+        ]
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const users = await listUsers()
+
+    expect(users).toHaveLength(2)
+    expect(users[0].displayName).toBe('系统管理员')
+    expect(JSON.stringify(users)).not.toContain('password')
+    expect(fetchMock).toHaveBeenCalledWith('/api/users', expect.objectContaining({ method: 'GET' }))
   })
 
   it('posts import preview, knowledge generation, file upload and practice submissions', async () => {

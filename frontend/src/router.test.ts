@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveRouteAccess } from './router'
+import { resolveRouteAccess, router } from './router'
 
 describe('route access control', () => {
   it('redirects anonymous users from protected pages to login', () => {
@@ -27,6 +27,13 @@ describe('route access control', () => {
     )).toBe('dashboard')
   })
 
+  it('keeps normal users out of user management', () => {
+    expect(resolveRouteAccess(
+      { name: 'users', meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
+      { role: 'USER', displayName: '学习用户' }
+    )).toBe('dashboard')
+  })
+
   it('allows admins to use admin-only pages', () => {
     expect(resolveRouteAccess(
       { name: 'feedback', meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
@@ -34,10 +41,17 @@ describe('route access control', () => {
     )).toBe(true)
   })
 
-  it('allows admins to use question bank management', () => {
+  it('allows admins to use user management', () => {
     expect(resolveRouteAccess(
-      { name: 'questions', meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
+      { name: 'users', meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
       { role: 'ADMIN', displayName: '系统管理员' }
     )).toBe(true)
+  })
+
+  it('registers user management as an administrator-only route', () => {
+    const usersRoute = router.getRoutes().find((route) => route.name === 'users')
+
+    expect(usersRoute?.path).toBe('/users')
+    expect(usersRoute?.meta).toEqual(expect.objectContaining({ requiresAuth: true, requiredRole: 'ADMIN' }))
   })
 })

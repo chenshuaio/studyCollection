@@ -4,13 +4,14 @@ import com.studycollection.common.security.Role;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MyBatisUserRepositoryTest {
     @Test
-    void savesAndFindsUserAccountsThroughMapper() {
+    void savesFindsAndListsUserAccountsThroughMapper() {
         FakeUserMapper mapper = new FakeUserMapper();
         MyBatisUserRepository repository = new MyBatisUserRepository(mapper);
 
@@ -24,11 +25,13 @@ class MyBatisUserRepositoryTest {
 
         UserAccount found = repository.findByUsername("mysql-user");
         UserAccount foundByDisplayName = repository.findByDisplayName("MySQL 用户");
+        List<UserAccount> users = repository.findAll();
 
         assertThat(saved.id()).isEqualTo(1L);
         assertThat(found.displayName()).isEqualTo("MySQL 用户");
         assertThat(found.role()).isEqualTo(Role.USER);
         assertThat(foundByDisplayName.username()).isEqualTo("mysql-user");
+        assertThat(users).extracting(UserAccount::username).containsExactly("mysql-user");
     }
 
     private static class FakeUserMapper implements UserMapper {
@@ -46,6 +49,11 @@ class MyBatisUserRepositoryTest {
                     .filter(user -> user.getDisplayName().equals(displayName))
                     .findFirst()
                     .orElse(null);
+        }
+
+        @Override
+        public List<UserEntity> findAll() {
+            return List.copyOf(users.values());
         }
 
         @Override
