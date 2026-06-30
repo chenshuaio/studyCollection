@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import DashboardPage from './DashboardPage.vue'
 
 const mocks = vi.hoisted(() => ({
@@ -116,5 +118,15 @@ describe('DashboardPage', () => {
 
     expect(window.localStorage.getItem('studyCollectionUser')).toBeNull()
     expect(mocks.push).toHaveBeenCalledWith('/')
+  })
+  it('keeps shared responsive layout rules for desktop and phone viewports', () => {
+    const theme = readFileSync(join(process.cwd(), 'src/styles/theme.css'), 'utf8')
+
+    expect(theme).toContain('.dashboard-shell')
+    expect(theme).toContain('.dashboard-sidebar nav')
+    expect(theme).toContain('.header-actions')
+    expect(theme).toContain('@media (max-width: 560px)')
+    expect(theme).toContain('overflow-x: auto')
+    expect(theme).toContain('min-width: 640px')
   })
 })
