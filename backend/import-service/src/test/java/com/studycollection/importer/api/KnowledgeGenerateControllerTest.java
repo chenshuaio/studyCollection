@@ -6,6 +6,7 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -88,6 +89,23 @@ class KnowledgeGenerateControllerTest {
                 .anySatisfy(title -> assertThat(title).contains("HashMap"));
     }
 
+    @Test
+    void generatesQuestionBankDraftsFromUploadedXlsxKnowledgeFile() throws Exception {
+        KnowledgeGenerateController controller = new KnowledgeGenerateController();
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "java-notes.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                xlsxBytes("JVM 栈保存局部变量表，堆保存对象实例。")
+        );
+
+        GeneratedQuestionBank bank = controller.upload(file).data();
+
+        assertThat(bank.questions())
+                .extracting(question -> question.title())
+                .anySatisfy(title -> assertThat(title).contains("JVM"));
+    }
+
     private byte[] docxBytes(String text) throws Exception {
         try (XWPFDocument document = new XWPFDocument();
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
@@ -110,6 +128,17 @@ class KnowledgeGenerateControllerTest {
                 content.endText();
             }
             document.save(output);
+            return output.toByteArray();
+        }
+    }
+
+    private byte[] xlsxBytes(String text) throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("Java");
+            var row = sheet.createRow(0);
+            row.createCell(0).setCellValue(text);
+            workbook.write(output);
             return output.toByteArray();
         }
     }

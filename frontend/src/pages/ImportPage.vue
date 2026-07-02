@@ -67,7 +67,7 @@
             <span>上传学习资料</span>
             <input
               type="file"
-              accept=".txt,.md,.csv,.docx,.pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+              accept=".txt,.md,.csv,.xlsx,.docx,.pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
               aria-label="上传 Java 学习资料"
               @change="uploadKnowledgeMaterial"
             />
@@ -76,7 +76,7 @@
           <p v-if="generationStatus" class="form-message">{{ generationStatus }}</p>
           <div class="action-row">
             <button type="button" @click="generateQuestionBank">分析生成题库</button>
-            <button type="button" @click="saveGeneratedQuestions">提交生成题审核</button>
+            <button type="button" aria-label="提交生成题审核" @click="saveGeneratedQuestions">提交生成题审核</button>
           </div>
         </article>
 
@@ -181,7 +181,7 @@ async function generateQuestionBank() {
   generationStatus.value = ''
   try {
     generatedQuestions.value = await generateKnowledgeQuestions(knowledgeContent.value)
-    generationStatus.value = `已生成 ${generatedQuestions.value.length} 道题。`
+    generationStatus.value = `已生成 ${generatedQuestions.value.length} 道题，请预览后提交审核。`
   } catch (error) {
     generationStatus.value = error instanceof Error ? error.message : '分析失败，请检查本地后端是否启动。'
   }
@@ -196,7 +196,7 @@ async function uploadKnowledgeMaterial(event: Event) {
   }
   try {
     generatedQuestions.value = await uploadKnowledgeFile(file)
-    generationStatus.value = `已从 ${file.name} 生成 ${generatedQuestions.value.length} 道题。`
+    generationStatus.value = `已从 ${file.name} 生成 ${generatedQuestions.value.length} 道题，请预览后提交审核。`
   } catch (error) {
     generationStatus.value = error instanceof Error ? error.message : '上传分析失败，请检查文件格式或本地后端。'
   } finally {

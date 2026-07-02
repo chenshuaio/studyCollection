@@ -52,6 +52,23 @@ class KnowledgeQuestionGeneratorTest {
         assertThat(answers).isNotEqualTo(List.of("A"));
     }
 
+    @Test
+    void generatesPreviewQuestionsFromMultipleUploadedMaterialTopics() {
+        String content = """
+                JVM 栈保存局部变量表和方法调用栈帧，堆保存对象实例。
+                Java 接口用于定义能力契约，抽象类可以保留共同状态和部分实现。
+                Java 异常处理使用 try catch finally，受检异常需要处理或声明抛出。
+                ArrayList 查询快，LinkedList 插入删除链表节点更灵活。
+                """;
+
+        GeneratedQuestionBank bank = new KnowledgeQuestionGenerator().generate(content);
+
+        assertThat(bank.questions()).hasSizeGreaterThanOrEqualTo(4);
+        assertThat(bank.questions())
+                .extracting(GeneratedQuestion::knowledgePoint)
+                .contains("JVM", "面向对象", "异常处理", "集合框架");
+    }
+
     private String optionText(String title, String answer) {
         return title.lines()
                 .filter(line -> line.startsWith(answer + "."))

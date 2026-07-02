@@ -44,6 +44,51 @@ public class KnowledgeQuestionGenerator {
             ));
         }
 
+        if (containsAny(normalized, "JVM", "栈", "堆")) {
+            questions.add(new GeneratedQuestion(
+                    "JVM 栈和堆通常分别保存什么内容？",
+                    "SHORT_ANSWER",
+                    "INTERMEDIATE",
+                    "JVM",
+                    "栈保存方法调用栈帧和局部变量等，堆保存对象实例等运行时数据",
+                    "JVM 栈更关注线程私有的方法调用过程，堆更关注对象实例和共享运行时数据。"
+            ));
+        }
+
+        if (containsAny(normalized, "接口", "抽象类")) {
+            questions.add(new GeneratedQuestion(
+                    "Java 接口和抽象类的核心区别是什么？",
+                    "SHORT_ANSWER",
+                    "INTERMEDIATE",
+                    "面向对象",
+                    "接口偏向能力契约，抽象类可以保留共同状态和部分实现",
+                    "接口常用于定义能力边界，抽象类常用于抽取共同代码和状态。"
+            ));
+        }
+
+        if (containsAny(normalized, "异常", "try", "catch", "finally")) {
+            questions.add(singleChoice(
+                    "Java 中 finally 代码块通常会在什么情况下执行？",
+                    "BEGINNER",
+                    "异常处理",
+                    "try/catch 执行结束后通常会执行",
+                    List.of("只在没有异常时执行", "只在 catch 中执行", "try/catch 执行结束后通常会执行", "编译阶段执行"),
+                    normalized,
+                    "finally 常用于释放资源，通常会在 try/catch 流程结束后执行。"
+            ));
+        }
+
+        if (containsAny(normalized, "ArrayList", "LinkedList")) {
+            questions.add(new GeneratedQuestion(
+                    "ArrayList 和 LinkedList 在使用场景上有什么常见差异？",
+                    "SHORT_ANSWER",
+                    "INTERMEDIATE",
+                    "集合框架",
+                    "ArrayList 随机访问更快，LinkedList 在链表节点插入删除场景更灵活",
+                    "ArrayList 基于动态数组，LinkedList 基于链表结构，选择时应结合访问和增删场景。"
+            ));
+        }
+
         if (questions.isEmpty()) {
             questions.add(new GeneratedQuestion(
                     "请概括这段 Java 学习内容的核心知识点。",
