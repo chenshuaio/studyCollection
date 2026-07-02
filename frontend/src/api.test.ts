@@ -3,10 +3,13 @@ import {
   acceptQuestionFeedback,
   approvePendingQuestion,
   composeCustomExam,
+  createKnowledgePoint,
   deleteQuestion,
+  disableKnowledgePoint,
   generateKnowledgeQuestions,
   generateLearningReport,
   getPracticeStats,
+  listKnowledgePoints,
   listPendingFeedback,
   listPendingQuestions,
   listMistakes,
@@ -64,6 +67,44 @@ describe('api client', () => {
     expect(users[0].displayName).toBe('系统管理员')
     expect(JSON.stringify(users)).not.toContain('password')
     expect(fetchMock).toHaveBeenCalledWith('/api/users', expect.objectContaining({ method: 'GET' }))
+  })
+
+  it('manages knowledge point categories', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: [{ id: 1, name: 'JVM', description: '运行时内存与类加载', enabled: true }]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: { id: 2, name: '并发编程', description: '线程与锁', enabled: true }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: { id: 1, name: 'JVM', description: '运行时内存与类加载', enabled: false }
+        })
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const points = await listKnowledgePoints()
+    const created = await createKnowledgePoint({ name: '并发编程', description: '线程与锁' })
+    const disabled = await disableKnowledgePoint(1)
+
+    expect(points[0].name).toBe('JVM')
+    expect(created.enabled).toBe(true)
+    expect(disabled.enabled).toBe(false)
+    expect(fetchMock).toHaveBeenCalledWith('/api/knowledge-points', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/knowledge-points', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/knowledge-points/1/disable', expect.objectContaining({ method: 'POST' }))
   })
 
   it('posts import preview, knowledge generation, file upload and practice submissions', async () => {

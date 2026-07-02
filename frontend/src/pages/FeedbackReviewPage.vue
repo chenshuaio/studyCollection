@@ -5,6 +5,7 @@
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
         <RouterLink to="/questions">题库管理</RouterLink>
+        <RouterLink to="/knowledge-points">&#30693;&#35782;&#28857;&#31649;&#29702;</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>

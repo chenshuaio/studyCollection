@@ -29,6 +29,15 @@ CREATE TABLE IF NOT EXISTS questions (
   INDEX idx_questions_filter (knowledge_point, difficulty, type)
 );
 
+CREATE TABLE IF NOT EXISTS knowledge_points (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(128) NOT NULL UNIQUE,
+  description TEXT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS question_options (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   question_id BIGINT NOT NULL,
@@ -108,3 +117,15 @@ ON DUPLICATE KEY UPDATE
   password_hash = VALUES(password_hash),
   display_name = VALUES(display_name),
   role = VALUES(role);
+
+INSERT INTO knowledge_points (name, description, enabled)
+VALUES
+  ('Java 基础', '变量、类型、流程控制和基础语法', TRUE),
+  ('集合框架', 'List、Map、Set 及常见集合实现', TRUE),
+  ('面向对象', '封装、继承、多态、接口和抽象类', TRUE),
+  ('JVM', '运行时内存、类加载和虚拟机基础', TRUE),
+  ('异常处理', 'try/catch/finally 和异常体系', TRUE),
+  ('并发编程', '线程、锁、线程池和并发工具', TRUE)
+ON DUPLICATE KEY UPDATE
+  description = VALUES(description),
+  enabled = VALUES(enabled);

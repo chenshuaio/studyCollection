@@ -35,6 +35,18 @@ export type UserSummary = {
   role: string
 }
 
+export type KnowledgePoint = {
+  id: number
+  name: string
+  description: string
+  enabled: boolean
+}
+
+export type CreateKnowledgePointPayload = {
+  name: string
+  description: string
+}
+
 export type QuestionPayload = {
   title: string
   type: string
@@ -212,6 +224,18 @@ export function register(payload: RegisterPayload) {
 
 export function listUsers() {
   return request<UserSummary[]>('/users', { method: 'GET' })
+}
+
+export function listKnowledgePoints() {
+  return request<KnowledgePoint[]>('/knowledge-points', { method: 'GET' })
+}
+
+export function createKnowledgePoint(payload: CreateKnowledgePointPayload) {
+  return post<KnowledgePoint>('/knowledge-points', payload)
+}
+
+export function disableKnowledgePoint(id: number) {
+  return post<KnowledgePoint>(`/knowledge-points/${id}/disable`, {})
 }
 
 export function createQuestion(payload: QuestionPayload) {
