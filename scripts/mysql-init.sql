@@ -129,3 +129,9 @@ VALUES
 ON DUPLICATE KEY UPDATE
   description = VALUES(description),
   enabled = VALUES(enabled);
+
+UPDATE questions
+SET title = 'Java 中 int 默认值是多少？\nA. 0\nB. null\nC. 1\nD. 不确定'
+WHERE title = 'Java 中 int 默认值是多少？'
+  AND type = 'SINGLE_CHOICE'
+  AND answer = 'A';

@@ -112,4 +112,44 @@ describe('ExamPage', () => {
       { value: 'D', label: '2.0' }
     ])
   })
+
+  it('keeps choice questions answerable when old question data has no option text', async () => {
+    vi.mocked(searchQuestions).mockResolvedValue([
+      {
+        id: 8,
+        title: 'Java 中 int 默认值是多少？',
+        type: 'SINGLE_CHOICE',
+        difficulty: 'BEGINNER',
+        knowledgePoint: 'Java 基础',
+        answer: 'A',
+        analysis: 'int 成员变量默认值为 0。'
+      }
+    ])
+    vi.mocked(composeCustomExam).mockResolvedValue({
+      name: 'Java 基础测试',
+      durationMinutes: 30,
+      questionIds: [8]
+    })
+
+    const wrapper = mount(ExamPage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+
+    await flushPromises()
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    const savedPaper = JSON.parse(window.sessionStorage.getItem('studyCollectionExamPaper') ?? '{}')
+    expect(savedPaper.questions[0].options).toEqual([
+      { value: 'A', label: '选项 A（原题未提供选项内容）' },
+      { value: 'B', label: '选项 B（原题未提供选项内容）' },
+      { value: 'C', label: '选项 C（原题未提供选项内容）' },
+      { value: 'D', label: '选项 D（原题未提供选项内容）' }
+    ])
+  })
 })

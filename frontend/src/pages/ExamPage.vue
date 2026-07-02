@@ -146,9 +146,11 @@ async function createPaper() {
 
 function toExamQuestion(question: Question) {
   const parsed = parseChoiceOptions(question.title)
-  return parsed.options.length >= 2
-    ? { ...question, title: parsed.title, options: parsed.options }
-    : question
+  if (parsed.options.length >= 2) {
+    return { ...question, title: parsed.title, options: parsed.options }
+  }
+  const fallbackOptions = fallbackOptionsFor(question)
+  return fallbackOptions.length > 0 ? { ...question, options: fallbackOptions } : question
 }
 
 function parseChoiceOptions(title: string) {
@@ -169,5 +171,21 @@ function parseChoiceOptions(title: string) {
     title: stemLines.join('\n'),
     options
   }
+}
+
+function fallbackOptionsFor(question: Question) {
+  if (question.type === 'TRUE_FALSE') {
+    return [
+      { value: 'true', label: '正确' },
+      { value: 'false', label: '错误' }
+    ]
+  }
+  if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+    return ['A', 'B', 'C', 'D'].map((value) => ({
+      value,
+      label: `选项 ${value}（原题未提供选项内容）`
+    }))
+  }
+  return []
 }
 </script>
