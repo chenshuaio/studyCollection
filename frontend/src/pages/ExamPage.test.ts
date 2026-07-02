@@ -72,4 +72,44 @@ describe('ExamPage', () => {
     expect(savedPaper.questions[0].title).toBe('ConcurrentHashMap 如何降低锁粒度？')
     expect(savedPaper.questions[0].answer).toBe('分段或桶级控制')
   })
+  it('stores generated choice options as structured exam question options', async () => {
+    vi.mocked(searchQuestions).mockResolvedValue([
+      {
+        id: 7,
+        title: 'HashMap 默认负载因子是多少？\nA. 0.5\nB. 0.75\nC. 1.0\nD. 2.0',
+        type: 'SINGLE_CHOICE',
+        difficulty: 'INTERMEDIATE',
+        knowledgePoint: '集合框架',
+        answer: 'B',
+        analysis: 'HashMap 默认负载因子是 0.75。'
+      }
+    ])
+    vi.mocked(composeCustomExam).mockResolvedValue({
+      name: '集合专项测试',
+      durationMinutes: 45,
+      questionIds: [7]
+    })
+
+    const wrapper = mount(ExamPage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+
+    await flushPromises()
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    const savedPaper = JSON.parse(window.sessionStorage.getItem('studyCollectionExamPaper') ?? '{}')
+    expect(savedPaper.questions[0].title).toBe('HashMap 默认负载因子是多少？')
+    expect(savedPaper.questions[0].options).toEqual([
+      { value: 'A', label: '0.5' },
+      { value: 'B', label: '0.75' },
+      { value: 'C', label: '1.0' },
+      { value: 'D', label: '2.0' }
+    ])
+  })
 })

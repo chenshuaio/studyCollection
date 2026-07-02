@@ -128,7 +128,9 @@ async function createPaper() {
       durationMinutes: draft.durationMinutes,
       questionIds: selectedQuestionIds.value
     })
-    const selectedQuestions = availableQuestions.value.filter((question) => selectedQuestionIds.value.includes(question.id))
+    const selectedQuestions = availableQuestions.value
+      .filter((question) => selectedQuestionIds.value.includes(question.id))
+      .map(toExamQuestion)
     window.sessionStorage.setItem(
       'studyCollectionExamPaper',
       JSON.stringify({
@@ -139,6 +141,33 @@ async function createPaper() {
     statusMessage.value = '考试卷已生成，可以进入答题流程。'
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '生成考试卷失败，请检查本地后端是否启动。'
+  }
+}
+
+function toExamQuestion(question: Question) {
+  const parsed = parseChoiceOptions(question.title)
+  return parsed.options.length >= 2
+    ? { ...question, title: parsed.title, options: parsed.options }
+    : question
+}
+
+function parseChoiceOptions(title: string) {
+  const lines = title.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  const options: Array<{ value: string; label: string }> = []
+  const stemLines: string[] = []
+
+  lines.forEach((line) => {
+    const match = line.match(/^([A-D])[\.\u3001\uff0e]\s*(.+)$/i)
+    if (match) {
+      options.push({ value: match[1].toUpperCase(), label: match[2].trim() })
+    } else {
+      stemLines.push(line)
+    }
+  })
+
+  return {
+    title: stemLines.join('\n'),
+    options
   }
 }
 </script>
