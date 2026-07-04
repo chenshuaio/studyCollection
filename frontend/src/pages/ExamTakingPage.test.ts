@@ -126,7 +126,7 @@ describe('ExamTakingPage', () => {
 
     await wrapper.find('input[name="question-1"][value="A"]').setValue()
     await wrapper.find('input[name="question-2"][value="true"]').setValue()
-    await wrapper.find('input[aria-label="第 3 题答案"]').setValue('B')
+    await wrapper.find('input[name="question-3"][value="B"]').setValue()
     await wrapper.find('button[type="button"]').trigger('click')
     await flushPromises()
 
@@ -149,5 +149,39 @@ describe('ExamTakingPage', () => {
     })
     expect(wrapper.text()).toContain('20/30')
     expect(wrapper.text()).toContain('ArrayList 在容量不足时扩容。')
+  })
+  it('renders choice buttons for stored choice questions that have no options yet', () => {
+    window.sessionStorage.setItem(
+      'studyCollectionExamPaper',
+      JSON.stringify({
+        name: 'Java 基础测试',
+        durationMinutes: 30,
+        questionIds: [6],
+        questions: [
+          {
+            id: 6,
+            title: 'Java 中 int 默认值是多少？',
+            type: 'SINGLE_CHOICE',
+            difficulty: 'BEGINNER',
+            knowledgePoint: 'Java 基础',
+            answer: 'A',
+            analysis: 'int 成员变量默认值为 0。'
+          }
+        ]
+      })
+    )
+
+    const wrapper = mount(ExamTakingPage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+
+    expect(wrapper.findAll('input[type="radio"]')).toHaveLength(4)
+    expect(wrapper.find('.answer-field').exists()).toBe(false)
+    expect(wrapper.text()).toContain('A. 选项 A（原题未提供选项内容）')
   })
 })

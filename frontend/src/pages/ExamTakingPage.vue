@@ -216,9 +216,63 @@ function loadPaper() {
   }
   try {
     const parsed = JSON.parse(saved) as StoredExamPaper
-    return Array.isArray(parsed.questions) && parsed.questions.length > 0 ? parsed : null
+    if (!Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+      return null
+    }
+    return {
+      ...parsed,
+      questions: parsed.questions.map(normalizeExamQuestion)
+    }
   } catch {
     return null
   }
+}
+
+function normalizeExamQuestion(question: ExamQuestion) {
+  if (hasOptions(question)) {
+    return question
+  }
+  const parsed = parseChoiceOptions(question.title)
+  if (parsed.options.length >= 2) {
+    return { ...question, title: parsed.title, options: parsed.options }
+  }
+  const fallbackOptions = fallbackOptionsFor(question)
+  return fallbackOptions.length > 0 ? { ...question, options: fallbackOptions } : question
+}
+
+function parseChoiceOptions(title: string) {
+  const lines = title.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  const options: Array<{ value: string; label: string }> = []
+  const stemLines: string[] = []
+
+  lines.forEach((line) => {
+    const match = line.match(/^([A-D])[\.\u3001\uff0e]\s*(.+)$/i)
+    if (match) {
+      options.push({ value: match[1].toUpperCase(), label: match[2].trim() })
+    } else {
+      stemLines.push(line)
+    }
+  })
+
+  return {
+    title: stemLines.join('\n'),
+    options
+  }
+}
+
+function fallbackOptionsFor(question: ExamQuestion) {
+  if (question.type === 'TRUE_FALSE') {
+    return [
+      { value: 'true', label: '正确' },
+      { value: 'false', label: '错误' }
+    ]
+  }
+  if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+    return ['A', 'B', 'C', 'D'].map((value) => ({
+      value,
+      label: `选项 ${value}（原题未提供选项内容）`
+    }))
+  }
+  return []
 }
 </script>
