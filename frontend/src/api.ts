@@ -186,10 +186,18 @@ export type UpdateMistakeStatusPayload = {
 }
 
 async function parseApiResponse<T>(response: Response) {
-  if (!response.ok) {
-    throw new Error(`请求失败：${response.status}`)
+  let payload: ApiResponse<T> | null = null
+  try {
+    payload = (await response.json()) as ApiResponse<T>
+  } catch {
+    payload = null
   }
-  const payload = (await response.json()) as ApiResponse<T>
+  if (!response.ok) {
+    throw new Error(payload?.message ?? `请求失败：${response.status}`)
+  }
+  if (!payload) {
+    throw new Error('响应数据格式错误')
+  }
   if (payload.code !== 'OK') {
     throw new Error(payload.message)
   }

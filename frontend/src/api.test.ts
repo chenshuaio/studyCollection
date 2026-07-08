@@ -48,6 +48,16 @@ describe('api client', () => {
     expect(response.token).toBe('token-1')
   })
 
+  it('surfaces api error messages from non-OK responses', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ code: 'VALIDATION_FAILED', message: '账号或密码错误', data: null })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(login({ username: 'user', password: 'bad-password' })).rejects.toThrow('账号或密码错误')
+  })
+
   it('lists administrator user summaries', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

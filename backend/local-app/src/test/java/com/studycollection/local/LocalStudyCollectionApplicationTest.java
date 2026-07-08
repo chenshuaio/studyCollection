@@ -125,6 +125,14 @@ class LocalStudyCollectionApplicationTest {
         )));
     }
 
+    @Test
+    void invalidLoginReturnsAccountOrPasswordError() {
+        ResponseEntity<String> response = post("/auth/login", Map.of("username", "user", "password", "wrong"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).contains("\"message\":\"账号或密码错误\"");
+    }
+
     private ResponseEntity<String> post(String path, Object body) {
         return restTemplate.postForEntity(url(path), body, String.class);
     }

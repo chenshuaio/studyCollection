@@ -45,7 +45,7 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         UserAccount account = userRepository.findByUsername(request.username());
         if (account == null || !account.passwordHash().equals("{plain}" + request.password())) {
-            throw new IllegalArgumentException("用户名或密码错误");
+            throw new IllegalArgumentException("账号或密码错误");
         }
         String token = tokenService.issue(account.id(), account.username(), account.role());
         return new LoginResponse(token, account.role().name(), account.displayName());

@@ -52,9 +52,16 @@ async function goDashboard() {
     saveLoggedInUser(result)
     router.push('/dashboard')
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '登录失败，请检查本地后端是否启动。'
+    errorMessage.value = loginErrorMessage(error)
   } finally {
     submitting.value = false
   }
+}
+
+function loginErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.includes('用户名或密码错误')) {
+    return '账号或密码错误'
+  }
+  return error instanceof Error ? error.message : '登录失败，请检查本地后端是否启动。'
 }
 </script>
