@@ -80,12 +80,7 @@ export type QuestionSearchParams = {
   type?: string
 }
 
-export type PreviewQuestion = {
-  title: string
-  answer: string
-  knowledgePoint: string
-  difficulty: string
-}
+export type PreviewQuestion = QuestionPayload
 
 type ImportPreviewResult = {
   questions: PreviewQuestion[]
@@ -150,6 +145,7 @@ export type QuestionFeedbackPayload = {
 
 export type QuestionFeedback = QuestionFeedbackPayload & {
   id: number
+  userId: number
   status: string
 }
 
@@ -164,10 +160,13 @@ export type ReviewFeedbackPayload = {
   reviewNote: string
 }
 
-export type QuestionRevision = AcceptFeedbackPayload & {
+export type QuestionRevision = {
   id: number
   questionId: number
   feedbackId: number
+  adminUserId: number
+  changeSummary: string
+  reviewNote: string
 }
 
 export type CustomExamPayload = {
@@ -385,6 +384,18 @@ export function uploadKnowledgeFile(file: File) {
   })
     .then((response) => parseApiResponse<GeneratedQuestionBank>(response))
     .then((bank) => bank.questions)
+}
+
+export function uploadQuestionFile(file: File) {
+  const body = new FormData()
+  body.append('file', file)
+  return fetch('/api/imports/questions/upload', {
+    method: 'POST',
+    headers: authorizationHeaders(),
+    body
+  })
+    .then((response) => parseApiResponse<ImportPreviewResult>(response))
+    .then((preview) => preview.questions)
 }
 
 export function submitPractice(answers: PracticeAnswer[]) {

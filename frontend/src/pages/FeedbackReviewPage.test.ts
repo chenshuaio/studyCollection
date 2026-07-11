@@ -33,9 +33,7 @@ describe('FeedbackReviewPage', () => {
       feedbackId: 1,
       adminUserId: 1,
       changeSummary: '答案从 A 修改为 B',
-      reviewNote: '用户反馈属实',
-      correctedAnswer: 'B',
-      correctedAnalysis: 'Java 基本类型 int 的默认值是 0。'
+      reviewNote: '用户反馈属实'
     })
     vi.mocked(rejectQuestionFeedback).mockResolvedValue({
       id: 1,

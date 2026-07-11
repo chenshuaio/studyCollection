@@ -1,43 +1,70 @@
 package com.studycollection.importer.parser;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MarkdownQuestionParser {
-    public ImportPreview parse(String markdown) {
-        String[] lines = markdown.split("\\R");
-        String title = "";
-        String answer = "";
-        String knowledgePoint = "";
-        String difficulty = "";
-        List<String> optionLines = new ArrayList<>();
+    private final QuestionDraftFactory draftFactory = new QuestionDraftFactory();
 
-        for (String line : lines) {
-            String trimmed = line.trim();
-            if (trimmed.startsWith("题目:")) {
-                title = trimmed.substring("题目:".length()).trim();
-            } else if (trimmed.matches("^[A-Da-d][.、．]\\s*.+$")) {
-                optionLines.add(normalizeOptionLine(trimmed));
-            } else if (trimmed.startsWith("答案:")) {
-                answer = trimmed.substring("答案:".length()).trim();
-            } else if (trimmed.startsWith("知识点:")) {
-                knowledgePoint = trimmed.substring("知识点:".length()).trim();
-            } else if (trimmed.startsWith("难度:")) {
-                difficulty = trimmed.substring("难度:".length()).trim();
-            }
+    public ImportPreview parse(String markdown) {
+        if (markdown == null || markdown.isBlank()) {
+            throw new IllegalArgumentException("题目内容不能为空");
         }
 
         List<ParsedQuestion> questions = new ArrayList<>();
-        if (!title.isBlank()) {
-            if (!optionLines.isEmpty()) {
-                title = title + System.lineSeparator() + String.join(System.lineSeparator(), optionLines);
+        Map<String, String> current = new LinkedHashMap<>();
+        String headingType = "";
+        for (String line : markdown.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("##")) {
+                addCurrent(questions, current);
+                current = new LinkedHashMap<>();
+                headingType = trimmed.replaceFirst("^#+", "").trim();
+                continue;
             }
-            questions.add(new ParsedQuestion(title, answer, knowledgePoint, difficulty));
+            if (hasLabel(trimmed, "题目")) {
+                addCurrent(questions, current);
+                current = new LinkedHashMap<>();
+                if (!headingType.isBlank()) {
+                    current.put("题型", headingType);
+                }
+                current.put("题目", labelValue(trimmed, "题目"));
+            } else if (trimmed.matches("^[A-Da-d][.、．]\\s*.+$")) {
+                current.put("选项" + trimmed.substring(0, 1).toUpperCase(), trimmed.substring(2).trim());
+            } else {
+                copyLabel(trimmed, current, "题型");
+                copyLabel(trimmed, current, "答案");
+                copyLabel(trimmed, current, "解析");
+                copyLabel(trimmed, current, "知识点");
+                copyLabel(trimmed, current, "难度");
+            }
         }
-        return new ImportPreview(questions);
+        addCurrent(questions, current);
+        if (questions.isEmpty()) {
+            throw new IllegalArgumentException("未解析到任何题目，请检查是否包含“题目:”字段");
+        }
+        return new ImportPreview(List.copyOf(questions));
     }
 
-    private String normalizeOptionLine(String line) {
-        return line.substring(0, 1).toUpperCase() + ". " + line.substring(2).trim();
+    private void addCurrent(List<ParsedQuestion> questions, Map<String, String> current) {
+        if (current.containsKey("题目")) {
+            questions.add(draftFactory.create(questions.size() + 1, current));
+        }
+    }
+
+    private void copyLabel(String line, Map<String, String> fields, String label) {
+        if (hasLabel(line, label)) {
+            fields.put(label, labelValue(line, label));
+        }
+    }
+
+    private boolean hasLabel(String line, String label) {
+        return line.startsWith(label + ":") || line.startsWith(label + "：");
+    }
+
+    private String labelValue(String line, String label) {
+        return line.substring(label.length() + 1).trim();
     }
 }

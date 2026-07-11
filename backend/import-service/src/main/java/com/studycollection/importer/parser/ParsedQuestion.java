@@ -2,8 +2,10 @@ package com.studycollection.importer.parser;
 
 public record ParsedQuestion(
         String title,
-        String answer,
+        String type,
+        String difficulty,
         String knowledgePoint,
-        String difficulty
+        String answer,
+        String analysis
 ) {
 }

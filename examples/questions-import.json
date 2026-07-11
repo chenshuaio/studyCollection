@@ -1,0 +1,24 @@
+{
+  "questions": [
+    {
+      "title": "下列哪个是 Java 关键字？",
+      "type": "SINGLE_CHOICE",
+      "difficulty": "BEGINNER",
+      "knowledgePoint": "Java 基础",
+      "answer": "A",
+      "analysis": "class 用于声明类。",
+      "optionA": "class",
+      "optionB": "hello",
+      "optionC": "world",
+      "optionD": "study"
+    },
+    {
+      "title": "简述 JVM 堆的主要用途。",
+      "type": "SHORT_ANSWER",
+      "difficulty": "INTERMEDIATE",
+      "knowledgePoint": "JVM",
+      "answer": "主要保存对象实例和数组。",
+      "analysis": "堆是线程共享的运行时数据区。"
+    }
+  ]
+}

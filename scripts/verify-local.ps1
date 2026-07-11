@@ -5,6 +5,7 @@ mvn test
 Pop-Location
 
 Push-Location frontend
+npm run typecheck
 npm test
 npm run build
 Pop-Location

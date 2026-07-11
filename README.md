@@ -52,6 +52,8 @@ mysql -u root -proot < scripts/mysql-init.sql
 
 ## Java 知识内容生成题库
 
+进入前端 `/import` 页面，在“结构化题目导入”区域上传 `.json`、`.csv`、`.xlsx`、`.txt` 或 `.md` 题目文件。系统会按字段批量解析题目；题干与选项、题型、难度、知识点、答案和解析都可以在页面中编辑、增删，确认后再提交管理员审核。示例文件见 `examples/questions-import.json`、`examples/questions-import.csv` 和 `examples/questions-import.xlsx`。
+
 进入前端 `/import` 页面，在“学习内容生成题库”区域粘贴 Java 学习材料，例如 HashMap、局部变量、面向对象等知识内容，点击“分析生成题库”即可调用后端规则生成题库草稿。
 
 也可以点击“上传学习资料”选择 `.txt`、`.md`、`.csv`、`.xlsx`、`.docx` 或 `.pdf` 文件，前端会通过后端上传接口提取文本并生成题库草稿。确认无误后提交管理员审核，通过后进入公共题库。
@@ -75,5 +77,7 @@ mysql -u root -proot < scripts/mysql-init.sql
 ```powershell
 .\scripts\verify-local.ps1
 ```
+
+验证脚本会依次执行 Maven 测试、Vue TypeScript 类型检查、Vitest 和 Vite 生产构建。
 
 验证会运行后端 Maven 测试、前端 Vitest 测试和前端生产构建。

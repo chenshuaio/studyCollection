@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ExamTakingPage from './ExamTakingPage.vue'
-import { getExamSession, recordMistake, saveExamAnswer, submitExamSession } from '../api'
+import { getExamSession, recordMistake, saveExamAnswer, submitExamSession, type ExamSession } from '../api'
 
 vi.mock('vue-router', () => ({
   RouterLink: {
@@ -24,7 +24,7 @@ const routerLinkStub = {
   template: '<a :href="to"><slot /></a>'
 }
 
-function activeSession() {
+function activeSession(): ExamSession {
   return {
     id: 91,
     name: '集合专项测试',

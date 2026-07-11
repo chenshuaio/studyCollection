@@ -32,7 +32,8 @@ import {
   submitQuestionFeedback,
   submitExamSession,
   updateMistakeStatus,
-  uploadKnowledgeFile
+  uploadKnowledgeFile,
+  uploadQuestionFile
 } from './api'
 
 describe('api client', () => {
@@ -205,6 +206,40 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/practice/stats', expect.objectContaining({ method: 'GET' }))
     expect(stats.answeredQuestionCount).toBe(2)
     expect(stats.gradedQuestionCount).toBe(1)
+  })
+
+  it('uploads a structured question file for editable preview', async () => {
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'signed-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice'
+    }))
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 'OK',
+        data: {
+          questions: [{
+            title: 'Java 的入口方法是什么？',
+            type: 'SHORT_ANSWER',
+            difficulty: 'BEGINNER',
+            knowledgePoint: 'Java 基础',
+            answer: 'main 方法',
+            analysis: 'public static void main'
+          }]
+        }
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const file = new File(['[]'], 'questions.json', { type: 'application/json' })
+
+    const questions = await uploadQuestionFile(file)
+
+    expect(questions).toHaveLength(1)
+    expect(questions[0].type).toBe('SHORT_ANSWER')
+    expect(fetchMock).toHaveBeenCalledWith('/api/imports/questions/upload', expect.objectContaining({
+      method: 'POST',
+      body: expect.any(FormData),
+      headers: { Authorization: 'Bearer signed-token' }
+    }))
   })
 
   it('generates a filtered practice without sending empty filters', async () => {

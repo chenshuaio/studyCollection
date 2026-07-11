@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ExamPage from './ExamPage.vue'
-import { composeCustomExam, listExamSessions, searchQuestions } from '../api'
+import { composeCustomExam, listExamSessions, searchQuestions, type ExamSession } from '../api'
 
 vi.mock('../api', () => ({
   composeCustomExam: vi.fn(),
@@ -24,7 +24,7 @@ const question = {
   analysis: ''
 }
 
-const createdSession = {
+const createdSession: ExamSession = {
   id: 91,
   name: '集合专项测试',
   durationMinutes: 45,

@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import PracticePage from './PracticePage.vue'
-import { generatePractice, listKnowledgePoints, recordMistake, searchQuestions, submitUserPractice } from '../api'
+import {
+  generatePractice,
+  listKnowledgePoints,
+  recordMistake,
+  searchQuestions,
+  submitUserPractice,
+  type GeneratedPracticeQuestion
+} from '../api'
 
 vi.mock('../api', () => ({
   generatePractice: vi.fn(),
@@ -17,7 +24,7 @@ const routerLinkStub = {
   template: '<a><slot /></a>'
 }
 
-function mockGeneratedQuestions(questions: Array<Record<string, unknown>>) {
+function mockGeneratedQuestions(questions: GeneratedPracticeQuestion[]) {
   vi.mocked(generatePractice).mockResolvedValue({
     requestedCount: 10,
     actualCount: questions.length,

@@ -154,8 +154,8 @@ const statusMessage = ref('')
 const remainingSeconds = ref(0)
 const mistakeSyncFailedCount = ref(0)
 const recordedMistakes = new Set<number>()
-const saveTimers = new Map<number, ReturnType<typeof setTimeout>>()
-let countdownTimer: ReturnType<typeof setInterval> | null = null
+const saveTimers = new Map<number, number>()
+let countdownTimer: number | null = null
 let finalSavePromise: Promise<void> | null = null
 
 const examId = Number(route.params.examId)
@@ -450,8 +450,8 @@ function difficultyLabel(difficulty: string) {
   return ({ BEGINNER: '入门', INTERMEDIATE: '进阶', ADVANCED: '精通' } as Record<string, string>)[difficulty] ?? difficulty
 }
 
-function saveStateLabel(state: SaveState) {
-  return ({ saving: '正在保存...', saved: '已保存', error: '保存失败' } as Record<SaveState, string>)[state]
+function saveStateLabel(state: SaveState | undefined) {
+  return state ? ({ saving: '正在保存...', saved: '已保存', error: '保存失败' } as Record<SaveState, string>)[state] : ''
 }
 
 function errorMessage(error: unknown, fallback: string) {

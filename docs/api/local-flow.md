@@ -86,6 +86,7 @@ Authorization: Bearer signed-token
 ## 导入与生成接口
 
 - `POST /imports/preview`：提交结构化 Markdown/TXT 题目内容，返回题目预览列表。
+- `POST /imports/questions/upload`：上传结构化题目文件，字段名为 `file`，支持 `.json`、`.csv`、`.xlsx`、`.txt`、`.md`；最多 10 MB、1000 道题，返回完整可编辑草稿。
 - `POST /imports/knowledge/generate`：提交 Java 学习知识内容，返回可入库的题库草稿。
 - `POST /imports/knowledge/upload`：上传 Java 学习资料文件，字段名为 `file`，当前支持 `.txt`、`.md`、`.csv`、`.xlsx`、`.docx`、`.pdf`，返回待预览的题库草稿。
 
@@ -94,10 +95,17 @@ Authorization: Bearer signed-token
 ```markdown
 ## 单选题
 题目: Java 中 int 默认值是多少？
+A. 0
+B. null
 答案: A
+解析: Java 成员变量 int 的默认值为 0。
 知识点: Java 基础
 难度: BEGINNER
 ```
+
+JSON、CSV 和 XLSX 支持以下字段名：`title`、`type`、`difficulty`、`knowledgePoint`、`answer`、`analysis`，也接受对应中文表头。选择题可额外提供 `optionA` 至 `optionD` 或“选项A”至“选项D”，解析后会合并到题干中。JSON 根节点可以直接是数组，也可以是 `{ "questions": [...] }`。
+
+结构化题目只生成候选草稿，不会直接进入公共题库。普通用户在前端编辑确认后逐题提交待审核队列，管理员批准后题目才可用于练习和考试。
 
 知识内容生成示例：
 

@@ -128,12 +128,14 @@ function selectFeedback(id: number) {
 }
 
 async function acceptSelected() {
-  if (!ensureSelected()) {
+  const feedbackId = selectedFeedbackId.value
+  if (feedbackId === null) {
+    ensureSelected()
     return
   }
 
   try {
-    await acceptQuestionFeedback(selectedFeedbackId.value, {
+    await acceptQuestionFeedback(feedbackId, {
       changeSummary: changeSummary.value,
       reviewNote: reviewNote.value,
       correctedAnswer: correctedAnswer.value,
@@ -147,12 +149,14 @@ async function acceptSelected() {
 }
 
 async function rejectSelected() {
-  if (!ensureSelected()) {
+  const feedbackId = selectedFeedbackId.value
+  if (feedbackId === null) {
+    ensureSelected()
     return
   }
 
   try {
-    await rejectQuestionFeedback(selectedFeedbackId.value, {
+    await rejectQuestionFeedback(feedbackId, {
       reviewNote: reviewNote.value
     })
     await loadFeedback()
@@ -163,12 +167,14 @@ async function rejectSelected() {
 }
 
 async function markSelectedNeedsReview() {
-  if (!ensureSelected()) {
+  const feedbackId = selectedFeedbackId.value
+  if (feedbackId === null) {
+    ensureSelected()
     return
   }
 
   try {
-    await markFeedbackNeedsReview(selectedFeedbackId.value, {
+    await markFeedbackNeedsReview(feedbackId, {
       reviewNote: reviewNote.value
     })
     await loadFeedback()

@@ -437,6 +437,98 @@ th {
   width: 100%;
 }
 
+.editor-label,
+.draft-editor-row label {
+  color: #344054;
+  display: grid;
+  gap: 8px;
+}
+
+.editor-label {
+  margin-top: 16px;
+}
+
+.editable-draft-panel {
+  align-self: start;
+}
+
+.panel-header > div {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.empty-draft {
+  color: #667085;
+  margin: 0;
+  padding: 24px;
+}
+
+.draft-editor-row {
+  border-top: 1px solid #edf1f6;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.draft-row-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.draft-row-header h3 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.draft-row-header button {
+  background: transparent;
+  border: 0;
+  color: #b42318;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 6px 8px;
+}
+
+.draft-title-field textarea,
+.draft-answer-grid textarea,
+.draft-meta-grid input,
+.draft-meta-grid select {
+  border: 1px solid #cfd8e6;
+  border-radius: 7px;
+  color: #172033;
+  font: inherit;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.draft-title-field textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.draft-answer-grid textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.draft-meta-grid,
+.draft-answer-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.draft-meta-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.draft-answer-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .file-upload {
   align-items: center;
   border: 1px dashed #b9c7da;
@@ -911,6 +1003,15 @@ th {
   }
 
   .filter-bar {
+    padding: 14px;
+  }
+
+  .draft-meta-grid,
+  .draft-answer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .draft-editor-row {
     padding: 14px;
   }
 

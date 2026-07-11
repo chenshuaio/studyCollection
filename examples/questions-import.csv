@@ -1,0 +1,3 @@
+title,type,difficulty,knowledgePoint,answer,analysis,optionA,optionB,optionC,optionD
+HashMap 默认负载因子是多少？,SINGLE_CHOICE,INTERMEDIATE,集合框架,B,默认负载因子为 0.75。,0.5,0.75,1.0,2.0
+说明 List 和 Set 的主要区别。,SHORT_ANSWER,INTERMEDIATE,集合框架,"List 有序且允许重复，Set 不允许重复。",应从顺序和重复元素两个角度比较。,,,,
