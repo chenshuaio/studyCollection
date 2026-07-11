@@ -10,6 +10,7 @@ import java.util.List;
 public class AuthService {
     private final UserRepository userRepository;
     private final TokenService tokenService;
+    private final PasswordHasher passwordHasher = new PasswordHasher();
 
     public AuthService(UserRepository userRepository, TokenService tokenService) {
         this.userRepository = userRepository;
@@ -35,20 +36,36 @@ public class AuthService {
         UserAccount account = userRepository.save(new UserAccount(
                 null,
                 request.username(),
-                "{plain}" + request.password(),
+                passwordHasher.hash(request.password()),
                 request.displayName(),
                 Role.USER
         ));
-        return new RegisterResponse(account.id(), account.username(), account.displayName(), account.role().name());
+        String token = tokenService.issue(account.id(), account.username(), account.role());
+        return new RegisterResponse(
+                token,
+                account.id(),
+                account.username(),
+                account.displayName(),
+                account.role().name()
+        );
     }
 
     public LoginResponse login(LoginRequest request) {
         UserAccount account = userRepository.findByUsername(request.username());
-        if (account == null || !account.passwordHash().equals("{plain}" + request.password())) {
+        if (account == null || !passwordHasher.matches(request.password(), account.passwordHash())) {
             throw new IllegalArgumentException("账号或密码错误");
         }
+        if (passwordHasher.needsUpgrade(account.passwordHash())) {
+            userRepository.updatePasswordHash(account.id(), passwordHasher.hash(request.password()));
+        }
         String token = tokenService.issue(account.id(), account.username(), account.role());
-        return new LoginResponse(token, account.role().name(), account.displayName());
+        return new LoginResponse(
+                token,
+                account.id(),
+                account.username(),
+                account.role().name(),
+                account.displayName()
+        );
     }
 
     public List<UserSummary> listUsers() {

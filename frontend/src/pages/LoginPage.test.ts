@@ -27,11 +27,23 @@ describe('LoginPage', () => {
     expect(wrapper.find('button[type="submit"]').text()).toBe('登录')
   })
 
+  it('does not prefill demo credentials', () => {
+    const wrapper = mount(LoginPage)
+    const inputs = wrapper.findAll('input')
+
+    expect(inputs).toHaveLength(2)
+    expect(inputs[0].element.value).toBe('')
+    expect(inputs[1].element.value).toBe('')
+    expect(inputs.every((input) => input.attributes('required') !== undefined)).toBe(true)
+  })
+
   it('shows account or password error when login fails', async () => {
     vi.mocked(login).mockRejectedValue(new Error('用户名或密码错误'))
 
     const wrapper = mount(LoginPage)
 
+    await wrapper.find('input[autocomplete="username"]').setValue('user')
+    await wrapper.find('input[autocomplete="current-password"]').setValue('wrong-password')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 

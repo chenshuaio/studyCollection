@@ -10,4 +10,6 @@ public interface UserRepository {
     List<UserAccount> findAll();
 
     UserAccount save(UserAccount account);
+
+    void updatePasswordHash(Long userId, String passwordHash);
 }

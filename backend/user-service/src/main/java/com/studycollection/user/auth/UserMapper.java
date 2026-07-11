@@ -3,7 +3,9 @@ package com.studycollection.user.auth;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -24,4 +26,7 @@ public interface UserMapper {
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(UserEntity entity);
+
+    @Update("update users set password_hash = #{passwordHash} where id = #{id}")
+    int updatePasswordHash(@Param("id") Long id, @Param("passwordHash") String passwordHash);
 }

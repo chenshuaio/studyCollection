@@ -4,7 +4,6 @@ import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.QuestionType;
 
 public record SubmitPendingQuestionRequest(
-        Long submitterUserId,
         String title,
         QuestionType type,
         Difficulty difficulty,

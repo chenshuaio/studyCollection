@@ -36,9 +36,26 @@
             <span>{{ currentQuestion.difficulty }}</span>
           </div>
           <h2>{{ currentQuestion?.title ?? '暂无可练习题目' }}</h2>
-          <label class="answer-field">
+          <form v-if="currentQuestion && hasOptions(currentQuestion)" class="option-list" aria-label="练习题选项">
+            <label v-for="option in currentQuestion.options" :key="option.value">
+              <input
+                v-model="selectedAnswer"
+                :type="currentQuestion.type === 'MULTIPLE_CHOICE' ? 'checkbox' : 'radio'"
+                name="practice-question"
+                :value="option.value"
+                :disabled="submitted"
+              />
+              <span>{{ option.value }}. {{ option.label }}</span>
+            </label>
+          </form>
+          <label v-else class="answer-field">
             作答
-            <input v-model="selectedAnswer" aria-label="练习答案" placeholder="请输入你的答案" />
+            <input
+              v-model="selectedAnswer"
+              aria-label="练习答案"
+              :disabled="submitted"
+              placeholder="请输入你的答案"
+            />
           </label>
           <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
           <button type="button" @click="submitAnswer">提交答案</button>
@@ -103,20 +120,27 @@ import {
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
-import { getCurrentUser } from '../session'
 
 const isAdminUser = isAdmin()
 
-const questions = ref<Question[]>([])
+type ChoiceOption = {
+  value: string
+  label: string
+}
+
+type PracticeQuestion = Question & {
+  options?: ChoiceOption[]
+}
+
+const questions = ref<PracticeQuestion[]>([])
 const retryTarget = ref<RetryMistakeTarget | null>(loadRetryTarget())
 const currentQuestion = computed(() => questions.value[0] ?? null)
-const selectedAnswer = ref('')
+const selectedAnswer = ref<string | string[]>('')
 const submitted = ref(false)
 const statusMessage = ref('')
 const feedbackStatus = ref('')
 const feedbackContent = ref('标准答案或解析可能有误，请管理员复核。')
 const backendResult = ref<PracticeResult | null>(null)
-const currentUserId = getCurrentUser()?.userId ?? 7
 
 type RetryMistakeTarget = {
   questionId: number
@@ -141,7 +165,8 @@ onMounted(loadPracticeQuestion)
 async function loadPracticeQuestion() {
   statusMessage.value = ''
   try {
-    questions.value = prioritizeRetryQuestion(await searchQuestions())
+    questions.value = prioritizeRetryQuestion(await searchQuestions()).map(normalizePracticeQuestion)
+    selectedAnswer.value = currentQuestion.value?.type === 'MULTIPLE_CHOICE' ? [] : ''
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '加载练习题失败，请检查本地后端是否启动。'
   }
@@ -175,28 +200,72 @@ function prioritizeRetryQuestion(loadedQuestions: Question[]) {
   return [target, ...loadedQuestions.filter((question) => question.id !== target.id)]
 }
 
+function normalizePracticeQuestion(question: Question): PracticeQuestion {
+  const parsed = parseChoiceOptions(question.title)
+  if (parsed.options.length >= 2) {
+    return { ...question, title: parsed.title, options: parsed.options }
+  }
+  if (question.type === 'TRUE_FALSE') {
+    return {
+      ...question,
+      options: [
+        { value: 'true', label: '正确' },
+        { value: 'false', label: '错误' }
+      ]
+    }
+  }
+  if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+    return {
+      ...question,
+      options: ['A', 'B', 'C', 'D'].map((value) => ({
+        value,
+        label: `选项 ${value}（原题未提供选项内容）`
+      }))
+    }
+  }
+  return question
+}
+
+function parseChoiceOptions(title: string) {
+  const lines = title.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  const options: ChoiceOption[] = []
+  const stemLines: string[] = []
+
+  lines.forEach((line) => {
+    const match = line.match(/^([A-D])[\.\u3001\uff0e]\s*(.+)$/i)
+    if (match) {
+      options.push({ value: match[1].toUpperCase(), label: match[2].trim() })
+    } else {
+      stemLines.push(line)
+    }
+  })
+
+  return { title: stemLines.join('\n'), options }
+}
+
+function hasOptions(question: PracticeQuestion) {
+  return Array.isArray(question.options) && question.options.length > 0
+}
+
 async function submitAnswer() {
   statusMessage.value = ''
   if (!currentQuestion.value) {
     statusMessage.value = '暂无可提交的练习题。'
     return
   }
-  if (!selectedAnswer.value) {
+  if (!hasSelectedAnswer()) {
     statusMessage.value = '请先填写答案。'
     return
   }
   try {
-    backendResult.value = await submitUserPractice(currentUserId, [{
+    backendResult.value = await submitUserPractice([{
       questionId: currentQuestion.value.id,
-      answer: selectedAnswer.value,
-      correctAnswer: currentQuestion.value.answer,
-      analysis: currentQuestion.value.analysis
+      answer: serializedAnswer()
     }])
     submitted.value = true
     const item = backendResult.value.items[0]
     if (item && !item.correct) {
       await recordMistake({
-        userId: 7,
         questionId: currentQuestion.value.id,
         questionTitle: currentQuestion.value.title,
         knowledgePoint: currentQuestion.value.knowledgePoint,
@@ -216,7 +285,6 @@ async function sendFeedback() {
   }
   try {
     await submitQuestionFeedback({
-      userId: 7,
       questionId: currentQuestion.value.id,
       type: 'ANSWER_ERROR',
       content: feedbackContent.value
@@ -234,5 +302,17 @@ function resetPractice() {
   statusMessage.value = ''
   feedbackStatus.value = ''
   loadPracticeQuestion()
+}
+
+function hasSelectedAnswer() {
+  return Array.isArray(selectedAnswer.value)
+    ? selectedAnswer.value.length > 0
+    : selectedAnswer.value.trim().length > 0
+}
+
+function serializedAnswer() {
+  return Array.isArray(selectedAnswer.value)
+    ? [...selectedAnswer.value].sort().join(',')
+    : selectedAnswer.value
 }
 </script>

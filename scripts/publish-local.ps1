@@ -84,11 +84,16 @@ function Resolve-Cloudflared {
 function Wait-PublicUrl {
   param(
     [string[]]$LogPaths,
-    [int]$TimeoutSeconds
+    [int]$TimeoutSeconds,
+    [int]$TunnelProcessId
   )
 
   $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
   while ((Get-Date) -lt $deadline) {
+    if (-not (Get-Process -Id $TunnelProcessId -ErrorAction SilentlyContinue)) {
+      throw "Public tunnel process exited before publishing a URL. Check logs: $($LogPaths -join ', ')"
+    }
+
     foreach ($logPath in $LogPaths) {
       if (!(Test-Path $logPath)) {
         continue
@@ -99,7 +104,7 @@ function Wait-PublicUrl {
         continue
       }
 
-      $match = [regex]::Match($content, "https://[-a-zA-Z0-9.]+\.trycloudflare\.com")
+      $match = [regex]::Match($content, "https://[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)+\.trycloudflare\.com")
       if ($match.Success) {
         return $match.Value
       }
@@ -148,17 +153,43 @@ if (!(Test-PortOpen -HostName "127.0.0.1" -Port 5173)) {
 $cloudflaredPath = Resolve-Cloudflared -ToolsDir $toolsDir
 $tunnelCommand = "& '$cloudflaredPath' tunnel --url http://127.0.0.1:5173"
 
-$tunnel = Start-Process powershell `
-  -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $tunnelCommand `
-  -WindowStyle Hidden `
-  -RedirectStandardOutput $cloudflaredLog `
-  -RedirectStandardError $cloudflaredErrorLog `
-  -PassThru
+foreach ($logPath in @($cloudflaredLog, $cloudflaredErrorLog)) {
+  if (Test-Path $logPath) {
+    Remove-Item -LiteralPath $logPath -Force
+  }
+}
+
+$tunnelProxyVariables = @("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY")
+$tunnelProxyValues = @{}
+foreach ($proxyName in $tunnelProxyVariables) {
+  $proxyValue = [Environment]::GetEnvironmentVariable($proxyName, "Process")
+  if ($null -ne $proxyValue) {
+    $tunnelProxyValues[$proxyName] = $proxyValue
+  }
+  [Environment]::SetEnvironmentVariable($proxyName, $null, "Process")
+}
+
+try {
+  $tunnel = Start-Process powershell `
+    -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $tunnelCommand `
+    -WindowStyle Hidden `
+    -RedirectStandardOutput $cloudflaredLog `
+    -RedirectStandardError $cloudflaredErrorLog `
+    -PassThru
+} finally {
+  foreach ($proxyName in $tunnelProxyVariables) {
+    $proxyValue = $tunnelProxyValues[$proxyName]
+    [Environment]::SetEnvironmentVariable($proxyName, $proxyValue, "Process")
+  }
+}
 
 "tunnel=$($tunnel.Id)" | Set-Content -Path $publicPidFile
 
 Write-Host "Public tunnel is starting. Waiting for public URL..."
-$publicUrl = Wait-PublicUrl -LogPaths @($cloudflaredErrorLog, $cloudflaredLog) -TimeoutSeconds $TimeoutSeconds
+$publicUrl = Wait-PublicUrl `
+  -LogPaths @($cloudflaredErrorLog, $cloudflaredLog) `
+  -TimeoutSeconds $TimeoutSeconds `
+  -TunnelProcessId $tunnel.Id
 $publicUrl | Set-Content -Path $publicUrlFile
 
 Write-Host "Public URL: $publicUrl"

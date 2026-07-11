@@ -83,10 +83,8 @@ import { getPracticeStats, listMistakes, listUserFeedback } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
-import { getCurrentUser } from '../session'
 
 const isAdminUser = isAdmin()
-const currentUser = getCurrentUser()
 const dashboardMetrics = reactive({
   answeredQuestionCount: 0,
   correctQuestionCount: 0,
@@ -111,11 +109,10 @@ const feedbackText = computed(() => (
 onMounted(loadDashboardMetrics)
 
 async function loadDashboardMetrics() {
-  const userId = currentUser?.userId ?? 7
   const [practiceStats, mistakes, feedback] = await Promise.all([
-    getPracticeStats(userId),
-    listMistakes(userId),
-    listUserFeedback(userId)
+    getPracticeStats(),
+    listMistakes(),
+    listUserFeedback()
   ])
   dashboardMetrics.answeredQuestionCount = practiceStats.answeredQuestionCount
   dashboardMetrics.correctQuestionCount = practiceStats.correctQuestionCount

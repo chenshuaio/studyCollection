@@ -122,7 +122,6 @@ import {
   type PreviewQuestion,
   type QuestionPayload
 } from '../api'
-import { getCurrentUser } from '../session'
 import { isAdmin } from '../permissions'
 
 const isAdminUser = isAdmin()
@@ -162,7 +161,6 @@ async function savePreviewQuestions() {
   try {
     for (const question of previewQuestions.value) {
       await submitPendingQuestion({
-        submitterUserId: currentUserId(),
         title: question.title,
         type: 'SINGLE_CHOICE',
         difficulty: question.difficulty,
@@ -209,7 +207,6 @@ async function saveGeneratedQuestions() {
   try {
     for (const question of generatedQuestions.value) {
       await submitPendingQuestion({
-        submitterUserId: currentUserId(),
         ...question
       })
     }
@@ -219,7 +216,4 @@ async function saveGeneratedQuestions() {
   }
 }
 
-function currentUserId() {
-  return getCurrentUser()?.userId ?? 7
-}
 </script>

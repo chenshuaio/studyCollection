@@ -5,9 +5,9 @@ const SESSION_KEY = 'studyCollectionUser'
 export type CurrentUser = {
   role: string
   displayName: string
-  token?: string
-  userId?: number
-  username?: string
+  token: string
+  userId: number
+  username: string
 }
 
 export function saveLoggedInUser(user: LoginResult) {
@@ -15,15 +15,7 @@ export function saveLoggedInUser(user: LoginResult) {
 }
 
 export function saveRegisteredUser(user: RegisterResult) {
-  window.localStorage.setItem(
-    SESSION_KEY,
-    JSON.stringify({
-      userId: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role
-    })
-  )
+  window.localStorage.setItem(SESSION_KEY, JSON.stringify(user))
 }
 
 export function clearCurrentUser() {
@@ -37,7 +29,12 @@ export function getCurrentUser(): CurrentUser | null {
   }
 
   try {
-    return JSON.parse(raw) as CurrentUser
+    const currentUser = JSON.parse(raw) as Partial<CurrentUser>
+    if (!currentUser.token || !currentUser.userId || !currentUser.username || !currentUser.role || !currentUser.displayName) {
+      clearCurrentUser()
+      return null
+    }
+    return currentUser as CurrentUser
   } catch {
     clearCurrentUser()
     return null

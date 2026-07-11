@@ -58,7 +58,9 @@ public class InMemoryQuestionRepository implements QuestionRepository {
 
     @Override
     public void deleteById(Long id) {
-        questions.removeIf(question -> question.id().equals(id));
+        if (!questions.removeIf(question -> question.id().equals(id))) {
+            throw new IllegalArgumentException("题目不存在");
+        }
     }
 
     private boolean matchesKeyword(Question question, String keyword) {

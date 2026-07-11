@@ -127,10 +127,8 @@ import { listMistakes, updateMistakeStatus, type MistakeRecord } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
-import { getCurrentUser } from '../session'
 
 const isAdminUser = isAdmin()
-const currentUserId = getCurrentUser()?.userId ?? 7
 
 const filters = reactive({
   knowledgePoint: '',
@@ -160,7 +158,7 @@ onMounted(loadMistakes)
 async function loadMistakes() {
   statusMessage.value = ''
   try {
-    mistakes.value = await listMistakes(currentUserId)
+    mistakes.value = await listMistakes()
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '加载错题失败，请检查本地后端是否启动。'
   }
@@ -185,7 +183,6 @@ async function toggleMistakeStatus(mistake: MistakeRecord) {
   const nextStatus = mistake.status === 'MASTERED' ? 'PENDING' : 'MASTERED'
   try {
     await updateMistakeStatus({
-      userId: currentUserId,
       questionId: mistake.questionId,
       status: nextStatus
     })

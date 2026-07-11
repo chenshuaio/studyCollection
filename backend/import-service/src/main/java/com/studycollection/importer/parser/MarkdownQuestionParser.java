@@ -16,22 +16,14 @@ public class MarkdownQuestionParser {
             String trimmed = line.trim();
             if (trimmed.startsWith("题目:")) {
                 title = trimmed.substring("题目:".length()).trim();
-            } else if (trimmed.startsWith("棰樼洰:")) {
-                title = trimmed.substring("棰樼洰:".length()).trim();
             } else if (trimmed.matches("^[A-Da-d][.、．]\\s*.+$")) {
                 optionLines.add(normalizeOptionLine(trimmed));
             } else if (trimmed.startsWith("答案:")) {
                 answer = trimmed.substring("答案:".length()).trim();
-            } else if (trimmed.startsWith("绛旀:")) {
-                answer = trimmed.substring("绛旀:".length()).trim();
             } else if (trimmed.startsWith("知识点:")) {
                 knowledgePoint = trimmed.substring("知识点:".length()).trim();
-            } else if (trimmed.startsWith("鐭ヨ瘑鐐?")) {
-                knowledgePoint = trimmed.substring("鐭ヨ瘑鐐?".length()).trim();
             } else if (trimmed.startsWith("难度:")) {
                 difficulty = trimmed.substring("难度:".length()).trim();
-            } else if (trimmed.startsWith("闅惧害:")) {
-                difficulty = trimmed.substring("闅惧害:".length()).trim();
             }
         }
 

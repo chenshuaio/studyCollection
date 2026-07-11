@@ -47,6 +47,14 @@ Assert-FileContains -Path $publishScript -Pattern "https://github\.com/cloudflar
 Assert-FileContains -Path $publishScript -Pattern "tunnel\s+--url\s+http://127\.0\.0\.1:5173" -Message "publish-local.ps1 should publish the frontend dev server"
 Assert-FileContains -Path $publishScript -Pattern "public-url\.txt" -Message "publish-local.ps1 should write .local/public-url.txt"
 Assert-FileContains -Path $publishScript -Pattern "\[string\]::IsNullOrWhiteSpace" -Message "publish-local.ps1 should tolerate empty tunnel log files while waiting for the URL"
+$publishContent = Get-Content -Raw -Path $publishScript
+Assert-True `
+  -Condition $publishContent.Contains('https://[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)+\.trycloudflare\.com') `
+  -Message "publish-local.ps1 should only accept generated quick-tunnel hosts, not api.trycloudflare.com"
+Assert-True `
+  -Condition $publishContent.Contains('$tunnelProxyVariables = @("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY")') `
+  -Message "publish-local.ps1 should start cloudflared without the local HTTP proxy"
+Assert-FileContains -Path $publishScript -Pattern 'Get-Process\s+-Id\s+\$TunnelProcessId' -Message "publish-local.ps1 should fail when cloudflared exits before publishing a URL"
 Assert-FileContains -Path $stopPublishScript -Pattern "public-pids\.txt" -Message "stop-publish.ps1 should stop the public tunnel PID"
 Assert-FileContains -Path $stopPublishScript -Pattern "stop-local\.ps1" -Message "stop-publish.ps1 should stop local services"
 Assert-FileContains -Path $viteConfig -Pattern "allowedHosts\s*:\s*true" -Message "Vite dev server should allow tunnel host headers"

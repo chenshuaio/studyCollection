@@ -32,6 +32,9 @@ class MyBatisUserRepositoryTest {
         assertThat(found.role()).isEqualTo(Role.USER);
         assertThat(foundByDisplayName.username()).isEqualTo("mysql-user");
         assertThat(users).extracting(UserAccount::username).containsExactly("mysql-user");
+
+        repository.updatePasswordHash(saved.id(), "{pbkdf2}upgraded");
+        assertThat(repository.findByUsername("mysql-user").passwordHash()).isEqualTo("{pbkdf2}upgraded");
     }
 
     private static class FakeUserMapper implements UserMapper {
@@ -60,6 +63,15 @@ class MyBatisUserRepositoryTest {
         public int insert(UserEntity entity) {
             entity.setId(nextId++);
             users.put(entity.getUsername(), entity);
+            return 1;
+        }
+
+        @Override
+        public int updatePasswordHash(Long id, String passwordHash) {
+            users.values().stream()
+                    .filter(user -> user.getId().equals(id))
+                    .findFirst()
+                    .ifPresent(user -> user.setPasswordHash(passwordHash));
             return 1;
         }
     }

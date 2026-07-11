@@ -1,48 +1,64 @@
 package com.studycollection.exam.api;
 
 import com.studycollection.common.api.ApiResponse;
+import com.studycollection.common.security.AuthenticatedUser;
+import com.studycollection.exam.app.PracticeStatsRepository;
+import com.studycollection.question.app.QuestionRepository;
+import com.studycollection.question.domain.Question;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/practice")
 public class PracticeController {
     private static final int POINTS_PER_QUESTION = 10;
-    private final Map<Long, PracticeQuestion> questionBank = sampleQuestions();
-    private final Map<Long, PracticeStats> statsByUser = new ConcurrentHashMap<>();
+    private final QuestionRepository questionRepository;
+    private final PracticeStatsRepository statsRepository;
+
+    public PracticeController(QuestionRepository questionRepository, PracticeStatsRepository statsRepository) {
+        this.questionRepository = questionRepository;
+        this.statsRepository = statsRepository;
+    }
 
     @PostMapping("/submit")
-    public ApiResponse<PracticeResult> submit(@RequestBody PracticeSubmitRequest request) {
+    public ApiResponse<PracticeResult> submit(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
+            @RequestBody PracticeSubmitRequest request
+    ) {
+        if (request == null || request.answers() == null || request.answers().isEmpty()) {
+            throw new IllegalArgumentException("至少提交一道题目答案");
+        }
         List<PracticeResultItem> items = request.answers().stream()
                 .map(this::scoreAnswer)
                 .toList();
         int score = items.stream().mapToInt(PracticeResultItem::score).sum();
-        recordStats(request.userId(), items);
+        recordStats(currentUser.userId(), items);
         return ApiResponse.success(new PracticeResult(score, items.size() * POINTS_PER_QUESTION, items));
     }
 
     @GetMapping("/stats")
-    public ApiResponse<PracticeStats> stats(@RequestParam("userId") Long userId) {
-        return ApiResponse.success(statsByUser.getOrDefault(userId, new PracticeStats(userId, 0, 0)));
+    public ApiResponse<PracticeStats> stats(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser
+    ) {
+        Long userId = currentUser.userId();
+        return ApiResponse.success(statsRepository.findByUserId(userId));
     }
 
     private PracticeResultItem scoreAnswer(PracticeAnswer answer) {
-        PracticeQuestion question = questionBank.get(answer.questionId());
-        String correctAnswer = question == null ? answer.correctAnswer() : question.correctAnswer();
-        String analysis = question == null ? answer.analysis() : question.analysis();
+        Question question = questionRepository.findById(answer.questionId());
+        String correctAnswer = question.answer();
+        String analysis = question.analysis();
         if (correctAnswer == null || correctAnswer.isBlank()) {
             throw new IllegalArgumentException("标准答案不能为空");
         }
-        boolean correct = correctAnswer.equalsIgnoreCase(answer.answer());
+        boolean correct = answersMatch(question, answer.answer());
         return new PracticeResultItem(
                 answer.questionId(),
                 answer.answer(),
@@ -53,31 +69,37 @@ public class PracticeController {
         );
     }
 
+    private boolean answersMatch(Question question, String submittedAnswer) {
+        if (submittedAnswer == null) {
+            return false;
+        }
+        if (question.type() == com.studycollection.question.domain.QuestionType.MULTIPLE_CHOICE) {
+            return normalizeMultipleChoiceAnswer(question.answer())
+                    .equals(normalizeMultipleChoiceAnswer(submittedAnswer));
+        }
+        return question.answer().trim().equalsIgnoreCase(submittedAnswer.trim());
+    }
+
+    private String normalizeMultipleChoiceAnswer(String answer) {
+        String compact = answer.toUpperCase(Locale.ROOT)
+                .replaceAll("[\\s,，、;；|/]+", "");
+        if (!compact.matches("[A-Z]+")) {
+            return "";
+        }
+        return compact.chars()
+                .distinct()
+                .sorted()
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+    }
+
     private void recordStats(Long userId, List<PracticeResultItem> items) {
         if (userId == null) {
             return;
         }
         int answered = items.size();
         int correct = (int) items.stream().filter(PracticeResultItem::correct).count();
-        statsByUser.merge(
-                userId,
-                new PracticeStats(userId, answered, correct),
-                (existing, current) -> new PracticeStats(
-                        userId,
-                        existing.answeredQuestionCount() + current.answeredQuestionCount(),
-                        existing.correctQuestionCount() + current.correctQuestionCount()
-                )
-        );
+        statsRepository.add(userId, answered, correct);
     }
 
-    private static Map<Long, PracticeQuestion> sampleQuestions() {
-        Map<Long, PracticeQuestion> questions = new LinkedHashMap<>();
-        questions.put(1L, new PracticeQuestion("A", "HashMap 默认负载因子是 0.75，达到阈值后会触发扩容。"));
-        questions.put(2L, new PracticeQuestion("true", "Java 基本类型局部变量没有默认值，必须先赋值再使用。"));
-        questions.put(3L, new PracticeQuestion("A", "ArrayList 在容量不足以容纳新增元素时会触发扩容。"));
-        return questions;
-    }
-
-    private record PracticeQuestion(String correctAnswer, String analysis) {
-    }
 }

@@ -119,10 +119,10 @@ describe('MistakePage', () => {
       '/api/mistakes/status',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ userId: 7, questionId: 1, status: 'MASTERED' })
+        body: JSON.stringify({ questionId: 1, status: 'MASTERED' })
       })
     )
-    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes?userId=7', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'GET' }))
     expect(wrapper.text()).toContain('已掌握')
 
     vi.unstubAllGlobals()

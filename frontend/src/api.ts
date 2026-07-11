@@ -1,3 +1,5 @@
+import { clearCurrentUser, getCurrentUser } from './session'
+
 type ApiResponse<T> = {
   code: string
   message: string
@@ -11,6 +13,8 @@ export type LoginPayload = {
 
 export type LoginResult = {
   token: string
+  userId: number
+  username: string
   role: string
   displayName: string
 }
@@ -22,7 +26,8 @@ export type RegisterPayload = {
 }
 
 export type RegisterResult = {
-  id: number
+  token: string
+  userId: number
   username: string
   displayName: string
   role: string
@@ -60,12 +65,11 @@ export type Question = QuestionPayload & {
   id: number
 }
 
-export type PendingQuestionPayload = QuestionPayload & {
-  submitterUserId: number
-}
+export type PendingQuestionPayload = QuestionPayload
 
 export type PendingQuestion = PendingQuestionPayload & {
   id: number
+  submitterUserId: number
   status: string
 }
 
@@ -94,8 +98,6 @@ type GeneratedQuestionBank = {
 export type PracticeAnswer = {
   questionId: number
   answer: string
-  correctAnswer?: string
-  analysis?: string
 }
 
 export type PracticeResult = {
@@ -118,7 +120,6 @@ export type PracticeStats = {
 }
 
 export type QuestionFeedbackPayload = {
-  userId: number
   questionId: number
   type: string
   content: string
@@ -130,7 +131,6 @@ export type QuestionFeedback = QuestionFeedbackPayload & {
 }
 
 export type AcceptFeedbackPayload = {
-  adminUserId: number
   changeSummary: string
   reviewNote: string
   correctedAnswer?: string
@@ -138,7 +138,6 @@ export type AcceptFeedbackPayload = {
 }
 
 export type ReviewFeedbackPayload = {
-  adminUserId: number
   reviewNote: string
 }
 
@@ -180,7 +179,6 @@ export type MistakeRecord = {
 }
 
 export type UpdateMistakeStatusPayload = {
-  userId: number
   questionId: number
   status: string
 }
@@ -193,6 +191,9 @@ async function parseApiResponse<T>(response: Response) {
     payload = null
   }
   if (!response.ok) {
+    if (response.status === 401) {
+      clearCurrentUser()
+    }
     throw new Error(payload?.message ?? `请求失败：${response.status}`)
   }
   if (!payload) {
@@ -205,12 +206,21 @@ async function parseApiResponse<T>(response: Response) {
 }
 
 async function request<T>(path: string, options: RequestInit = {}) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+  if (options.headers) {
+    new Headers(options.headers).forEach((value, key) => {
+      headers[key] = value
+    })
+  }
+  const token = getCurrentUser()?.token
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
   const response = await fetch(`/api${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers
-    },
-    ...options
+    ...options,
+    headers
   })
   return parseApiResponse<T>(response)
 }
@@ -294,6 +304,7 @@ export function uploadKnowledgeFile(file: File) {
   body.append('file', file)
   return fetch('/api/imports/knowledge/upload', {
     method: 'POST',
+    headers: authorizationHeaders(),
     body
   })
     .then((response) => parseApiResponse<GeneratedQuestionBank>(response))
@@ -304,13 +315,12 @@ export function submitPractice(answers: PracticeAnswer[]) {
   return post<PracticeResult>('/practice/submit', { answers })
 }
 
-export function submitUserPractice(userId: number, answers: PracticeAnswer[]) {
-  return post<PracticeResult>('/practice/submit', { userId, answers })
+export function submitUserPractice(answers: PracticeAnswer[]) {
+  return post<PracticeResult>('/practice/submit', { answers })
 }
 
-export function getPracticeStats(userId: number) {
-  const params = new URLSearchParams({ userId: String(userId) })
-  return request<PracticeStats>(`/practice/stats?${params.toString()}`, { method: 'GET' })
+export function getPracticeStats() {
+  return request<PracticeStats>('/practice/stats', { method: 'GET' })
 }
 
 export function submitQuestionFeedback(payload: QuestionFeedbackPayload) {
@@ -321,9 +331,8 @@ export function listPendingFeedback() {
   return request<QuestionFeedback[]>('/questions/feedback/pending', { method: 'GET' })
 }
 
-export function listUserFeedback(userId: number) {
-  const params = new URLSearchParams({ userId: String(userId) })
-  return request<QuestionFeedback[]>(`/questions/feedback?${params.toString()}`, { method: 'GET' })
+export function listUserFeedback() {
+  return request<QuestionFeedback[]>('/questions/feedback', { method: 'GET' })
 }
 
 export function acceptQuestionFeedback(feedbackId: number, payload: AcceptFeedbackPayload) {
@@ -346,7 +355,7 @@ export function generateLearningReport(payload: LearningReportPayload) {
   return post<LearningReport>('/reports/learning', payload)
 }
 
-export function recordMistake(payload: MistakeRecord) {
+export function recordMistake(payload: Omit<MistakeRecord, 'userId'>) {
   return post<MistakeRecord>('/mistakes', payload)
 }
 
@@ -354,7 +363,11 @@ export function updateMistakeStatus(payload: UpdateMistakeStatusPayload) {
   return post<MistakeRecord>('/mistakes/status', payload)
 }
 
-export function listMistakes(userId: number) {
-  const params = new URLSearchParams({ userId: String(userId) })
-  return request<MistakeRecord[]>(`/mistakes?${params.toString()}`, { method: 'GET' })
+export function listMistakes() {
+  return request<MistakeRecord[]>('/mistakes', { method: 'GET' })
+}
+
+function authorizationHeaders() {
+  const token = getCurrentUser()?.token
+  return token ? { Authorization: `Bearer ${token}` } : undefined
 }

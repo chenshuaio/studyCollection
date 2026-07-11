@@ -1,17 +1,17 @@
 package com.studycollection.question.api;
 
 import com.studycollection.common.api.ApiResponse;
+import com.studycollection.common.security.AdminOnly;
+import com.studycollection.common.security.AuthenticatedUser;
 import com.studycollection.question.app.QuestionFeedbackService;
-import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.QuestionFeedback;
 import com.studycollection.question.domain.QuestionRevision;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -21,23 +21,17 @@ import java.util.List;
 public class QuestionFeedbackController {
     private final QuestionFeedbackService feedbackService;
 
-    public QuestionFeedbackController() {
-        this(new QuestionFeedbackService());
-    }
-
-    @Autowired
-    public QuestionFeedbackController(QuestionRepository questionRepository) {
-        this(new QuestionFeedbackService(questionRepository));
-    }
-
     public QuestionFeedbackController(QuestionFeedbackService feedbackService) {
         this.feedbackService = feedbackService;
     }
 
     @PostMapping
-    public ApiResponse<QuestionFeedback> submit(@RequestBody SubmitFeedbackRequest request) {
+    public ApiResponse<QuestionFeedback> submit(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
+            @RequestBody SubmitFeedbackRequest request
+    ) {
         return ApiResponse.success(feedbackService.submit(
-                request.userId(),
+                currentUser.userId(),
                 request.questionId(),
                 request.type(),
                 request.content()
@@ -45,23 +39,28 @@ public class QuestionFeedbackController {
     }
 
     @GetMapping("/pending")
+    @AdminOnly
     public ApiResponse<List<QuestionFeedback>> pending() {
         return ApiResponse.success(feedbackService.pending());
     }
 
     @GetMapping
-    public ApiResponse<List<QuestionFeedback>> byUser(@RequestParam("userId") Long userId) {
-        return ApiResponse.success(feedbackService.byUser(userId));
+    public ApiResponse<List<QuestionFeedback>> byUser(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser
+    ) {
+        return ApiResponse.success(feedbackService.byUser(currentUser.userId()));
     }
 
     @PostMapping("/{feedbackId}/accept")
+    @AdminOnly
     public ApiResponse<QuestionRevision> accept(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
             @PathVariable("feedbackId") Long feedbackId,
             @RequestBody AcceptFeedbackRequest request
     ) {
         return ApiResponse.success(feedbackService.accept(
                 feedbackId,
-                request.adminUserId(),
+                currentUser.userId(),
                 request.changeSummary(),
                 request.reviewNote(),
                 request.correctedAnswer(),
@@ -70,25 +69,29 @@ public class QuestionFeedbackController {
     }
 
     @PostMapping("/{feedbackId}/reject")
+    @AdminOnly
     public ApiResponse<QuestionFeedback> reject(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
             @PathVariable("feedbackId") Long feedbackId,
             @RequestBody ReviewFeedbackRequest request
     ) {
         return ApiResponse.success(feedbackService.reject(
                 feedbackId,
-                request.adminUserId(),
+                currentUser.userId(),
                 request.reviewNote()
         ));
     }
 
     @PostMapping("/{feedbackId}/needs-review")
+    @AdminOnly
     public ApiResponse<QuestionFeedback> markNeedsReview(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
             @PathVariable("feedbackId") Long feedbackId,
             @RequestBody ReviewFeedbackRequest request
     ) {
         return ApiResponse.success(feedbackService.markNeedsReview(
                 feedbackId,
-                request.adminUserId(),
+                currentUser.userId(),
                 request.reviewNote()
         ));
     }

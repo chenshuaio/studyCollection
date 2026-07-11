@@ -50,7 +50,7 @@ describe('ImportPage', () => {
   it('submits parsed preview questions for administrator review', async () => {
     window.localStorage.setItem(
       'studyCollectionUser',
-      JSON.stringify({ userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
+      JSON.stringify({ token: 'user-token', userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
     )
     vi.mocked(submitPendingQuestion).mockResolvedValue({
       id: 1,
@@ -77,7 +77,6 @@ describe('ImportPage', () => {
     await flushPromises()
 
     expect(submitPendingQuestion).toHaveBeenCalledWith({
-      submitterUserId: 7,
       title: expect.stringContaining('Java'),
       type: 'SINGLE_CHOICE',
       difficulty: 'BEGINNER',
@@ -91,7 +90,7 @@ describe('ImportPage', () => {
   it('previews uploaded generated questions before submitting them for review', async () => {
     window.localStorage.setItem(
       'studyCollectionUser',
-      JSON.stringify({ userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
+      JSON.stringify({ token: 'user-token', userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
     )
     vi.mocked(uploadKnowledgeFile).mockResolvedValue([
       {
@@ -144,7 +143,6 @@ describe('ImportPage', () => {
     await flushPromises()
 
     expect(submitPendingQuestion).toHaveBeenCalledWith(expect.objectContaining({
-      submitterUserId: 7,
       title: 'JVM 栈和堆通常分别保存什么内容？',
       knowledgePoint: 'JVM'
     }))

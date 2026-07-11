@@ -43,6 +43,13 @@ public class MyBatisUserRepository implements UserRepository {
         return toAccount(entity);
     }
 
+    @Override
+    public void updatePasswordHash(Long userId, String passwordHash) {
+        if (userMapper.updatePasswordHash(userId, passwordHash) == 0) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+    }
+
     private UserEntity toEntity(UserAccount account) {
         UserEntity entity = new UserEntity();
         entity.setId(account.id());

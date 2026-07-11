@@ -1,17 +1,27 @@
 package com.studycollection.exam.api;
 
+import com.studycollection.common.security.AuthenticatedUser;
+import com.studycollection.common.security.Role;
+import com.studycollection.exam.app.InMemoryPracticeStatsRepository;
+import com.studycollection.question.app.InMemoryQuestionRepository;
+import com.studycollection.question.domain.Difficulty;
+import com.studycollection.question.domain.Question;
+import com.studycollection.question.domain.QuestionType;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PracticeControllerTest {
+    private static final AuthenticatedUser USER = new AuthenticatedUser(7L, "alice", Role.USER);
+
     @Test
     void scoresSubmittedPracticeAndReturnsExplanations() {
-        PracticeController controller = new PracticeController();
+        PracticeController controller = controllerWithSampleQuestions();
 
-        PracticeResult result = controller.submit(new PracticeSubmitRequest(List.of(
+        PracticeResult result = controller.submit(USER, new PracticeSubmitRequest(List.of(
                 new PracticeAnswer(1L, "A"),
                 new PracticeAnswer(2L, "true"),
                 new PracticeAnswer(3L, "B")
@@ -29,36 +39,109 @@ class PracticeControllerTest {
     }
 
     @Test
-    void tracksSubmittedQuestionCountForUserDashboard() {
-        PracticeController controller = new PracticeController();
+    void tracksSubmittedQuestionCountForAuthenticatedUser() {
+        PracticeController controller = controllerWithSampleQuestions();
 
-        controller.submit(new PracticeSubmitRequest(List.of(
+        controller.submit(USER, new PracticeSubmitRequest(List.of(
                 new PracticeAnswer(1L, "A"),
                 new PracticeAnswer(2L, "true")
-        ), 7L));
-        controller.submit(new PracticeSubmitRequest(List.of(
+        )));
+        controller.submit(USER, new PracticeSubmitRequest(List.of(
                 new PracticeAnswer(3L, "B")
-        ), 7L));
+        )));
 
-        PracticeStats stats = controller.stats(7L).data();
+        PracticeStats stats = controller.stats(USER).data();
 
-        assertThat(stats.userId()).isEqualTo(7L);
+        assertThat(stats.userId()).isEqualTo(USER.userId());
         assertThat(stats.answeredQuestionCount()).isEqualTo(3);
         assertThat(stats.correctQuestionCount()).isEqualTo(2);
     }
 
     @Test
-    void scoresQuestionBankSnapshotAnswers() {
-        PracticeController controller = new PracticeController();
+    void scoresUsingQuestionBankAnswerAndAnalysis() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        repository.save(new Question(
+                99L,
+                "HashMap 默认负载因子是多少？",
+                QuestionType.FILL_BLANK,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "0.75",
+                "HashMap 默认负载因子是 0.75。"
+        ));
+        PracticeController controller = new PracticeController(repository, new InMemoryPracticeStatsRepository());
 
-        PracticeResult result = controller.submit(new PracticeSubmitRequest(List.of(
-                new PracticeAnswer(99L, "0.75", "0.75", "HashMap 默认负载因子是 0.75。")
-        ), 7L)).data();
+        PracticeResult result = controller.submit(USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(99L, "0.75")
+        ))).data();
 
         assertThat(result.score()).isEqualTo(10);
         assertThat(result.totalScore()).isEqualTo(10);
         assertThat(result.items().get(0).questionId()).isEqualTo(99L);
         assertThat(result.items().get(0).correct()).isTrue();
         assertThat(result.items().get(0).analysis()).contains("HashMap");
+    }
+
+    @Test
+    void scoresMultipleChoiceAnswersIndependentOfOrderAndSeparator() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        repository.save(new Question(
+                100L,
+                "以下哪些属于 Java 集合接口？",
+                QuestionType.MULTIPLE_CHOICE,
+                Difficulty.BEGINNER,
+                "集合框架",
+                "A,C",
+                "List 和 Set 属于集合接口。"
+        ));
+        PracticeController controller = new PracticeController(repository, new InMemoryPracticeStatsRepository());
+
+        PracticeResult result = controller.submit(USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(100L, " c 、 a ")
+        ))).data();
+
+        assertThat(result.score()).isEqualTo(10);
+        assertThat(result.items().get(0).correct()).isTrue();
+    }
+
+    @Test
+    void rejectsPracticeSubmissionWithoutAnswers() {
+        PracticeController controller = controllerWithSampleQuestions();
+
+        assertThatThrownBy(() -> controller.submit(USER, new PracticeSubmitRequest(List.of())))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("至少提交一道题目答案");
+    }
+
+    private PracticeController controllerWithSampleQuestions() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        repository.save(new Question(
+                1L,
+                "HashMap 默认负载因子是多少？",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "A",
+                "HashMap 默认负载因子是 0.75，达到阈值后会触发扩容。"
+        ));
+        repository.save(new Question(
+                2L,
+                "Java 局部变量是否有默认值？",
+                QuestionType.TRUE_FALSE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "true",
+                "Java 基本类型局部变量没有默认值，必须先赋值再使用。"
+        ));
+        repository.save(new Question(
+                3L,
+                "ArrayList 何时扩容？",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "A",
+                "ArrayList 在容量不足以容纳新增元素时会触发扩容。"
+        ));
+        return new PracticeController(repository, new InMemoryPracticeStatsRepository());
     }
 }

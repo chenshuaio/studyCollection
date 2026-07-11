@@ -44,6 +44,7 @@ describe('RegisterPage', () => {
       JSON.stringify({ token: 'admin-token', role: 'ADMIN', displayName: '系统管理员' })
     )
     mocks.register.mockResolvedValue({
+      token: 'user-token',
       userId: 8,
       username: 'alice',
       displayName: 'Alice',
@@ -56,6 +57,9 @@ describe('RegisterPage', () => {
 
     const stored = JSON.parse(window.localStorage.getItem('studyCollectionUser') ?? '{}')
     expect(stored.role).toBe('USER')
+    expect(stored.token).toBe('user-token')
+    expect(stored.userId).toBe(8)
+    expect(stored.username).toBe('alice')
     expect(stored.displayName).toBe('Alice')
     expect(mocks.push).toHaveBeenCalledWith('/dashboard')
   })

@@ -102,7 +102,7 @@ describe('QuestionBankPage', () => {
   it('allows administrators to delete formal questions and refreshes the current list', async () => {
     window.localStorage.setItem(
       'studyCollectionUser',
-      JSON.stringify({ userId: 1, username: 'admin', displayName: '系统管理员', role: 'ADMIN' })
+      JSON.stringify({ token: 'admin-token', userId: 1, username: 'admin', displayName: '系统管理员', role: 'ADMIN' })
     )
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
     vi.mocked(searchQuestions)
@@ -144,7 +144,7 @@ describe('QuestionBankPage', () => {
   it('does not show delete actions to normal users', async () => {
     window.localStorage.setItem(
       'studyCollectionUser',
-      JSON.stringify({ userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
+      JSON.stringify({ token: 'user-token', userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
     )
     vi.mocked(searchQuestions).mockResolvedValue([
       {

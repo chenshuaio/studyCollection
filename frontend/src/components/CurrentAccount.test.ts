@@ -11,6 +11,8 @@ describe('CurrentAccount', () => {
     window.localStorage.setItem(
       'studyCollectionUser',
       JSON.stringify({
+        token: 'user-token',
+        userId: 7,
         username: 'alice',
         displayName: 'Alice',
         role: 'USER'
@@ -28,6 +30,8 @@ describe('CurrentAccount', () => {
     window.localStorage.setItem(
       'studyCollectionUser',
       JSON.stringify({
+        token: 'admin-token',
+        userId: 1,
         username: 'admin',
         displayName: '系统管理员',
         role: 'ADMIN'

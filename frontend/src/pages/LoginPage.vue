@@ -16,11 +16,11 @@
       <form @submit.prevent="goDashboard">
         <label>
           账号
-          <input v-model="form.username" autocomplete="username" placeholder="admin 或 user" />
+          <input v-model="form.username" autocomplete="username" placeholder="admin 或 user" required />
         </label>
         <label>
           密码
-          <input v-model="form.password" autocomplete="current-password" type="password" placeholder="请输入密码" />
+          <input v-model="form.password" autocomplete="current-password" type="password" placeholder="请输入密码" required />
         </label>
         <p v-if="errorMessage" class="form-message">{{ errorMessage }}</p>
         <button type="submit" :disabled="submitting">{{ submitting ? '登录中' : '登录' }}</button>
@@ -40,8 +40,8 @@ const router = useRouter()
 const submitting = ref(false)
 const errorMessage = ref('')
 const form = reactive({
-  username: 'user',
-  password: 'user123'
+  username: '',
+  password: ''
 })
 
 async function goDashboard() {

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   acceptQuestionFeedback,
   approvePendingQuestion,
@@ -31,6 +31,10 @@ import {
 } from './api'
 
 describe('api client', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
   })
@@ -38,7 +42,10 @@ describe('api client', () => {
   it('posts login requests through the local api proxy', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ code: 'OK', data: { token: 'token-1', role: 'USER', displayName: '学习用户' } })
+      json: async () => ({
+        code: 'OK',
+        data: { token: 'token-1', userId: 2, username: 'user', role: 'USER', displayName: '学习用户' }
+      })
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -46,6 +53,28 @@ describe('api client', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({ method: 'POST' }))
     expect(response.token).toBe('token-1')
+    expect(response.userId).toBe(2)
+  })
+
+  it('sends the logged-in bearer token with protected requests', async () => {
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'signed-token',
+      userId: 2,
+      username: 'user',
+      role: 'USER',
+      displayName: '学习用户'
+    }))
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ code: 'OK', data: [] })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await searchQuestions()
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions', expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer signed-token' })
+    }))
   })
 
   it('surfaces api error messages from non-OK responses', async () => {
@@ -150,8 +179,8 @@ describe('api client', () => {
     const generated = await generateKnowledgeQuestions('HashMap 默认负载因子是 0.75。')
     const uploaded = await uploadKnowledgeFile(new File(['HashMap 默认负载因子是 0.75。'], 'hashmap.md', { type: 'text/markdown' }))
     await submitPractice([{ questionId: 1, answer: 'A' }])
-    await submitUserPractice(7, [{ questionId: 2, answer: 'B', correctAnswer: 'A', analysis: '真实题库解析' }])
-    const stats = await getPracticeStats(7)
+    await submitUserPractice([{ questionId: 2, answer: 'B' }])
+    const stats = await getPracticeStats()
 
     expect(preview[0].title).toBe('Java 中 int 默认值是多少？')
     expect(generated[0].title).toBe('HashMap 默认负载因子是多少？')
@@ -164,12 +193,11 @@ describe('api client', () => {
       '/api/practice/submit',
       expect.objectContaining({
         body: JSON.stringify({
-          userId: 7,
-          answers: [{ questionId: 2, answer: 'B', correctAnswer: 'A', analysis: '真实题库解析' }]
+          answers: [{ questionId: 2, answer: 'B' }]
         })
       })
     )
-    expect(fetchMock).toHaveBeenCalledWith('/api/practice/stats?userId=7', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/practice/stats', expect.objectContaining({ method: 'GET' }))
     expect(stats.answeredQuestionCount).toBe(2)
   })
 
@@ -241,7 +269,6 @@ describe('api client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const submitted = await submitPendingQuestion({
-      submitterUserId: 7,
       title: 'HashMap 默认负载因子是多少？',
       type: 'SINGLE_CHOICE',
       difficulty: 'INTERMEDIATE',
@@ -328,15 +355,13 @@ describe('api client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const submitted = await submitQuestionFeedback({
-      userId: 7,
       questionId: 101,
       type: 'ANSWER_ERROR',
       content: '标准答案应为 B'
     })
     const pending = await listPendingFeedback()
-    const userFeedback = await listUserFeedback(7)
+    const userFeedback = await listUserFeedback()
     const revision = await acceptQuestionFeedback(1, {
-      adminUserId: 1,
       changeSummary: '答案从 A 修改为 B',
       reviewNote: '用户反馈属实'
     })
@@ -347,7 +372,7 @@ describe('api client', () => {
     expect(revision.changeSummary).toContain('答案从 A 修改为 B')
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/pending', expect.objectContaining({ method: 'GET' }))
-    expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback?userId=7', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/1/accept', expect.objectContaining({ method: 'POST' }))
   })
 
@@ -438,18 +463,17 @@ describe('api client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const recorded = await recordMistake({
-      userId: 7,
       questionId: 1,
       questionTitle: 'HashMap 默认负载因子是多少？',
       knowledgePoint: '集合框架',
       status: 'PENDING'
     })
-    const mistakes = await listMistakes(7)
+    const mistakes = await listMistakes()
 
     expect(recorded.status).toBe('PENDING')
     expect(mistakes).toHaveLength(1)
     expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'POST' }))
-    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes?userId=7', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'GET' }))
   })
 
   it('updates mistake mastery status', async () => {
@@ -468,14 +492,14 @@ describe('api client', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    const updated = await updateMistakeStatus({ userId: 7, questionId: 1, status: 'MASTERED' })
+    const updated = await updateMistakeStatus({ questionId: 1, status: 'MASTERED' })
 
     expect(updated.status).toBe('MASTERED')
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/mistakes/status',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ userId: 7, questionId: 1, status: 'MASTERED' })
+        body: JSON.stringify({ questionId: 1, status: 'MASTERED' })
       })
     )
   })
@@ -514,11 +538,9 @@ describe('api client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const rejected = await rejectQuestionFeedback(1, {
-      adminUserId: 1,
       reviewNote: '原答案正确'
     })
     const needsReview = await markFeedbackNeedsReview(2, {
-      adminUserId: 1,
       reviewNote: '需要二次复核'
     })
 

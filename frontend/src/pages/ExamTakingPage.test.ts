@@ -64,7 +64,9 @@ describe('ExamTakingPage', () => {
         ]
       })
     )
-    window.localStorage.setItem('studyCollectionUser', JSON.stringify({ userId: 7, role: 'USER', displayName: 'Alice' }))
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice'
+    }))
     vi.mocked(submitUserPractice).mockResolvedValue({
       score: 20,
       totalScore: 30,
@@ -130,18 +132,12 @@ describe('ExamTakingPage', () => {
     await wrapper.find('button[type="button"]').trigger('click')
     await flushPromises()
 
-    expect(submitUserPractice).toHaveBeenCalledWith(7, [
-      { questionId: 1, answer: 'A', correctAnswer: 'A', analysis: undefined },
-      { questionId: 2, answer: 'true', correctAnswer: 'true', analysis: undefined },
-      {
-        questionId: 3,
-        answer: 'B',
-        correctAnswer: 'A',
-        analysis: 'ArrayList 在容量不足以容纳新增元素时会触发扩容。'
-      }
+    expect(submitUserPractice).toHaveBeenCalledWith([
+      { questionId: 1, answer: 'A' },
+      { questionId: 2, answer: 'true' },
+      { questionId: 3, answer: 'B' }
     ])
     expect(recordMistake).toHaveBeenCalledWith({
-      userId: 7,
       questionId: 3,
       questionTitle: 'ArrayList 扩容通常发生在什么时候？',
       knowledgePoint: '集合框架',
@@ -183,5 +179,45 @@ describe('ExamTakingPage', () => {
     expect(wrapper.findAll('input[type="radio"]')).toHaveLength(4)
     expect(wrapper.find('.answer-field').exists()).toBe(false)
     expect(wrapper.text()).toContain('A. 选项 A（原题未提供选项内容）')
+  })
+
+  it('renders checkboxes for a multiple choice question', () => {
+    window.sessionStorage.setItem(
+      'studyCollectionExamPaper',
+      JSON.stringify({
+        name: 'Java 多选专项',
+        durationMinutes: 20,
+        questionIds: [9],
+        questions: [
+          {
+            id: 9,
+            title: '以下哪些属于 Java 集合接口？',
+            type: 'MULTIPLE_CHOICE',
+            difficulty: 'BEGINNER',
+            knowledgePoint: '集合框架',
+            answer: '',
+            analysis: '',
+            options: [
+              { value: 'A', label: 'List' },
+              { value: 'B', label: 'Set' },
+              { value: 'C', label: 'Thread' }
+            ]
+          }
+        ]
+      })
+    )
+
+    const wrapper = mount(ExamTakingPage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+
+    expect(wrapper.findAll('input[type="checkbox"]')).toHaveLength(3)
+    expect(wrapper.findAll('input[type="checkbox"]:checked')).toHaveLength(0)
+    expect(wrapper.findAll('input[type="radio"]')).toHaveLength(0)
   })
 })

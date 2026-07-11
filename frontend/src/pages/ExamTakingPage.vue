@@ -51,7 +51,7 @@
               <label v-for="option in question.options" :key="option.value">
                 <input
                   v-model="answers[question.id]"
-                  type="radio"
+                  :type="question.type === 'MULTIPLE_CHOICE' ? 'checkbox' : 'radio'"
                   :name="`question-${question.id}`"
                   :value="option.value"
                   :disabled="submitted"
@@ -108,7 +108,6 @@ import { recordMistake, submitUserPractice, type PracticeResult } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
-import { getCurrentUser } from '../session'
 
 const isAdminUser = isAdmin()
 
@@ -134,15 +133,14 @@ type StoredExamPaper = {
 }
 
 const paper = ref<StoredExamPaper | null>(loadPaper())
-const answers = reactive<Record<number, string>>({})
+const answers = reactive<Record<number, string | string[]>>({})
 const result = ref<PracticeResult | null>(null)
 const submitted = ref(false)
 const statusMessage = ref('')
-const currentUserId = getCurrentUser()?.userId ?? 7
 
 if (paper.value) {
   paper.value.questions.forEach((question) => {
-    answers[question.id] = ''
+    answers[question.id] = question.type === 'MULTIPLE_CHOICE' ? [] : ''
   })
 }
 
@@ -165,18 +163,15 @@ async function submitExam() {
     return
   }
   statusMessage.value = ''
-  if (paper.value.questions.some((question) => !answers[question.id])) {
+  if (paper.value.questions.some((question) => !hasAnswer(answers[question.id]))) {
     statusMessage.value = '请先完成所有题目后再提交。'
     return
   }
   try {
     result.value = await submitUserPractice(
-      currentUserId,
       paper.value.questions.map((question) => ({
         questionId: question.id,
-        answer: answers[question.id],
-        correctAnswer: question.answer,
-        analysis: question.analysis
+        answer: serializeAnswer(answers[question.id])
       }))
     )
     submitted.value = true
@@ -188,7 +183,6 @@ async function submitExam() {
           return Promise.resolve()
         }
         return recordMistake({
-          userId: 7,
           questionId: question.id,
           questionTitle: question.title,
           knowledgePoint: question.knowledgePoint,
@@ -199,6 +193,14 @@ async function submitExam() {
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : '提交试卷失败，请检查本地后端是否启动。'
   }
+}
+
+function hasAnswer(answer: string | string[]) {
+  return Array.isArray(answer) ? answer.length > 0 : answer.trim().length > 0
+}
+
+function serializeAnswer(answer: string | string[]) {
+  return Array.isArray(answer) ? [...answer].sort().join(',') : answer
 }
 
 function questionTitle(questionId: number) {

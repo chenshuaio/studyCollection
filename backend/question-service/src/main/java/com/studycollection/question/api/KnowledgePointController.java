@@ -1,6 +1,7 @@
 package com.studycollection.question.api;
 
 import com.studycollection.common.api.ApiResponse;
+import com.studycollection.common.security.AdminOnly;
 import com.studycollection.question.app.KnowledgePointRepository;
 import com.studycollection.question.domain.KnowledgePoint;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,7 @@ public class KnowledgePointController {
     }
 
     @PostMapping
+    @AdminOnly
     public ApiResponse<KnowledgePoint> create(@RequestBody CreateKnowledgePointRequest request) {
         return ApiResponse.success(knowledgePointRepository.save(new KnowledgePoint(
                 null,
@@ -37,6 +39,7 @@ public class KnowledgePointController {
     }
 
     @PostMapping("/{id}/disable")
+    @AdminOnly
     public ApiResponse<KnowledgePoint> disable(@PathVariable("id") Long id) {
         return ApiResponse.success(knowledgePointRepository.disable(id));
     }

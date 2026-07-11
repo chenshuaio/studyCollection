@@ -5,23 +5,21 @@ import com.studycollection.question.domain.FeedbackType;
 import com.studycollection.question.domain.Question;
 import com.studycollection.question.domain.QuestionFeedback;
 import com.studycollection.question.domain.QuestionRevision;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
+@Service
 public class QuestionFeedbackService {
-    private final AtomicLong feedbackIds = new AtomicLong(1);
-    private final AtomicLong revisionIds = new AtomicLong(1);
-    private final Map<Long, QuestionFeedback> feedbacks = new HashMap<>();
+    private final QuestionFeedbackRepository feedbackRepository;
     private final QuestionRepository questionRepository;
 
-    public QuestionFeedbackService() {
-        this(null);
-    }
-
-    public QuestionFeedbackService(QuestionRepository questionRepository) {
+    public QuestionFeedbackService(
+            QuestionFeedbackRepository feedbackRepository,
+            QuestionRepository questionRepository
+    ) {
+        this.feedbackRepository = feedbackRepository;
         this.questionRepository = questionRepository;
     }
 
@@ -29,32 +27,29 @@ public class QuestionFeedbackService {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("反馈内容不能为空");
         }
-        Long id = feedbackIds.getAndIncrement();
-        QuestionFeedback feedback = new QuestionFeedback(id, userId, questionId, type, content, FeedbackStatus.PENDING);
-        feedbacks.put(id, feedback);
-        return feedback;
+        return feedbackRepository.saveFeedback(new QuestionFeedback(
+                null,
+                userId,
+                questionId,
+                type,
+                content,
+                FeedbackStatus.PENDING
+        ));
     }
 
     public QuestionFeedback find(Long feedbackId) {
-        QuestionFeedback feedback = feedbacks.get(feedbackId);
-        if (feedback == null) {
-            throw new IllegalArgumentException("反馈不存在");
-        }
-        return feedback;
+        return feedbackRepository.findFeedback(feedbackId);
     }
 
     public List<QuestionFeedback> pending() {
-        return feedbacks.values().stream()
-                .filter(feedback -> feedback.status() == FeedbackStatus.PENDING)
-                .toList();
+        return feedbackRepository.findByStatus(FeedbackStatus.PENDING);
     }
 
     public List<QuestionFeedback> byUser(Long userId) {
-        return feedbacks.values().stream()
-                .filter(feedback -> feedback.userId().equals(userId))
-                .toList();
+        return feedbackRepository.findByUserId(userId);
     }
 
+    @Transactional
     public QuestionRevision accept(
             Long feedbackId,
             Long adminUserId,
@@ -64,34 +59,44 @@ public class QuestionFeedbackService {
             String correctedAnalysis
     ) {
         QuestionFeedback feedback = find(feedbackId);
+        requireReviewable(feedback);
         validateReview(adminUserId, reviewNote);
         if (changeSummary == null || changeSummary.isBlank()) {
             throw new IllegalArgumentException("修订说明不能为空");
         }
         applyQuestionRevision(feedback.questionId(), correctedAnswer, correctedAnalysis);
         updateStatus(feedback, FeedbackStatus.ACCEPTED);
-        return new QuestionRevision(
-                revisionIds.getAndIncrement(),
+        return feedbackRepository.saveRevision(new QuestionRevision(
+                null,
                 feedback.questionId(),
                 feedback.id(),
                 adminUserId,
                 changeSummary,
                 reviewNote
-        );
+        ));
     }
 
+    @Transactional
     public QuestionFeedback reject(Long feedbackId, Long adminUserId, String reviewNote) {
         return review(feedbackId, adminUserId, reviewNote, FeedbackStatus.REJECTED);
     }
 
+    @Transactional
     public QuestionFeedback markNeedsReview(Long feedbackId, Long adminUserId, String reviewNote) {
         return review(feedbackId, adminUserId, reviewNote, FeedbackStatus.NEEDS_REVIEW);
     }
 
     private QuestionFeedback review(Long feedbackId, Long adminUserId, String reviewNote, FeedbackStatus status) {
         QuestionFeedback feedback = find(feedbackId);
+        requireReviewable(feedback);
         validateReview(adminUserId, reviewNote);
         return updateStatus(feedback, status);
+    }
+
+    private void requireReviewable(QuestionFeedback feedback) {
+        if (feedback.status() != FeedbackStatus.PENDING && feedback.status() != FeedbackStatus.NEEDS_REVIEW) {
+            throw new IllegalArgumentException("反馈已处理");
+        }
     }
 
     private void validateReview(Long adminUserId, String reviewNote) {
@@ -133,7 +138,6 @@ public class QuestionFeedbackService {
                 feedback.content(),
                 status
         );
-        feedbacks.put(feedback.id(), reviewed);
-        return reviewed;
+        return feedbackRepository.saveFeedback(reviewed);
     }
 }

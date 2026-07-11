@@ -71,7 +71,7 @@ public class MySqlQuestionRepository implements QuestionRepository {
         StringBuilder sql = new StringBuilder("""
                 select id, title, type, difficulty, knowledge_point, answer, analysis
                 from questions
-                where 1 = 1
+                where deleted = false
                 """);
         if (keyword != null && !keyword.isBlank()) {
             sql.append(" and lower(title) like ?");
@@ -98,7 +98,7 @@ public class MySqlQuestionRepository implements QuestionRepository {
         List<Question> matches = jdbcTemplate.query("""
                 select id, title, type, difficulty, knowledge_point, answer, analysis
                 from questions
-                where id = ?
+                where id = ? and deleted = false
                 """, rowMapper, id);
         if (matches.isEmpty()) {
             throw new IllegalArgumentException("题目不存在");
@@ -111,7 +111,7 @@ public class MySqlQuestionRepository implements QuestionRepository {
         int updated = jdbcTemplate.update("""
                 update questions
                 set title = ?, type = ?, difficulty = ?, knowledge_point = ?, answer = ?, analysis = ?
-                where id = ?
+                where id = ? and deleted = false
                 """,
                 question.title(),
                 question.type().name(),
@@ -128,6 +128,12 @@ public class MySqlQuestionRepository implements QuestionRepository {
 
     @Override
     public void deleteById(Long id) {
-        jdbcTemplate.update("delete from questions where id = ?", id);
+        int updated = jdbcTemplate.update(
+                "update questions set deleted = true where id = ? and deleted = false",
+                id
+        );
+        if (updated == 0) {
+            throw new IllegalArgumentException("题目不存在");
+        }
     }
 }

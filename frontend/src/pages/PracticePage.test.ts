@@ -55,8 +55,95 @@ describe('PracticePage', () => {
     expect(wrapper.find('textarea[aria-label="题目反馈内容"]').exists()).toBe(true)
   })
 
+  it('renders unselected radio options for a single choice question', async () => {
+    vi.mocked(searchQuestions).mockResolvedValue([
+      {
+        id: 89,
+        title: 'Java 中 int 成员变量的默认值是多少？\nA. 0\nB. null\nC. 1\nD. 不确定',
+        type: 'SINGLE_CHOICE',
+        difficulty: 'BEGINNER',
+        knowledgePoint: 'Java 基础',
+        answer: '',
+        analysis: ''
+      }
+    ])
+
+    const wrapper = mount(PracticePage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.findAll('input[type="radio"]')).toHaveLength(4)
+    expect(wrapper.findAll('input[type="radio"]:checked')).toHaveLength(0)
+    expect(wrapper.find('input[aria-label="练习答案"]').exists()).toBe(false)
+    expect(wrapper.find('.practice-question h2').text()).toBe('Java 中 int 成员变量的默认值是多少？')
+  })
+
+  it('renders checkboxes for a multiple choice practice question', async () => {
+    vi.mocked(searchQuestions).mockResolvedValue([
+      {
+        id: 90,
+        title: '以下哪些属于 Java 集合接口？\nA. List\nB. Set\nC. Thread\nD. Map',
+        type: 'MULTIPLE_CHOICE',
+        difficulty: 'BEGINNER',
+        knowledgePoint: '集合框架',
+        answer: '',
+        analysis: ''
+      }
+    ])
+
+    const wrapper = mount(PracticePage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.findAll('input[type="checkbox"]')).toHaveLength(4)
+    expect(wrapper.findAll('input[type="checkbox"]:checked')).toHaveLength(0)
+    expect(wrapper.findAll('input[type="radio"]')).toHaveLength(0)
+  })
+
+  it('renders fallback options when a stored choice question has no option text', async () => {
+    vi.mocked(searchQuestions).mockResolvedValue([
+      {
+        id: 91,
+        title: 'HashMap 默认负载因子是多少？',
+        type: 'SINGLE_CHOICE',
+        difficulty: 'INTERMEDIATE',
+        knowledgePoint: '集合框架',
+        answer: '',
+        analysis: ''
+      }
+    ])
+
+    const wrapper = mount(PracticePage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.findAll('input[type="radio"]')).toHaveLength(4)
+    expect(wrapper.find('input[aria-label="练习答案"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('A. 选项 A（原题未提供选项内容）')
+  })
+
   it('records a mistake when the submitted answer is wrong', async () => {
-    window.localStorage.setItem('studyCollectionUser', JSON.stringify({ userId: 7, role: 'USER', displayName: 'Alice' }))
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice'
+    }))
     vi.mocked(submitUserPractice).mockResolvedValue({
       score: 0,
       totalScore: 10,
@@ -93,14 +180,11 @@ describe('PracticePage', () => {
     await wrapper.findAll('button')[1].trigger('click')
     await flushPromises()
 
-    expect(submitUserPractice).toHaveBeenCalledWith(7, [{
+    expect(submitUserPractice).toHaveBeenCalledWith([{
       questionId: 88,
-      answer: '堆对象',
-      correctAnswer: '栈帧',
-      analysis: '虚拟机栈保存方法调用的栈帧。'
+      answer: '堆对象'
     }])
     expect(recordMistake).toHaveBeenCalledWith({
-      userId: 7,
       questionId: 88,
       questionTitle: 'JVM 栈内存主要保存什么？',
       knowledgePoint: 'JVM',

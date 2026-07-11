@@ -9,7 +9,9 @@ const routerLinkStub = {
 
 describe('ReportPage', () => {
   it('generates report from current user mistake statuses', async () => {
-    window.localStorage.setItem('studyCollectionUser', JSON.stringify({ userId: 7, role: 'USER', displayName: 'Alice' }))
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice'
+    }))
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({
@@ -65,7 +67,7 @@ describe('ReportPage', () => {
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes?userId=7', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/reports/learning',
       expect.objectContaining({
@@ -88,7 +90,9 @@ describe('ReportPage', () => {
   })
 
   it('does not generate report when there is no mistake data', async () => {
-    window.localStorage.setItem('studyCollectionUser', JSON.stringify({ userId: 7, role: 'USER', displayName: 'Alice' }))
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice'
+    }))
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ code: 'OK', data: [] })

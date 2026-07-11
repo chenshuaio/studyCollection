@@ -1,6 +1,9 @@
 package com.studycollection.question.api;
 
+import com.studycollection.common.security.AuthenticatedUser;
+import com.studycollection.common.security.Role;
 import com.studycollection.question.app.InMemoryQuestionRepository;
+import com.studycollection.question.app.InMemoryQuestionFeedbackRepository;
 import com.studycollection.question.app.QuestionFeedbackService;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.FeedbackStatus;
@@ -16,6 +19,10 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class QuestionFeedbackControllerTest {
+    private static final AuthenticatedUser ADMIN = new AuthenticatedUser(1L, "admin", Role.ADMIN);
+    private static final AuthenticatedUser USER = new AuthenticatedUser(7L, "alice", Role.USER);
+    private static final AuthenticatedUser OTHER_USER = new AuthenticatedUser(8L, "bob", Role.USER);
+
     @Test
     void userCanSubmitFeedbackAndAdminCanAcceptItToUpdateQuestion() {
         InMemoryQuestionRepository questionRepository = new InMemoryQuestionRepository();
@@ -28,10 +35,12 @@ class QuestionFeedbackControllerTest {
                 "A",
                 "默认值是 1"
         ));
-        QuestionFeedbackController controller = new QuestionFeedbackController(new QuestionFeedbackService(questionRepository));
+        QuestionFeedbackController controller = new QuestionFeedbackController(new QuestionFeedbackService(
+                new InMemoryQuestionFeedbackRepository(),
+                questionRepository
+        ));
 
-        QuestionFeedback feedback = controller.submit(new SubmitFeedbackRequest(
-                7L,
+        QuestionFeedback feedback = controller.submit(USER, new SubmitFeedbackRequest(
                 question.id(),
                 FeedbackType.ANSWER_ERROR,
                 "标准答案应为 B"
@@ -43,8 +52,7 @@ class QuestionFeedbackControllerTest {
 
         assertThat(pending).extracting(QuestionFeedback::id).containsExactly(feedback.id());
 
-        QuestionRevision revision = controller.accept(feedback.id(), new AcceptFeedbackRequest(
-                1L,
+        QuestionRevision revision = controller.accept(ADMIN, feedback.id(), new AcceptFeedbackRequest(
                 "将标准答案从 A 修订为 B",
                 "用户反馈属实",
                 "B",
@@ -59,26 +67,25 @@ class QuestionFeedbackControllerTest {
 
     @Test
     void adminCanRejectFeedbackOrMarkItNeedsReview() {
-        QuestionFeedbackController controller = new QuestionFeedbackController();
-        QuestionFeedback rejected = controller.submit(new SubmitFeedbackRequest(
-                7L,
+        QuestionFeedbackController controller = new QuestionFeedbackController(new QuestionFeedbackService(
+                new InMemoryQuestionFeedbackRepository(),
+                new InMemoryQuestionRepository()
+        ));
+        QuestionFeedback rejected = controller.submit(USER, new SubmitFeedbackRequest(
                 101L,
                 FeedbackType.ANSWER_ERROR,
                 "标准答案应为 B"
         )).data();
-        QuestionFeedback needsReview = controller.submit(new SubmitFeedbackRequest(
-                8L,
+        QuestionFeedback needsReview = controller.submit(OTHER_USER, new SubmitFeedbackRequest(
                 102L,
                 FeedbackType.EXPLANATION_ERROR,
                 "解析需要补充"
         )).data();
 
-        QuestionFeedback rejectedResult = controller.reject(rejected.id(), new ReviewFeedbackRequest(
-                1L,
+        QuestionFeedback rejectedResult = controller.reject(ADMIN, rejected.id(), new ReviewFeedbackRequest(
                 "原答案正确，驳回反馈"
         )).data();
-        QuestionFeedback needsReviewResult = controller.markNeedsReview(needsReview.id(), new ReviewFeedbackRequest(
-                1L,
+        QuestionFeedback needsReviewResult = controller.markNeedsReview(ADMIN, needsReview.id(), new ReviewFeedbackRequest(
                 "交给教研复核"
         )).data();
 

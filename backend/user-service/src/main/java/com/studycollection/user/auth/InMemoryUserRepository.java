@@ -49,4 +49,19 @@ public class InMemoryUserRepository implements UserRepository {
         accounts.put(saved.username(), saved);
         return saved;
     }
+
+    @Override
+    public void updatePasswordHash(Long userId, String passwordHash) {
+        UserAccount account = accounts.values().stream()
+                .filter(candidate -> candidate.id().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        save(new UserAccount(
+                account.id(),
+                account.username(),
+                passwordHash,
+                account.displayName(),
+                account.role()
+        ));
+    }
 }

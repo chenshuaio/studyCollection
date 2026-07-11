@@ -10,6 +10,7 @@ import com.studycollection.question.domain.QuestionType;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class QuestionFeedbackServiceTest {
     @Test
@@ -24,7 +25,10 @@ class QuestionFeedbackServiceTest {
                 "A",
                 "默认值是 1"
         ));
-        QuestionFeedbackService service = new QuestionFeedbackService(questionRepository);
+        QuestionFeedbackService service = new QuestionFeedbackService(
+                new InMemoryQuestionFeedbackRepository(),
+                questionRepository
+        );
         QuestionFeedback feedback = service.submit(
                 7L,
                 savedQuestion.id(),
@@ -51,7 +55,7 @@ class QuestionFeedbackServiceTest {
 
     @Test
     void adminCanRejectFeedbackOrMarkItNeedsReview() {
-        QuestionFeedbackService service = new QuestionFeedbackService();
+        QuestionFeedbackService service = service();
         QuestionFeedback rejected = service.submit(
                 7L,
                 101L,
@@ -75,12 +79,48 @@ class QuestionFeedbackServiceTest {
 
     @Test
     void listsFeedbackSubmittedByUser() {
-        QuestionFeedbackService service = new QuestionFeedbackService();
+        QuestionFeedbackService service = service();
 
         service.submit(7L, 101L, FeedbackType.ANSWER_ERROR, "标准答案应为 B");
         service.submit(8L, 102L, FeedbackType.EXPLANATION_ERROR, "解析需要补充");
 
         assertThat(service.byUser(7L)).hasSize(1);
         assertThat(service.byUser(7L).get(0).content()).contains("标准答案");
+    }
+
+    @Test
+    void completedFeedbackCannotBeReviewedAgain() {
+        InMemoryQuestionRepository questionRepository = new InMemoryQuestionRepository();
+        Question question = questionRepository.save(new Question(
+                null,
+                "Java 中 int 默认值是多少？",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "成员变量默认值为 0"
+        ));
+        QuestionFeedbackService service = new QuestionFeedbackService(
+                new InMemoryQuestionFeedbackRepository(),
+                questionRepository
+        );
+        QuestionFeedback feedback = service.submit(
+                7L,
+                question.id(),
+                FeedbackType.ANSWER_ERROR,
+                "标准答案需要复核"
+        );
+        service.accept(feedback.id(), 1L, "确认无误", "已复核", null, null);
+
+        assertThatThrownBy(() -> service.reject(feedback.id(), 1L, "重复处理"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("反馈已处理");
+    }
+
+    private QuestionFeedbackService service() {
+        return new QuestionFeedbackService(
+                new InMemoryQuestionFeedbackRepository(),
+                new InMemoryQuestionRepository()
+        );
     }
 }

@@ -134,7 +134,6 @@ async function acceptSelected() {
 
   try {
     await acceptQuestionFeedback(selectedFeedbackId.value, {
-      adminUserId: 1,
       changeSummary: changeSummary.value,
       reviewNote: reviewNote.value,
       correctedAnswer: correctedAnswer.value,
@@ -154,7 +153,6 @@ async function rejectSelected() {
 
   try {
     await rejectQuestionFeedback(selectedFeedbackId.value, {
-      adminUserId: 1,
       reviewNote: reviewNote.value
     })
     await loadFeedback()
@@ -171,7 +169,6 @@ async function markSelectedNeedsReview() {
 
   try {
     await markFeedbackNeedsReview(selectedFeedbackId.value, {
-      adminUserId: 1,
       reviewNote: reviewNote.value
     })
     await loadFeedback()

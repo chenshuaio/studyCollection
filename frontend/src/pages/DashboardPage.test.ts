@@ -42,7 +42,7 @@ describe('DashboardPage', () => {
   it('renders the main local learning workspace in Chinese', () => {
     window.localStorage.setItem(
       'studyCollectionUser',
-      JSON.stringify({ username: 'alice', role: 'USER', displayName: 'Alice' })
+      JSON.stringify({ token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice' })
     )
 
     const wrapper = mount(DashboardPage)
@@ -59,7 +59,7 @@ describe('DashboardPage', () => {
   it('hides administrator-only navigation from ordinary users', () => {
     window.localStorage.setItem(
       'studyCollectionUser',
-      JSON.stringify({ username: 'alice', role: 'USER', displayName: 'Alice' })
+      JSON.stringify({ token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice' })
     )
 
     const wrapper = mount(DashboardPage)
@@ -74,7 +74,7 @@ describe('DashboardPage', () => {
   it('shows user management navigation to administrators', () => {
     window.localStorage.setItem(
       'studyCollectionUser',
-      JSON.stringify({ username: 'admin', role: 'ADMIN', displayName: '系统管理员' })
+      JSON.stringify({ token: 'admin-token', userId: 1, username: 'admin', role: 'ADMIN', displayName: '系统管理员' })
     )
 
     const wrapper = mount(DashboardPage)
@@ -87,7 +87,7 @@ describe('DashboardPage', () => {
   it('loads dashboard metrics from the signed-in user activity', async () => {
     window.localStorage.setItem(
       'studyCollectionUser',
-      JSON.stringify({ userId: 7, username: 'alice', role: 'USER', displayName: 'Alice' })
+      JSON.stringify({ token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice' })
     )
     mocks.getPracticeStats.mockResolvedValue({ userId: 7, answeredQuestionCount: 18, correctQuestionCount: 15 })
     mocks.listMistakes.mockResolvedValue([
@@ -101,9 +101,9 @@ describe('DashboardPage', () => {
     const wrapper = mount(DashboardPage)
     await flushPromises()
 
-    expect(mocks.getPracticeStats).toHaveBeenCalledWith(7)
-    expect(mocks.listMistakes).toHaveBeenCalledWith(7)
-    expect(mocks.listUserFeedback).toHaveBeenCalledWith(7)
+    expect(mocks.getPracticeStats).toHaveBeenCalledWith()
+    expect(mocks.listMistakes).toHaveBeenCalledWith()
+    expect(mocks.listUserFeedback).toHaveBeenCalledWith()
     expect(wrapper.text()).toContain('18 题')
     expect(wrapper.text()).toContain('正确率 83%')
     expect(wrapper.text()).toContain('2 题')
@@ -111,7 +111,9 @@ describe('DashboardPage', () => {
   })
 
   it('logs out and returns to login page', async () => {
-    window.localStorage.setItem('studyCollectionUser', JSON.stringify({ role: 'USER', displayName: '学习用户' }))
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'user-token', userId: 2, username: 'user', role: 'USER', displayName: '学习用户'
+    }))
     const wrapper = mount(DashboardPage)
 
     await wrapper.get('button[aria-label="退出登录"]').trigger('click')

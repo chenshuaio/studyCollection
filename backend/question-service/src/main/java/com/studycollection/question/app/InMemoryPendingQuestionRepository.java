@@ -3,6 +3,7 @@ package com.studycollection.question.app;
 import com.studycollection.question.domain.PendingQuestion;
 import com.studycollection.question.domain.PendingQuestionStatus;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Profile;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
+@Profile("!local-mysql")
 public class InMemoryPendingQuestionRepository implements PendingQuestionRepository {
     private final AtomicLong ids = new AtomicLong(1);
     private final Map<Long, PendingQuestion> questions = new LinkedHashMap<>();

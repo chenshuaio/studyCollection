@@ -1,11 +1,17 @@
 package com.studycollection.local;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
@@ -24,105 +30,119 @@ class LocalStudyCollectionApplicationTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
-    void exposesLocalLearningApisInOneProcess() {
-        assertOk(post("/auth/login", Map.of("username", "user", "password", "user123")));
-        assertOk(post("/questions", Map.of(
-                "title", "HashMap 默认负载因子是多少？",
-                "type", "SINGLE_CHOICE",
-                "difficulty", "INTERMEDIATE",
-                "knowledgePoint", "集合框架",
-                "answer", "A",
-                "analysis", "HashMap 默认负载因子是 0.75。"
-        )));
-        assertOk(post("/questions", Map.of(
-                "title", "Java 中 int 默认值是多少？",
+    void loginReturnsCompleteAuthenticatedUserIdentity() throws Exception {
+        Session session = login("user", "user123");
+
+        assertThat(session.userId()).isPositive();
+        assertThat(session.username()).isEqualTo("user");
+        assertThat(session.role()).isEqualTo("USER");
+        assertThat(session.token()).isNotBlank();
+    }
+
+    @Test
+    void protectedEndpointsRequireAuthentication() {
+        ResponseEntity<String> response = restTemplate.getForEntity(url("/questions"), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).contains("\"code\":\"UNAUTHORIZED\"");
+    }
+
+    @Test
+    void ordinaryUsersCannotCallAdministratorEndpoints() throws Exception {
+        Session user = login("user", "user123");
+
+        ResponseEntity<String> response = post("/questions", Map.of(
+                "title", "越权创建的题目",
                 "type", "SINGLE_CHOICE",
                 "difficulty", "BEGINNER",
-                "knowledgePoint", "Java 基础",
+                "knowledgePoint", "权限测试",
                 "answer", "A",
-                "analysis", "int 成员变量默认值为 0。"
-        )));
-        assertOk(get("/questions"));
-        assertOk(get("/questions?keyword=HashMap"));
-        assertOk(get("/questions?knowledgePoint=集合框架&difficulty=INTERMEDIATE&type=SINGLE_CHOICE"));
-        assertOk(post("/questions/pending", Map.of(
-                "submitterUserId", 7,
-                "title", "ArrayList 扩容通常发生在什么时候？",
+                "analysis", "不应创建成功"
+        ), user.token());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).contains("\"code\":\"FORBIDDEN\"");
+    }
+
+    @Test
+    void authenticatedIdentityCannotBeSpoofedAndScoringIgnoresClientCorrectAnswer() throws Exception {
+        Session admin = login("admin", "admin123");
+        Session user = login("user", "user123");
+        long questionId = data(post("/questions", Map.of(
+                "title", "安全审计唯一题目\nA. 错误选项\nB. 正确选项",
                 "type", "SINGLE_CHOICE",
                 "difficulty", "INTERMEDIATE",
-                "knowledgePoint", "集合框架",
-                "answer", "A",
-                "analysis", "由导入提交审核"
-        )));
-        assertOk(get("/questions/pending"));
-        assertOk(post("/questions/pending/1/approve", Map.of()));
-        assertOk(get("/questions?keyword=ArrayList"));
-        assertOk(post("/imports/preview", Map.of("content", """
-                ## 单选题
-                题目: Java 中 int 默认值是多少？
-                答案: A
-                知识点: Java 基础
-                难度: BEGINNER
-                """)));
-        assertOk(post("/practice/submit", Map.of(
-                "userId", 7,
-                "answers", List.of(Map.of("questionId", 1, "answer", "A"))
-        )));
-        assertOk(get("/practice/stats?userId=7"));
-        assertOk(post("/exams/custom", Map.of(
-                "name", "集合专项测试",
-                "durationMinutes", 45,
-                "questionIds", List.of(1, 2)
-        )));
-        assertOk(post("/reports/learning", Map.of(
-                "mode", "OFFLINE_RULES",
-                "results", List.of(
-                        Map.of("knowledgePoint", "集合框架", "correct", true),
-                        Map.of("knowledgePoint", "JVM", "correct", false)
-                )
-        )));
-        assertOk(post("/mistakes", Map.of(
-                "userId", 7,
-                "questionId", 1,
-                "questionTitle", "HashMap 默认负载因子是多少？",
-                "knowledgePoint", "集合框架",
+                "knowledgePoint", "安全审计",
+                "answer", "B",
+                "analysis", "正确答案由服务端题库决定。"
+        ), admin.token())).path("id").asLong();
+
+        ResponseEntity<String> visibleQuestion = get("/questions?keyword=安全审计唯一题目", user.token());
+        assertOk(visibleQuestion);
+        assertThat(visibleQuestion.getBody()).contains("\"answer\":\"\"");
+        assertThat(visibleQuestion.getBody()).doesNotContain("\"answer\":\"B\"");
+
+        ResponseEntity<String> scored = post("/practice/submit", Map.of(
+                "userId", admin.userId(),
+                "answers", List.of(Map.of(
+                        "questionId", questionId,
+                        "answer", "A",
+                        "correctAnswer", "A",
+                        "analysis", "伪造解析"
+                ))
+        ), user.token());
+        assertOk(scored);
+        assertThat(scored.getBody()).contains("\"correct\":false");
+        assertThat(scored.getBody()).contains("\"correctAnswer\":\"B\"");
+
+        ResponseEntity<String> mistake = post("/mistakes", Map.of(
+                "userId", admin.userId(),
+                "questionId", questionId,
+                "questionTitle", "安全审计唯一题目",
+                "knowledgePoint", "安全审计",
                 "status", "PENDING"
-        )));
-        assertOk(get("/mistakes?userId=7"));
-        assertOk(post("/questions/feedback", Map.of(
-                "userId", 7,
-                "questionId", 1,
-                "type", "ANSWER_ERROR",
-                "content", "标准答案应为 B"
-        )));
-        assertOk(get("/questions/feedback?userId=7"));
-        assertOk(get("/questions/feedback/pending"));
-        assertOk(post("/questions/feedback/1/accept", Map.of(
-                "adminUserId", 1,
-                "changeSummary", "根据反馈修订答案",
-                "reviewNote", "用户反馈属实"
-        )));
-        assertOk(post("/questions/feedback", Map.of(
-                "userId", 7,
-                "questionId", 1,
-                "type", "ANSWER_ERROR",
-                "content", "原答案正确，请驳回"
-        )));
-        assertOk(post("/questions/feedback/2/reject", Map.of(
-                "adminUserId", 1,
-                "reviewNote", "核对后确认原答案正确"
-        )));
-        assertOk(post("/questions/feedback", Map.of(
-                "userId", 8,
-                "questionId", 2,
-                "type", "EXPLANATION_ERROR",
-                "content", "解析需要教研复核"
-        )));
-        assertOk(post("/questions/feedback/3/needs-review", Map.of(
-                "adminUserId", 1,
-                "reviewNote", "交给教研二次确认"
-        )));
+        ), user.token());
+        assertOk(mistake);
+        assertThat(data(mistake).path("userId").asLong()).isEqualTo(user.userId());
+
+        ResponseEntity<String> listed = get("/mistakes?userId=" + admin.userId(), user.token());
+        assertOk(listed);
+        assertThat(listed.getBody()).contains("\"userId\":" + user.userId());
+        assertThat(listed.getBody()).doesNotContain("\"userId\":" + admin.userId());
+    }
+
+    @Test
+    void registeredUsersReceiveUsableOrdinaryUserSession() throws Exception {
+        String suffix = String.valueOf(System.nanoTime());
+        ResponseEntity<String> response = post("/auth/register", Map.of(
+                "username", "learner-" + suffix,
+                "password", "pass123456",
+                "displayName", "学习者-" + suffix
+        ));
+
+        assertOk(response);
+        JsonNode registered = data(response);
+        assertThat(registered.path("role").asText()).isEqualTo("USER");
+        assertThat(registered.path("userId").asLong()).isPositive();
+        assertThat(registered.path("token").asText()).isNotBlank();
+        assertOk(get("/questions", registered.path("token").asText()));
+    }
+
+    @Test
+    void businessValidationErrorsUseUnifiedBadRequestResponse() throws Exception {
+        Session user = login("user", "user123");
+
+        ResponseEntity<String> response = post("/practice/submit", Map.of(
+                "answers", List.of(Map.of("questionId", Long.MAX_VALUE, "answer", "A"))
+        ), user.token());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).contains("\"code\":\"VALIDATION_FAILED\"");
+        assertThat(response.getBody()).contains("题目不存在");
     }
 
     @Test
@@ -133,12 +153,51 @@ class LocalStudyCollectionApplicationTest {
         assertThat(response.getBody()).contains("\"message\":\"账号或密码错误\"");
     }
 
-    private ResponseEntity<String> post(String path, Object body) {
-        return restTemplate.postForEntity(url(path), body, String.class);
+    private Session login(String username, String password) throws Exception {
+        ResponseEntity<String> response = post("/auth/login", Map.of("username", username, "password", password));
+        assertOk(response);
+        JsonNode value = data(response);
+        return new Session(
+                value.path("token").asText(),
+                value.path("userId").asLong(),
+                value.path("username").asText(),
+                value.path("role").asText()
+        );
     }
 
-    private ResponseEntity<String> get(String path) {
-        return restTemplate.getForEntity(url(path), String.class);
+    private ResponseEntity<String> post(String path, Object body) {
+        return post(path, body, null);
+    }
+
+    private ResponseEntity<String> post(String path, Object body, String token) {
+        return restTemplate.exchange(
+                url(path),
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers(token)),
+                String.class
+        );
+    }
+
+    private ResponseEntity<String> get(String path, String token) {
+        return restTemplate.exchange(
+                url(path),
+                HttpMethod.GET,
+                new HttpEntity<>(headers(token)),
+                String.class
+        );
+    }
+
+    private HttpHeaders headers(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (token != null && !token.isBlank()) {
+            headers.setBearerAuth(token);
+        }
+        return headers;
+    }
+
+    private JsonNode data(ResponseEntity<String> response) throws Exception {
+        return objectMapper.readTree(response.getBody()).path("data");
     }
 
     private String url(String path) {
@@ -148,5 +207,8 @@ class LocalStudyCollectionApplicationTest {
     private static void assertOk(ResponseEntity<String> response) {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("\"code\":\"OK\"");
+    }
+
+    private record Session(String token, long userId, String username, String role) {
     }
 }

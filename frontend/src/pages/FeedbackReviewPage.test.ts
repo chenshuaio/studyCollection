@@ -81,11 +81,10 @@ describe('FeedbackReviewPage', () => {
     await flushPromises()
 
     expect(acceptQuestionFeedback).toHaveBeenCalledWith(1, expect.objectContaining({
-      adminUserId: 1,
       correctedAnswer: 'B',
       correctedAnalysis: 'Java 基本类型 int 的默认值是 0。'
     }))
-    expect(rejectQuestionFeedback).toHaveBeenCalledWith(1, expect.objectContaining({ adminUserId: 1 }))
-    expect(markFeedbackNeedsReview).toHaveBeenCalledWith(1, expect.objectContaining({ adminUserId: 1 }))
+    expect(rejectQuestionFeedback).toHaveBeenCalledWith(1, { reviewNote: '用户反馈属实' })
+    expect(markFeedbackNeedsReview).toHaveBeenCalledWith(1, { reviewNote: '用户反馈属实' })
   })
 })

@@ -1,5 +1,7 @@
 package com.studycollection.question.api;
 
+import com.studycollection.common.security.AuthenticatedUser;
+import com.studycollection.common.security.Role;
 import com.studycollection.question.app.InMemoryQuestionRepository;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
@@ -13,6 +15,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class QuestionControllerTest {
+    private static final AuthenticatedUser ADMIN = new AuthenticatedUser(1L, "admin", Role.ADMIN);
+
     @Test
     void createsAndSearchesQuestionsWithOptionalFilters() {
         QuestionController controller = new QuestionController(new InMemoryQuestionRepository());
@@ -34,9 +38,9 @@ class QuestionControllerTest {
                 "虚拟机栈保存方法调用的栈帧。"
         )).data();
 
-        List<Question> all = controller.search(null, null, null, null).data();
-        List<Question> fuzzy = controller.search("HashMap", null, null, null).data();
-        List<Question> filtered = controller.search(null, "集合框架", Difficulty.INTERMEDIATE, QuestionType.SINGLE_CHOICE).data();
+        List<Question> all = controller.search(ADMIN, null, null, null, null).data();
+        List<Question> fuzzy = controller.search(ADMIN, "HashMap", null, null, null).data();
+        List<Question> filtered = controller.search(ADMIN, null, "集合框架", Difficulty.INTERMEDIATE, QuestionType.SINGLE_CHOICE).data();
 
         assertThat(hashMap.id()).isEqualTo(1L);
         assertThat(jvm.id()).isEqualTo(2L);
@@ -67,7 +71,7 @@ class QuestionControllerTest {
         )).data();
 
         Long deletedId = controller.deleteQuestion(hashMap.id()).data();
-        List<Question> all = controller.search(null, null, null, null).data();
+        List<Question> all = controller.search(ADMIN, null, null, null, null).data();
 
         assertThat(deletedId).isEqualTo(hashMap.id());
         assertThat(all).extracting(Question::id).containsExactly(jvm.id());

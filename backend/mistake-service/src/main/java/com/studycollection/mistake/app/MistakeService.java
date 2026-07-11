@@ -1,25 +1,25 @@
 package com.studycollection.mistake.app;
 
 import com.studycollection.mistake.domain.MistakeRecord;
+import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
+@Service
 public class MistakeService {
-    private final List<MistakeRecord> records = new ArrayList<>();
+    private final MistakeRepository mistakeRepository;
+
+    public MistakeService(MistakeRepository mistakeRepository) {
+        this.mistakeRepository = mistakeRepository;
+    }
 
     public MistakeRecord record(Long userId, Long questionId, String questionTitle, String knowledgePoint, String status) {
         MistakeRecord record = new MistakeRecord(userId, questionId, questionTitle, knowledgePoint, status);
-        records.removeIf(existing -> existing.userId().equals(userId) && existing.questionId().equals(questionId));
-        records.add(record);
-        return record;
+        return mistakeRepository.save(record);
     }
 
     public MistakeRecord updateStatus(Long userId, Long questionId, String status) {
-        MistakeRecord existing = records.stream()
-                .filter(record -> record.userId().equals(userId) && record.questionId().equals(questionId))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("错题记录不存在"));
+        MistakeRecord existing = mistakeRepository.find(userId, questionId);
         return record(
                 existing.userId(),
                 existing.questionId(),
@@ -30,8 +30,6 @@ public class MistakeService {
     }
 
     public List<MistakeRecord> list(Long userId) {
-        return records.stream()
-                .filter(record -> record.userId().equals(userId))
-                .toList();
+        return mistakeRepository.findByUserId(userId);
     }
 }
