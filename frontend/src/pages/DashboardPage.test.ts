@@ -33,7 +33,7 @@ describe('DashboardPage', () => {
     mocks.getPracticeStats.mockReset()
     mocks.listMistakes.mockReset()
     mocks.listUserFeedback.mockReset()
-    mocks.getPracticeStats.mockResolvedValue({ userId: 7, answeredQuestionCount: 0, correctQuestionCount: 0 })
+    mocks.getPracticeStats.mockResolvedValue({ userId: 7, answeredQuestionCount: 0, gradedQuestionCount: 0, correctQuestionCount: 0 })
     mocks.listMistakes.mockResolvedValue([])
     mocks.listUserFeedback.mockResolvedValue([])
     window.localStorage.clear()
@@ -89,7 +89,7 @@ describe('DashboardPage', () => {
       'studyCollectionUser',
       JSON.stringify({ token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice' })
     )
-    mocks.getPracticeStats.mockResolvedValue({ userId: 7, answeredQuestionCount: 18, correctQuestionCount: 15 })
+    mocks.getPracticeStats.mockResolvedValue({ userId: 7, answeredQuestionCount: 18, gradedQuestionCount: 10, correctQuestionCount: 8 })
     mocks.listMistakes.mockResolvedValue([
       { userId: 7, questionId: 1, questionTitle: 'HashMap 默认负载因子是多少？', knowledgePoint: '集合框架', status: 'PENDING' },
       { userId: 7, questionId: 2, questionTitle: 'JVM 栈保存什么？', knowledgePoint: 'JVM', status: 'PENDING' }
@@ -105,7 +105,7 @@ describe('DashboardPage', () => {
     expect(mocks.listMistakes).toHaveBeenCalledWith()
     expect(mocks.listUserFeedback).toHaveBeenCalledWith()
     expect(wrapper.text()).toContain('18 题')
-    expect(wrapper.text()).toContain('正确率 83%')
+    expect(wrapper.text()).toContain('正确率 80%')
     expect(wrapper.text()).toContain('2 题')
     expect(wrapper.text()).toContain('1 条')
   })

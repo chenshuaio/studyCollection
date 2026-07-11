@@ -15,14 +15,21 @@ public class MySqlPracticeStatsRepository implements PracticeStatsRepository {
     }
 
     @Override
-    public PracticeStats add(Long userId, int answeredQuestionCount, int correctQuestionCount) {
+    public PracticeStats add(
+            Long userId,
+            int answeredQuestionCount,
+            int gradedQuestionCount,
+            int correctQuestionCount
+    ) {
         jdbcTemplate.update("""
-                insert into practice_stats (user_id, answered_question_count, correct_question_count)
-                values (?, ?, ?)
+                insert into practice_stats (
+                  user_id, answered_question_count, graded_question_count, correct_question_count
+                ) values (?, ?, ?, ?)
                 on duplicate key update
                   answered_question_count = answered_question_count + values(answered_question_count),
+                  graded_question_count = graded_question_count + values(graded_question_count),
                   correct_question_count = correct_question_count + values(correct_question_count)
-                """, userId, answeredQuestionCount, correctQuestionCount);
+                """, userId, answeredQuestionCount, gradedQuestionCount, correctQuestionCount);
         return findByUserId(userId);
     }
 
@@ -30,18 +37,19 @@ public class MySqlPracticeStatsRepository implements PracticeStatsRepository {
     public PracticeStats findByUserId(Long userId) {
         return jdbcTemplate.query(
                         """
-                        select user_id, answered_question_count, correct_question_count
+                        select user_id, answered_question_count, graded_question_count, correct_question_count
                         from practice_stats
                         where user_id = ?
                         """,
                         (rs, rowNum) -> new PracticeStats(
                                 rs.getLong("user_id"),
                                 rs.getInt("answered_question_count"),
+                                rs.getInt("graded_question_count"),
                                 rs.getInt("correct_question_count")
                         ),
                         userId
                 ).stream()
                 .findFirst()
-                .orElse(new PracticeStats(userId, 0, 0));
+                .orElse(new PracticeStats(userId, 0, 0, 0));
     }
 }

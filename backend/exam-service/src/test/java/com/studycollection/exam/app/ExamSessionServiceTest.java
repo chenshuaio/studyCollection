@@ -91,6 +91,7 @@ class ExamSessionServiceTest {
         assertThat(repeated).isEqualTo(submitted);
         PracticeStats stats = statsRepository.findByUserId(7L);
         assertThat(stats.answeredQuestionCount()).isEqualTo(2);
+        assertThat(stats.gradedQuestionCount()).isEqualTo(1);
         assertThat(stats.correctQuestionCount()).isEqualTo(1);
     }
 
@@ -112,6 +113,7 @@ class ExamSessionServiceTest {
         assertThat(expired.answers().get(1L).correct()).isFalse();
         assertThat(unchanged).isEqualTo(expired);
         assertThat(statsRepository.findByUserId(7L).answeredQuestionCount()).isEqualTo(1);
+        assertThat(statsRepository.findByUserId(7L).gradedQuestionCount()).isEqualTo(1);
     }
 
     private InMemoryQuestionRepository sampleQuestions() {

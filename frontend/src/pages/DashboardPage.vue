@@ -87,6 +87,7 @@ import { isAdmin } from '../permissions'
 const isAdminUser = isAdmin()
 const dashboardMetrics = reactive({
   answeredQuestionCount: 0,
+  gradedQuestionCount: 0,
   correctQuestionCount: 0,
   mistakeCount: 0,
   feedbackCount: 0,
@@ -94,10 +95,10 @@ const dashboardMetrics = reactive({
 })
 
 const accuracyText = computed(() => {
-  if (dashboardMetrics.answeredQuestionCount === 0) {
+  if (dashboardMetrics.gradedQuestionCount === 0) {
     return '0%'
   }
-  return `${Math.round((dashboardMetrics.correctQuestionCount / dashboardMetrics.answeredQuestionCount) * 100)}%`
+  return `${Math.round((dashboardMetrics.correctQuestionCount / dashboardMetrics.gradedQuestionCount) * 100)}%`
 })
 const weakestKnowledgeText = computed(() => (
   dashboardMetrics.weakestKnowledgePoint ? `优先复习 ${dashboardMetrics.weakestKnowledgePoint}` : '暂无待复盘知识点'
@@ -115,6 +116,7 @@ async function loadDashboardMetrics() {
     listUserFeedback()
   ])
   dashboardMetrics.answeredQuestionCount = practiceStats.answeredQuestionCount
+  dashboardMetrics.gradedQuestionCount = practiceStats.gradedQuestionCount
   dashboardMetrics.correctQuestionCount = practiceStats.correctQuestionCount
   dashboardMetrics.mistakeCount = mistakes.length
   dashboardMetrics.feedbackCount = feedback.length

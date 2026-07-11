@@ -125,11 +125,14 @@ public class ExamSessionService {
                 .map(ExamAnswer::submittedAnswer)
                 .filter(answer -> answer != null && !answer.isBlank())
                 .count();
+        int graded = (int) completed.answers().values().stream()
+                .filter(ExamAnswer::autoGraded)
+                .count();
         int correct = (int) completed.answers().values().stream()
                 .filter(ExamAnswer::autoGraded)
                 .filter(answer -> Boolean.TRUE.equals(answer.correct()))
                 .count();
-        statsRepository.add(session.userId(), answered, correct);
+        statsRepository.add(session.userId(), answered, graded, correct);
         return completed;
     }
 

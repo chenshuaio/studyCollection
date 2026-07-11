@@ -3,6 +3,7 @@ package com.studycollection.exam.api;
 import com.studycollection.common.api.ApiResponse;
 import com.studycollection.common.security.AuthenticatedUser;
 import com.studycollection.exam.app.PracticeStatsRepository;
+import com.studycollection.exam.app.PracticeGenerator;
 import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.Question;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Locale;
@@ -21,10 +23,47 @@ public class PracticeController {
     private static final int POINTS_PER_QUESTION = 10;
     private final QuestionRepository questionRepository;
     private final PracticeStatsRepository statsRepository;
+    private final PracticeGenerator practiceGenerator;
 
     public PracticeController(QuestionRepository questionRepository, PracticeStatsRepository statsRepository) {
+        this(questionRepository, statsRepository, new PracticeGenerator(questionRepository));
+    }
+
+    @Autowired
+    public PracticeController(
+            QuestionRepository questionRepository,
+            PracticeStatsRepository statsRepository,
+            PracticeGenerator practiceGenerator
+    ) {
         this.questionRepository = questionRepository;
         this.statsRepository = statsRepository;
+        this.practiceGenerator = practiceGenerator;
+    }
+
+    @PostMapping("/generate")
+    public ApiResponse<GeneratedPractice> generate(@RequestBody PracticeGenerateRequest request) {
+        if (request == null || request.count() == null) {
+            throw new IllegalArgumentException("练习题目数量不能为空");
+        }
+        List<GeneratedPracticeQuestion> questions = practiceGenerator.generate(
+                        request.knowledgePoint(),
+                        request.difficulty(),
+                        request.type(),
+                        request.count()
+                ).stream()
+                .map(question -> new GeneratedPracticeQuestion(
+                        question.id(),
+                        question.title(),
+                        question.type(),
+                        question.difficulty(),
+                        question.knowledgePoint()
+                ))
+                .toList();
+        return ApiResponse.success(new GeneratedPractice(
+                request.count(),
+                questions.size(),
+                questions
+        ));
     }
 
     @PostMapping("/submit")
@@ -109,8 +148,9 @@ public class PracticeController {
             return;
         }
         int answered = items.size();
+        int graded = (int) items.stream().filter(PracticeResultItem::autoGraded).count();
         int correct = (int) items.stream().filter(item -> Boolean.TRUE.equals(item.correct())).count();
-        statsRepository.add(userId, answered, correct);
+        statsRepository.add(userId, answered, graded, correct);
     }
 
 }

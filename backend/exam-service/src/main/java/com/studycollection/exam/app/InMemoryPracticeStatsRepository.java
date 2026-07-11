@@ -13,13 +13,19 @@ public class InMemoryPracticeStatsRepository implements PracticeStatsRepository 
     private final Map<Long, PracticeStats> statsByUser = new ConcurrentHashMap<>();
 
     @Override
-    public PracticeStats add(Long userId, int answeredQuestionCount, int correctQuestionCount) {
+    public PracticeStats add(
+            Long userId,
+            int answeredQuestionCount,
+            int gradedQuestionCount,
+            int correctQuestionCount
+    ) {
         return statsByUser.merge(
                 userId,
-                new PracticeStats(userId, answeredQuestionCount, correctQuestionCount),
+                new PracticeStats(userId, answeredQuestionCount, gradedQuestionCount, correctQuestionCount),
                 (existing, current) -> new PracticeStats(
                         userId,
                         existing.answeredQuestionCount() + current.answeredQuestionCount(),
+                        existing.gradedQuestionCount() + current.gradedQuestionCount(),
                         existing.correctQuestionCount() + current.correctQuestionCount()
                 )
         );
@@ -27,6 +33,6 @@ public class InMemoryPracticeStatsRepository implements PracticeStatsRepository 
 
     @Override
     public PracticeStats findByUserId(Long userId) {
-        return statsByUser.getOrDefault(userId, new PracticeStats(userId, 0, 0));
+        return statsByUser.getOrDefault(userId, new PracticeStats(userId, 0, 0, 0));
     }
 }

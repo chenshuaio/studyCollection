@@ -220,9 +220,34 @@ DEALLOCATE PREPARE mistake_unique_statement;
 CREATE TABLE IF NOT EXISTS practice_stats (
   user_id BIGINT PRIMARY KEY,
   answered_question_count INT NOT NULL DEFAULT 0,
+  graded_question_count INT NOT NULL DEFAULT 0,
   correct_question_count INT NOT NULL DEFAULT 0,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+SET @practice_graded_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'practice_stats'
+    AND column_name = 'graded_question_count'
+);
+SET @practice_graded_ddl = IF(
+  @practice_graded_column_exists = 0,
+  'ALTER TABLE practice_stats ADD COLUMN graded_question_count INT NOT NULL DEFAULT 0 AFTER answered_question_count',
+  'SELECT 1'
+);
+PREPARE practice_graded_statement FROM @practice_graded_ddl;
+EXECUTE practice_graded_statement;
+DEALLOCATE PREPARE practice_graded_statement;
+
+SET @practice_graded_backfill = IF(
+  @practice_graded_column_exists = 0,
+  'UPDATE practice_stats SET graded_question_count = answered_question_count',
+  'SELECT 1'
+);
+PREPARE practice_graded_backfill_statement FROM @practice_graded_backfill;
+EXECUTE practice_graded_backfill_statement;
+DEALLOCATE PREPARE practice_graded_backfill_statement;
 
 CREATE TABLE IF NOT EXISTS learning_reports (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,

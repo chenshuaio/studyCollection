@@ -3,6 +3,7 @@ package com.studycollection.exam.api;
 import com.studycollection.common.security.AuthenticatedUser;
 import com.studycollection.common.security.Role;
 import com.studycollection.exam.app.InMemoryPracticeStatsRepository;
+import com.studycollection.exam.app.PracticeGenerator;
 import com.studycollection.question.app.InMemoryQuestionRepository;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
@@ -10,6 +11,7 @@ import com.studycollection.question.domain.QuestionType;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -54,6 +56,7 @@ class PracticeControllerTest {
 
         assertThat(stats.userId()).isEqualTo(USER.userId());
         assertThat(stats.answeredQuestionCount()).isEqualTo(3);
+        assertThat(stats.gradedQuestionCount()).isEqualTo(3);
         assertThat(stats.correctQuestionCount()).isEqualTo(2);
     }
 
@@ -140,7 +143,42 @@ class PracticeControllerTest {
             assertThat(item.submittedAnswer()).isEqualTo("我的理解");
         });
         assertThat(controller.stats(USER).data().answeredQuestionCount()).isEqualTo(1);
+        assertThat(controller.stats(USER).data().gradedQuestionCount()).isZero();
         assertThat(controller.stats(USER).data().correctQuestionCount()).isZero();
+    }
+
+    @Test
+    void generatesFilteredPracticeWithoutReturningAnswersOrAnalysis() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        repository.save(new Question(
+                201L,
+                "HashMap 是否允许 null 键？\nA. 允许\nB. 不允许",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "A",
+                "HashMap 允许一个 null 键。"
+        ));
+        PracticeController controller = new PracticeController(
+                repository,
+                new InMemoryPracticeStatsRepository(),
+                new PracticeGenerator(repository, new Random(3))
+        );
+
+        GeneratedPractice generated = controller.generate(new PracticeGenerateRequest(
+                "集合框架",
+                Difficulty.INTERMEDIATE,
+                QuestionType.SINGLE_CHOICE,
+                5
+        )).data();
+
+        assertThat(generated.requestedCount()).isEqualTo(5);
+        assertThat(generated.actualCount()).isEqualTo(1);
+        assertThat(generated.questions()).singleElement().satisfies(question -> {
+            assertThat(question.id()).isEqualTo(201L);
+            assertThat(question.title()).contains("HashMap");
+            assertThat(question.type()).isEqualTo(QuestionType.SINGLE_CHOICE);
+        });
     }
 
     private PracticeController controllerWithSampleQuestions() {

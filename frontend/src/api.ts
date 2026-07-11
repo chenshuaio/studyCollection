@@ -117,7 +117,29 @@ export type PracticeResult = {
 export type PracticeStats = {
   userId: number
   answeredQuestionCount: number
+  gradedQuestionCount: number
   correctQuestionCount: number
+}
+
+export type PracticeGeneratePayload = {
+  knowledgePoint?: string
+  difficulty?: string
+  type?: string
+  count: number
+}
+
+export type GeneratedPracticeQuestion = {
+  id: number
+  title: string
+  type: string
+  difficulty: string
+  knowledgePoint: string
+}
+
+export type GeneratedPractice = {
+  requestedCount: number
+  actualCount: number
+  questions: GeneratedPracticeQuestion[]
 }
 
 export type QuestionFeedbackPayload = {
@@ -371,6 +393,20 @@ export function submitPractice(answers: PracticeAnswer[]) {
 
 export function submitUserPractice(answers: PracticeAnswer[]) {
   return post<PracticeResult>('/practice/submit', { answers })
+}
+
+export function generatePractice(payload: PracticeGeneratePayload) {
+  const body: PracticeGeneratePayload = { count: payload.count }
+  if (payload.knowledgePoint) {
+    body.knowledgePoint = payload.knowledgePoint
+  }
+  if (payload.difficulty) {
+    body.difficulty = payload.difficulty
+  }
+  if (payload.type) {
+    body.type = payload.type
+  }
+  return post<GeneratedPractice>('/practice/generate', body)
 }
 
 export function getPracticeStats() {

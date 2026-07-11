@@ -6,6 +6,7 @@ import {
   createKnowledgePoint,
   deleteQuestion,
   disableKnowledgePoint,
+  generatePractice,
   generateKnowledgeQuestions,
   generateLearningReport,
   getExamSession,
@@ -175,7 +176,7 @@ describe('api client', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ code: 'OK', data: { userId: 7, answeredQuestionCount: 2, correctQuestionCount: 1 } })
+        json: async () => ({ code: 'OK', data: { userId: 7, answeredQuestionCount: 2, gradedQuestionCount: 1, correctQuestionCount: 1 } })
       })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -203,6 +204,37 @@ describe('api client', () => {
     )
     expect(fetchMock).toHaveBeenCalledWith('/api/practice/stats', expect.objectContaining({ method: 'GET' }))
     expect(stats.answeredQuestionCount).toBe(2)
+    expect(stats.gradedQuestionCount).toBe(1)
+  })
+
+  it('generates a filtered practice without sending empty filters', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 'OK',
+        data: {
+          requestedCount: 3,
+          actualCount: 1,
+          questions: [{ id: 9, title: 'HashMap 的默认负载因子是多少？', type: 'SINGLE_CHOICE', difficulty: 'INTERMEDIATE', knowledgePoint: '集合框架' }]
+        }
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const generated = await generatePractice({
+      knowledgePoint: '集合框架',
+      difficulty: 'INTERMEDIATE',
+      type: '',
+      count: 3
+    })
+
+    expect(generated.actualCount).toBe(1)
+    expect(fetchMock).toHaveBeenCalledWith('/api/practice/generate', expect.objectContaining({ method: 'POST' }))
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      count: 3,
+      knowledgePoint: '集合框架',
+      difficulty: 'INTERMEDIATE'
+    })
   })
 
   it('searches all questions and supports fuzzy title keyword', async () => {
