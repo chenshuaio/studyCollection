@@ -262,6 +262,10 @@ const resultText = computed(() => {
 })
 
 onMounted(async () => {
+  const targetedKnowledgePoint = new URLSearchParams(window.location.search).get('knowledgePoint')
+  if (targetedKnowledgePoint) {
+    filters.knowledgePoint = targetedKnowledgePoint
+  }
   await loadKnowledgePointOptions()
   if (retryTarget.value) {
     await loadRetryPractice()

@@ -2,6 +2,10 @@ package com.studycollection.exam.api;
 
 import com.studycollection.common.api.ApiResponse;
 import com.studycollection.common.security.AuthenticatedUser;
+import com.studycollection.exam.app.InMemoryLearningAttemptRepository;
+import com.studycollection.exam.app.LearningActivityType;
+import com.studycollection.exam.app.LearningAttempt;
+import com.studycollection.exam.app.LearningAttemptRepository;
 import com.studycollection.exam.app.PracticeStatsRepository;
 import com.studycollection.exam.app.PracticeGenerator;
 import com.studycollection.question.app.QuestionRepository;
@@ -13,9 +17,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/practice")
@@ -24,20 +32,55 @@ public class PracticeController {
     private final QuestionRepository questionRepository;
     private final PracticeStatsRepository statsRepository;
     private final PracticeGenerator practiceGenerator;
+    private final LearningAttemptRepository attemptRepository;
+    private final Clock clock;
 
     public PracticeController(QuestionRepository questionRepository, PracticeStatsRepository statsRepository) {
-        this(questionRepository, statsRepository, new PracticeGenerator(questionRepository));
+        this(
+                questionRepository,
+                statsRepository,
+                new PracticeGenerator(questionRepository),
+                new InMemoryLearningAttemptRepository(),
+                Clock.systemUTC()
+        );
+    }
+
+    public PracticeController(
+            QuestionRepository questionRepository,
+            PracticeStatsRepository statsRepository,
+            PracticeGenerator practiceGenerator
+    ) {
+        this(
+                questionRepository,
+                statsRepository,
+                practiceGenerator,
+                new InMemoryLearningAttemptRepository(),
+                Clock.systemUTC()
+        );
     }
 
     @Autowired
     public PracticeController(
             QuestionRepository questionRepository,
             PracticeStatsRepository statsRepository,
-            PracticeGenerator practiceGenerator
+            PracticeGenerator practiceGenerator,
+            LearningAttemptRepository attemptRepository
+    ) {
+        this(questionRepository, statsRepository, practiceGenerator, attemptRepository, Clock.systemUTC());
+    }
+
+    public PracticeController(
+            QuestionRepository questionRepository,
+            PracticeStatsRepository statsRepository,
+            PracticeGenerator practiceGenerator,
+            LearningAttemptRepository attemptRepository,
+            Clock clock
     ) {
         this.questionRepository = questionRepository;
         this.statsRepository = statsRepository;
         this.practiceGenerator = practiceGenerator;
+        this.attemptRepository = attemptRepository;
+        this.clock = clock;
     }
 
     @PostMapping("/generate")
@@ -67,6 +110,7 @@ public class PracticeController {
     }
 
     @PostMapping("/submit")
+    @Transactional
     public ApiResponse<PracticeResult> submit(
             @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
             @RequestBody PracticeSubmitRequest request
@@ -74,11 +118,17 @@ public class PracticeController {
         if (request == null || request.answers() == null || request.answers().isEmpty()) {
             throw new IllegalArgumentException("至少提交一道题目答案");
         }
+        if (request.answers().stream().anyMatch(answer -> answer == null
+                || answer.answer() == null
+                || answer.answer().isBlank())) {
+            throw new IllegalArgumentException("练习答案不能为空");
+        }
         List<PracticeResultItem> items = request.answers().stream()
                 .map(this::scoreAnswer)
                 .toList();
         int score = items.stream().mapToInt(PracticeResultItem::score).sum();
         recordStats(currentUser.userId(), items);
+        recordAttempts(currentUser.userId(), items);
         int totalScore = (int) items.stream().filter(PracticeResultItem::autoGraded).count()
                 * POINTS_PER_QUESTION;
         return ApiResponse.success(new PracticeResult(score, totalScore, items));
@@ -151,6 +201,33 @@ public class PracticeController {
         int graded = (int) items.stream().filter(PracticeResultItem::autoGraded).count();
         int correct = (int) items.stream().filter(item -> Boolean.TRUE.equals(item.correct())).count();
         statsRepository.add(userId, answered, graded, correct);
+    }
+
+    private void recordAttempts(Long userId, List<PracticeResultItem> items) {
+        if (userId == null) {
+            return;
+        }
+        String referenceId = UUID.randomUUID().toString();
+        Instant attemptedAt = clock.instant();
+        attemptRepository.saveAll(items.stream().map(item -> {
+            Question question = questionRepository.findById(item.questionId());
+            return new LearningAttempt(
+                    null,
+                    userId,
+                    LearningActivityType.PRACTICE,
+                    referenceId,
+                    question.id(),
+                    question.title(),
+                    question.type(),
+                    question.difficulty(),
+                    question.knowledgePoint(),
+                    item.submittedAnswer(),
+                    item.autoGraded(),
+                    item.correct(),
+                    item.score(),
+                    attemptedAt
+            );
+        }).toList());
     }
 
 }

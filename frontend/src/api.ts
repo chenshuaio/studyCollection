@@ -225,17 +225,46 @@ export type CustomExamPaper = ExamSession
 
 export type LearningReportPayload = {
   mode: 'ONLINE_MODEL' | 'OFFLINE_RULES'
-  results: Array<{
-    knowledgePoint: string
-    correct: boolean
-  }>
+}
+
+export type PerformanceBreakdown = {
+  label: string
+  answeredQuestionCount: number
+  gradedQuestionCount: number
+  correctQuestionCount: number
+  accuracy: number
+}
+
+export type ReportTrendPoint = {
+  date: string
+  gradedQuestionCount: number
+  correctQuestionCount: number
+  accuracy: number
+}
+
+export type StrengtheningQuestion = {
+  id: number
+  title: string
+  type: string
+  difficulty: string
+  knowledgePoint: string
 }
 
 export type LearningReport = {
+  id: number
+  createdAt: string
   weakestKnowledgePoint: string
   recommendation: string
   adviceSource: string
   adviceContent: string
+  answeredQuestionCount: number
+  gradedQuestionCount: number
+  correctQuestionCount: number
+  accuracy: number
+  knowledgePointPerformance: PerformanceBreakdown[]
+  questionTypePerformance: PerformanceBreakdown[]
+  recentTrend: ReportTrendPoint[]
+  strengtheningQuestions: StrengtheningQuestion[]
 }
 
 export type MistakeRecord = {
@@ -470,6 +499,10 @@ export function submitExamSession(sessionId: number) {
 
 export function generateLearningReport(payload: LearningReportPayload) {
   return post<LearningReport>('/reports/learning', payload)
+}
+
+export function listLearningReports() {
+  return request<LearningReport[]>('/reports/learning', { method: 'GET' })
 }
 
 export function recordMistake(payload: Omit<MistakeRecord, 'userId'>) {

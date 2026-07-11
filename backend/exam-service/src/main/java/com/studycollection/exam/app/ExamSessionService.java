@@ -9,6 +9,7 @@ import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.Question;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -21,15 +22,17 @@ public class ExamSessionService {
     private final ExamSessionRepository sessionRepository;
     private final QuestionRepository questionRepository;
     private final PracticeStatsRepository statsRepository;
+    private final LearningAttemptRepository attemptRepository;
     private final Clock clock;
 
     @Autowired
     public ExamSessionService(
             ExamSessionRepository sessionRepository,
             QuestionRepository questionRepository,
-            PracticeStatsRepository statsRepository
+            PracticeStatsRepository statsRepository,
+            LearningAttemptRepository attemptRepository
     ) {
-        this(sessionRepository, questionRepository, statsRepository, Clock.systemUTC());
+        this(sessionRepository, questionRepository, statsRepository, attemptRepository, Clock.systemUTC());
     }
 
     public ExamSessionService(
@@ -38,9 +41,20 @@ public class ExamSessionService {
             PracticeStatsRepository statsRepository,
             Clock clock
     ) {
+        this(sessionRepository, questionRepository, statsRepository, new InMemoryLearningAttemptRepository(), clock);
+    }
+
+    public ExamSessionService(
+            ExamSessionRepository sessionRepository,
+            QuestionRepository questionRepository,
+            PracticeStatsRepository statsRepository,
+            LearningAttemptRepository attemptRepository,
+            Clock clock
+    ) {
         this.sessionRepository = sessionRepository;
         this.questionRepository = questionRepository;
         this.statsRepository = statsRepository;
+        this.attemptRepository = attemptRepository;
         this.clock = clock;
     }
 
@@ -69,16 +83,19 @@ public class ExamSessionService {
         return sessionRepository.create(session);
     }
 
+    @Transactional
     public synchronized List<ExamSession> list(Long userId) {
         return sessionRepository.findByUserId(userId).stream()
                 .map(session -> finalizeIfExpired(session, clock.instant()))
                 .toList();
     }
 
+    @Transactional
     public synchronized ExamSession get(Long userId, Long sessionId) {
         return finalizeIfExpired(ownedSession(userId, sessionId), clock.instant());
     }
 
+    @Transactional
     public synchronized ExamSession saveAnswer(
             Long userId,
             Long sessionId,
@@ -96,6 +113,7 @@ public class ExamSessionService {
         return sessionRepository.save(current.saveAnswer(questionId, submittedAnswer));
     }
 
+    @Transactional
     public synchronized ExamSession submit(Long userId, Long sessionId) {
         ExamSession current = ownedSession(userId, sessionId);
         if (current.status() == ExamStatus.SUBMITTED) {
@@ -133,6 +151,25 @@ public class ExamSessionService {
                 .filter(answer -> Boolean.TRUE.equals(answer.correct()))
                 .count();
         statsRepository.add(session.userId(), answered, graded, correct);
+        attemptRepository.saveAll(completed.questions().stream().map(question -> {
+            ExamAnswer answer = completed.answers().get(question.questionId());
+            return new LearningAttempt(
+                    null,
+                    session.userId(),
+                    LearningActivityType.EXAM,
+                    String.valueOf(session.id()),
+                    question.questionId(),
+                    question.title(),
+                    question.type(),
+                    question.difficulty(),
+                    question.knowledgePoint(),
+                    answer.submittedAnswer(),
+                    answer.autoGraded(),
+                    answer.correct(),
+                    answer.score(),
+                    completedAt
+            );
+        }).toList());
         return completed;
     }
 

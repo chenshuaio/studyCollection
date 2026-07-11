@@ -249,14 +249,66 @@ PREPARE practice_graded_backfill_statement FROM @practice_graded_backfill;
 EXECUTE practice_graded_backfill_statement;
 DEALLOCATE PREPARE practice_graded_backfill_statement;
 
+CREATE TABLE IF NOT EXISTS learning_attempts (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  activity_type VARCHAR(32) NOT NULL,
+  reference_id VARCHAR(64) NOT NULL,
+  question_id BIGINT NOT NULL,
+  question_title TEXT NOT NULL,
+  question_type VARCHAR(32) NOT NULL,
+  difficulty VARCHAR(32) NOT NULL,
+  knowledge_point VARCHAR(128) NOT NULL,
+  submitted_answer TEXT NOT NULL,
+  auto_graded BOOLEAN NOT NULL DEFAULT FALSE,
+  correct BOOLEAN NULL,
+  score INT NOT NULL DEFAULT 0,
+  attempted_at DATETIME(6) NOT NULL,
+  UNIQUE KEY uk_learning_attempt (user_id, activity_type, reference_id, question_id),
+  INDEX idx_learning_attempt_user_time (user_id, attempted_at),
+  INDEX idx_learning_attempt_user_knowledge (user_id, knowledge_point)
+);
+
 CREATE TABLE IF NOT EXISTS learning_reports (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
   weakest_knowledge_point VARCHAR(128) NOT NULL,
   recommendation TEXT NOT NULL,
   analysis_source VARCHAR(32) NOT NULL,
+  advice_content TEXT NULL,
+  details_json LONGTEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+SET @learning_report_advice_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'learning_reports'
+    AND column_name = 'advice_content'
+);
+SET @learning_report_advice_ddl = IF(
+  @learning_report_advice_column_exists = 0,
+  'ALTER TABLE learning_reports ADD COLUMN advice_content TEXT NULL AFTER analysis_source',
+  'SELECT 1'
+);
+PREPARE learning_report_advice_statement FROM @learning_report_advice_ddl;
+EXECUTE learning_report_advice_statement;
+DEALLOCATE PREPARE learning_report_advice_statement;
+
+SET @learning_report_details_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'learning_reports'
+    AND column_name = 'details_json'
+);
+SET @learning_report_details_ddl = IF(
+  @learning_report_details_column_exists = 0,
+  'ALTER TABLE learning_reports ADD COLUMN details_json LONGTEXT NULL AFTER advice_content',
+  'SELECT 1'
+);
+PREPARE learning_report_details_statement FROM @learning_report_details_ddl;
+EXECUTE learning_report_details_statement;
+DEALLOCATE PREPARE learning_report_details_statement;
 
 INSERT INTO users (username, password_hash, display_name, role)
 VALUES

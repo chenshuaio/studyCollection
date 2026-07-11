@@ -12,6 +12,7 @@ import {
   getExamSession,
   getPracticeStats,
   listExamSessions,
+  listLearningReports,
   listKnowledgePoints,
   listPendingFeedback,
   listPendingQuestions,
@@ -509,32 +510,38 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/exams/91/submit', expect.objectContaining({ method: 'POST' }))
   })
 
-  it('generates learning reports with selectable analysis mode', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        code: 'OK',
-        data: {
-          weakestKnowledgePoint: 'JVM',
-          recommendation: '建议优先强化 JVM',
-          adviceSource: 'RULES',
-          adviceContent: '规则分析建议：请针对 JVM 继续练习。'
-        }
-      })
-    })
+  it('generates and lists trusted learning reports without client result samples', async () => {
+    const report = {
+      id: 21,
+      createdAt: '2026-07-11T09:00:00Z',
+      weakestKnowledgePoint: 'JVM',
+      recommendation: '建议优先强化 JVM',
+      adviceSource: 'RULES',
+      adviceContent: '规则分析建议：请针对 JVM 继续练习。',
+      answeredQuestionCount: 4,
+      gradedQuestionCount: 3,
+      correctQuestionCount: 1,
+      accuracy: 1 / 3,
+      knowledgePointPerformance: [],
+      questionTypePerformance: [],
+      recentTrend: [],
+      strengtheningQuestions: []
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: report }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: [report] }) })
     vi.stubGlobal('fetch', fetchMock)
 
-    const report = await generateLearningReport({
-      mode: 'OFFLINE_RULES',
-      results: [
-        { knowledgePoint: '集合框架', correct: true },
-        { knowledgePoint: 'JVM', correct: false }
-      ]
-    })
+    const generated = await generateLearningReport({ mode: 'OFFLINE_RULES' })
+    const history = await listLearningReports()
 
-    expect(report.weakestKnowledgePoint).toBe('JVM')
-    expect(report.adviceSource).toBe('RULES')
-    expect(fetchMock).toHaveBeenCalledWith('/api/reports/learning', expect.objectContaining({ method: 'POST' }))
+    expect(generated.weakestKnowledgePoint).toBe('JVM')
+    expect(history).toHaveLength(1)
+    expect(fetchMock).toHaveBeenCalledWith('/api/reports/learning', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ mode: 'OFFLINE_RULES' })
+    }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/reports/learning', expect.objectContaining({ method: 'GET' }))
   })
 
   it('records and lists user mistakes', async () => {

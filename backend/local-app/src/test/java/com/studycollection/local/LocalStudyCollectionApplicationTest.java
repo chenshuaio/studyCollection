@@ -146,6 +146,48 @@ class LocalStudyCollectionApplicationTest {
     }
 
     @Test
+    void learningReportsUseAuthenticatedServerAttemptsAndPersistHistory() throws Exception {
+        String suffix = String.valueOf(System.nanoTime());
+        Session admin = login("admin", "admin123");
+        JsonNode registered = data(post("/auth/register", Map.of(
+                "username", "report-user-" + suffix,
+                "password", "pass123456",
+                "displayName", "报告用户-" + suffix
+        )));
+        String token = registered.path("token").asText();
+        String knowledgePoint = "报告验证-" + suffix;
+        long questionId = data(post("/questions", Map.of(
+                "title", "可信报告验证题\nA. 错误答案\nB. 正确答案",
+                "type", "SINGLE_CHOICE",
+                "difficulty", "INTERMEDIATE",
+                "knowledgePoint", knowledgePoint,
+                "answer", "B",
+                "analysis", "报告应使用服务端评分结果。"
+        ), admin.token())).path("id").asLong();
+
+        assertOk(post("/practice/submit", Map.of(
+                "answers", List.of(Map.of("questionId", questionId, "answer", "A"))
+        ), token));
+        ResponseEntity<String> generated = post("/reports/learning", Map.of(
+                "mode", "OFFLINE_RULES",
+                "results", List.of(Map.of("knowledgePoint", "伪造知识点", "correct", true))
+        ), token);
+
+        assertOk(generated);
+        JsonNode report = data(generated);
+        assertThat(report.path("answeredQuestionCount").asInt()).isEqualTo(1);
+        assertThat(report.path("gradedQuestionCount").asInt()).isEqualTo(1);
+        assertThat(report.path("correctQuestionCount").asInt()).isZero();
+        assertThat(report.path("weakestKnowledgePoint").asText()).isEqualTo(knowledgePoint);
+        assertThat(report.path("strengtheningQuestions").get(0).has("answer")).isFalse();
+
+        ResponseEntity<String> history = get("/reports/learning", token);
+        assertOk(history);
+        assertThat(data(history).size()).isEqualTo(1);
+        assertThat(data(history).get(0).path("id").asLong()).isEqualTo(report.path("id").asLong());
+    }
+
+    @Test
     void invalidLoginReturnsAccountOrPasswordError() {
         ResponseEntity<String> response = post("/auth/login", Map.of("username", "user", "password", "wrong"));
 

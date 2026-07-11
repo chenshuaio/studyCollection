@@ -3,6 +3,7 @@ package com.studycollection.exam.api;
 import com.studycollection.common.security.AuthenticatedUser;
 import com.studycollection.common.security.Role;
 import com.studycollection.exam.app.InMemoryPracticeStatsRepository;
+import com.studycollection.exam.app.InMemoryLearningAttemptRepository;
 import com.studycollection.exam.app.PracticeGenerator;
 import com.studycollection.question.app.InMemoryQuestionRepository;
 import com.studycollection.question.domain.Difficulty;
@@ -12,6 +13,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Random;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -117,6 +121,37 @@ class PracticeControllerTest {
     }
 
     @Test
+    void rejectsBlankPracticeAnswersWithoutRecordingStatsOrAttempts() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        repository.save(new Question(
+                1L,
+                "HashMap 默认负载因子是多少？",
+                QuestionType.FILL_BLANK,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "0.75",
+                "HashMap 默认负载因子是 0.75。"
+        ));
+        InMemoryPracticeStatsRepository stats = new InMemoryPracticeStatsRepository();
+        InMemoryLearningAttemptRepository attempts = new InMemoryLearningAttemptRepository();
+        PracticeController controller = new PracticeController(
+                repository,
+                stats,
+                new PracticeGenerator(repository, new Random(1)),
+                attempts,
+                Clock.fixed(Instant.parse("2026-07-11T08:00:00Z"), ZoneOffset.UTC)
+        );
+
+        assertThatThrownBy(() -> controller.submit(USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(1L, "   ")
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("练习答案不能为空");
+        assertThat(stats.findByUserId(USER.userId()).answeredQuestionCount()).isZero();
+        assertThat(attempts.findByUserId(USER.userId())).isEmpty();
+    }
+
+    @Test
     void savesSubjectiveAnswersWithoutAutomaticScoring() {
         InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
         repository.save(new Question(
@@ -178,6 +213,57 @@ class PracticeControllerTest {
             assertThat(question.id()).isEqualTo(201L);
             assertThat(question.title()).contains("HashMap");
             assertThat(question.type()).isEqualTo(QuestionType.SINGLE_CHOICE);
+        });
+    }
+
+    @Test
+    void recordsTrustedObjectiveAndSubjectiveAttemptsFromQuestionBank() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        repository.save(new Question(
+                301L,
+                "HashMap 默认负载因子？",
+                QuestionType.FILL_BLANK,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "0.75",
+                "默认负载因子为 0.75。"
+        ));
+        repository.save(new Question(
+                302L,
+                "说明 JVM 堆的作用。",
+                QuestionType.SHORT_ANSWER,
+                Difficulty.ADVANCED,
+                "JVM",
+                "保存对象实例和数组。",
+                "堆是线程共享区域。"
+        ));
+        InMemoryLearningAttemptRepository attempts = new InMemoryLearningAttemptRepository();
+        PracticeController controller = new PracticeController(
+                repository,
+                new InMemoryPracticeStatsRepository(),
+                new PracticeGenerator(repository, new Random(5)),
+                attempts,
+                Clock.fixed(Instant.parse("2026-07-11T08:00:00Z"), ZoneOffset.UTC)
+        );
+
+        controller.submit(USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(301L, "0.75"),
+                new PracticeAnswer(302L, "我的理解")
+        )));
+
+        assertThat(attempts.findByUserId(USER.userId())).hasSize(2);
+        assertThat(attempts.findByUserId(USER.userId()).get(0)).satisfies(attempt -> {
+            assertThat(attempt.questionTitle()).isEqualTo("HashMap 默认负载因子？");
+            assertThat(attempt.questionType()).isEqualTo(QuestionType.FILL_BLANK);
+            assertThat(attempt.knowledgePoint()).isEqualTo("集合框架");
+            assertThat(attempt.autoGraded()).isTrue();
+            assertThat(attempt.correct()).isTrue();
+            assertThat(attempt.attemptedAt()).isEqualTo(Instant.parse("2026-07-11T08:00:00Z"));
+        });
+        assertThat(attempts.findByUserId(USER.userId()).get(1)).satisfies(attempt -> {
+            assertThat(attempt.questionType()).isEqualTo(QuestionType.SHORT_ANSWER);
+            assertThat(attempt.autoGraded()).isFalse();
+            assertThat(attempt.correct()).isNull();
         });
     }
 

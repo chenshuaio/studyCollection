@@ -24,6 +24,7 @@ class ExamSessionServiceTest {
     private MutableClock clock;
     private InMemoryExamSessionRepository sessionRepository;
     private InMemoryPracticeStatsRepository statsRepository;
+    private InMemoryLearningAttemptRepository attemptRepository;
     private ExamSessionService service;
 
     @BeforeEach
@@ -31,10 +32,12 @@ class ExamSessionServiceTest {
         clock = new MutableClock(Instant.parse("2026-07-11T05:00:00Z"));
         sessionRepository = new InMemoryExamSessionRepository();
         statsRepository = new InMemoryPracticeStatsRepository();
+        attemptRepository = new InMemoryLearningAttemptRepository();
         service = new ExamSessionService(
                 sessionRepository,
                 sampleQuestions(),
                 statsRepository,
+                attemptRepository,
                 clock
         );
     }
@@ -93,6 +96,13 @@ class ExamSessionServiceTest {
         assertThat(stats.answeredQuestionCount()).isEqualTo(2);
         assertThat(stats.gradedQuestionCount()).isEqualTo(1);
         assertThat(stats.correctQuestionCount()).isEqualTo(1);
+        assertThat(attemptRepository.findByUserId(7L)).hasSize(2);
+        assertThat(attemptRepository.findByUserId(7L)).allSatisfy(attempt -> {
+            assertThat(attempt.referenceId()).isEqualTo(String.valueOf(created.id()));
+            assertThat(attempt.activityType()).isEqualTo(LearningActivityType.EXAM);
+            assertThat(attempt.attemptedAt()).isEqualTo(clock.instant());
+        });
+        assertThat(attemptRepository.findByUserId(7L).get(1).autoGraded()).isFalse();
     }
 
     @Test

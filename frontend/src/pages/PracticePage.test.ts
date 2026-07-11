@@ -35,6 +35,7 @@ function mockGeneratedQuestions(questions: GeneratedPracticeQuestion[]) {
 describe('PracticePage', () => {
   beforeEach(() => {
     window.sessionStorage.clear()
+    window.history.replaceState({}, '', '/practice')
     vi.mocked(generatePractice).mockReset()
     vi.mocked(listKnowledgePoints).mockReset()
     vi.mocked(searchQuestions).mockReset()
@@ -313,6 +314,19 @@ describe('PracticePage', () => {
       type: 'PROGRAMMING',
       count: 3
     })
+  })
+
+  it('automatically generates a targeted practice from the report knowledge point query', async () => {
+    window.history.replaceState({}, '', '/practice?knowledgePoint=JVM')
+
+    const wrapper = mount(PracticePage, {
+      global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
+    })
+    await flushPromises()
+
+    const knowledgePointSelect = wrapper.get('select[aria-label="知识点筛选"]').element as HTMLSelectElement
+    expect(knowledgePointSelect.value).toBe('JVM')
+    expect(generatePractice).toHaveBeenCalledWith({ knowledgePoint: 'JVM', count: 10 })
   })
 
   it('answers generated questions in sequence and shows a completion summary', async () => {
