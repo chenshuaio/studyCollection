@@ -10,6 +10,7 @@ import {
   generateKnowledgeQuestions,
   generateLearningReport,
   getExamSession,
+  getRecentPractices,
   getPracticeStats,
   listExamSessions,
   listLearningReports,
@@ -271,6 +272,31 @@ describe('api client', () => {
       knowledgePoint: '集合框架',
       difficulty: 'INTERMEDIATE'
     })
+  })
+
+  it('loads recent practice batches for the current authenticated user', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 'OK',
+        data: [{
+          referenceId: 'practice-1',
+          attemptedAt: '2026-07-12T01:00:00Z',
+          answeredQuestionCount: 3,
+          gradedQuestionCount: 2,
+          correctQuestionCount: 1,
+          accuracy: 0.5,
+          knowledgePoints: ['JVM', '集合框架']
+        }]
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const recent = await getRecentPractices(3)
+
+    expect(recent).toHaveLength(1)
+    expect(recent[0].accuracy).toBe(0.5)
+    expect(fetchMock).toHaveBeenCalledWith('/api/practice/recent?limit=3', expect.objectContaining({ method: 'GET' }))
   })
 
   it('searches all questions and supports fuzzy title keyword', async () => {

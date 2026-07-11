@@ -15,14 +15,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -142,6 +147,27 @@ public class PracticeController {
         return ApiResponse.success(statsRepository.findByUserId(userId));
     }
 
+    @GetMapping("/recent")
+    public ApiResponse<List<RecentPracticeSummary>> recent(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
+            @RequestParam(name = "limit", defaultValue = "5") int limit
+    ) {
+        if (limit < 1 || limit > 20) {
+            throw new IllegalArgumentException("最近练习数量必须在 1 到 20 之间");
+        }
+        Map<String, List<LearningAttempt>> grouped = new LinkedHashMap<>();
+        attemptRepository.findByUserId(currentUser.userId()).stream()
+                .filter(attempt -> attempt.activityType() == LearningActivityType.PRACTICE)
+                .forEach(attempt -> grouped.computeIfAbsent(attempt.referenceId(), ignored -> new ArrayList<>())
+                        .add(attempt));
+        List<List<LearningAttempt>> batches = new ArrayList<>(grouped.values());
+        Collections.reverse(batches);
+        return ApiResponse.success(batches.stream()
+                .limit(limit)
+                .map(this::summarizePractice)
+                .toList());
+    }
+
     private PracticeResultItem scoreAnswer(PracticeAnswer answer) {
         Question question = questionRepository.findById(answer.questionId());
         String correctAnswer = question.answer();
@@ -228,6 +254,33 @@ public class PracticeController {
                     attemptedAt
             );
         }).toList());
+    }
+
+    private RecentPracticeSummary summarizePractice(List<LearningAttempt> attempts) {
+        int answered = (int) attempts.stream().filter(attempt -> !attempt.submittedAnswer().isBlank()).count();
+        int graded = (int) attempts.stream().filter(LearningAttempt::autoGraded).count();
+        int correct = (int) attempts.stream()
+                .filter(LearningAttempt::autoGraded)
+                .filter(attempt -> Boolean.TRUE.equals(attempt.correct()))
+                .count();
+        Instant attemptedAt = attempts.stream()
+                .map(LearningAttempt::attemptedAt)
+                .max(Instant::compareTo)
+                .orElseThrow();
+        List<String> knowledgePoints = attempts.stream()
+                .map(LearningAttempt::knowledgePoint)
+                .distinct()
+                .sorted()
+                .toList();
+        return new RecentPracticeSummary(
+                attempts.get(0).referenceId(),
+                attemptedAt,
+                answered,
+                graded,
+                correct,
+                graded == 0 ? 0 : (double) correct / graded,
+                knowledgePoints
+        );
     }
 
 }

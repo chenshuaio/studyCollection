@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PracticeControllerTest {
     private static final AuthenticatedUser USER = new AuthenticatedUser(7L, "alice", Role.USER);
+    private static final AuthenticatedUser OTHER_USER = new AuthenticatedUser(8L, "bob", Role.USER);
 
     @Test
     void scoresSubmittedPracticeAndReturnsExplanations() {
@@ -265,6 +266,78 @@ class PracticeControllerTest {
             assertThat(attempt.autoGraded()).isFalse();
             assertThat(attempt.correct()).isNull();
         });
+    }
+
+    @Test
+    void listsRecentPracticeBatchesForCurrentUserWithoutCountingSubjectiveAccuracy() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        repository.save(new Question(
+                401L,
+                "JVM 堆中主要保存什么？",
+                QuestionType.FILL_BLANK,
+                Difficulty.INTERMEDIATE,
+                "JVM",
+                "对象实例",
+                "JVM 堆保存对象实例。"
+        ));
+        repository.save(new Question(
+                402L,
+                "说明垃圾回收的目标。",
+                QuestionType.SHORT_ANSWER,
+                Difficulty.ADVANCED,
+                "JVM",
+                "回收不可达对象。",
+                "主观题解析。"
+        ));
+        repository.save(new Question(
+                403L,
+                "ArrayList 属于哪个包？",
+                QuestionType.FILL_BLANK,
+                Difficulty.BEGINNER,
+                "集合框架",
+                "java.util",
+                "ArrayList 位于 java.util 包。"
+        ));
+        InMemoryLearningAttemptRepository attempts = new InMemoryLearningAttemptRepository();
+        PracticeController controller = new PracticeController(
+                repository,
+                new InMemoryPracticeStatsRepository(),
+                new PracticeGenerator(repository, new Random(9)),
+                attempts,
+                Clock.fixed(Instant.parse("2026-07-12T01:00:00Z"), ZoneOffset.UTC)
+        );
+
+        controller.submit(USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(401L, "对象实例"),
+                new PracticeAnswer(402L, "我的理解")
+        )));
+        controller.submit(USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(403L, "错误包名")
+        )));
+        controller.submit(OTHER_USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(401L, "错误答案")
+        )));
+
+        List<RecentPracticeSummary> recent = controller.recent(USER, 5).data();
+
+        assertThat(recent).hasSize(2);
+        assertThat(recent.get(0)).satisfies(summary -> {
+            assertThat(summary.answeredQuestionCount()).isEqualTo(1);
+            assertThat(summary.gradedQuestionCount()).isEqualTo(1);
+            assertThat(summary.correctQuestionCount()).isZero();
+            assertThat(summary.accuracy()).isZero();
+            assertThat(summary.knowledgePoints()).containsExactly("集合框架");
+        });
+        assertThat(recent.get(1)).satisfies(summary -> {
+            assertThat(summary.answeredQuestionCount()).isEqualTo(2);
+            assertThat(summary.gradedQuestionCount()).isEqualTo(1);
+            assertThat(summary.correctQuestionCount()).isEqualTo(1);
+            assertThat(summary.accuracy()).isEqualTo(1.0);
+            assertThat(summary.knowledgePoints()).containsExactly("JVM");
+        });
+        assertThatThrownBy(() -> controller.recent(USER, 21))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("最近练习数量必须在 1 到 20 之间");
     }
 
     private PracticeController controllerWithSampleQuestions() {

@@ -5,7 +5,7 @@
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
         <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
-        <RouterLink v-if="isAdminUser" to="/knowledge-points">&#30693;&#35782;&#28857;&#31649;&#29702;</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/knowledge-points">知识点管理</RouterLink>
         <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
         <RouterLink v-if="isAdminUser" to="/users">用户管理</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
@@ -29,11 +29,15 @@
         </div>
       </header>
 
+      <p v-if="statusMessage" class="form-message dashboard-message" aria-live="polite">
+        {{ statusMessage }}
+      </p>
+
       <section id="overview" class="metric-grid" aria-label="学习概览">
         <article>
           <span>已做题目</span>
           <strong>{{ dashboardMetrics.answeredQuestionCount }} 题</strong>
-          <small>正确率 {{ accuracyText }}</small>
+          <small>客观题正确率 {{ accuracyText }}</small>
         </article>
         <article>
           <span>待处理错题</span>
@@ -47,39 +51,114 @@
         </article>
       </section>
 
-      <section class="workspace-grid">
-        <article id="import" class="workspace-panel">
-          <h2>题库导入</h2>
-          <p>支持 JSON、CSV、XLSX、TXT、MD、PDF、DOCX 文件预览后提交管理员审核。</p>
-          <RouterLink class="button-link" to="/import">导入题目</RouterLink>
-        </article>
-        <article id="exam" class="workspace-panel">
-          <h2>自定义组卷</h2>
-          <p>按知识点、难度、题型筛选题目，也可以手动组合生成考试卷。</p>
-          <RouterLink class="button-link" to="/exams">创建考试卷</RouterLink>
-        </article>
-        <article id="feedback" class="workspace-panel">
-          <h2>错题反馈</h2>
-          <p>发现答案或解析错误时提交反馈，管理员审核后修订题库。</p>
-          <div class="action-row">
-            <RouterLink class="button-link" to="/mistakes">查看错题</RouterLink>
-            <RouterLink v-if="isAdminUser" class="button-link" to="/feedback">反馈审核</RouterLink>
+      <section class="dashboard-activity-grid">
+        <article class="workspace-panel">
+          <div class="panel-header">
+            <h2>最近练习</h2>
+            <RouterLink class="table-action" to="/practice">开始练习</RouterLink>
           </div>
+          <ol v-if="recentPractices.length" class="activity-list">
+            <li v-for="practice in recentPractices" :key="practice.referenceId">
+              <div class="activity-row">
+                <div>
+                  <strong>{{ knowledgeLabel(practice.knowledgePoints) }} · {{ practice.answeredQuestionCount }} 题</strong>
+                  <time :datetime="practice.attemptedAt">{{ formatDateTime(practice.attemptedAt) }}</time>
+                </div>
+                <span class="activity-score">
+                  {{ practice.gradedQuestionCount ? percent(practice.accuracy) : '主观核对' }}
+                </span>
+              </div>
+            </li>
+          </ol>
+          <p v-else class="empty-state-copy">暂无练习记录。</p>
         </article>
-        <article id="report" class="workspace-panel">
-          <h2>AI 分析</h2>
-          <p>在线模型开启时生成学习建议；关闭时使用规则分析薄弱点。</p>
-          <RouterLink class="button-link" to="/reports">生成报告</RouterLink>
+
+        <article class="workspace-panel">
+          <div class="panel-header">
+            <h2>最近考试</h2>
+            <RouterLink class="table-action" to="/exams">全部考试</RouterLink>
+          </div>
+          <ol v-if="recentExams.length" class="activity-list">
+            <li v-for="exam in recentExams" :key="exam.id">
+              <RouterLink class="activity-row" :to="`/exams/${exam.id}/take`">
+                <div>
+                  <strong>{{ exam.name }}</strong>
+                  <time :datetime="exam.startedAt">{{ formatDateTime(exam.startedAt) }}</time>
+                </div>
+                <span class="activity-score">{{ examScore(exam) }}</span>
+              </RouterLink>
+            </li>
+          </ol>
+          <p v-else class="empty-state-copy">暂无考试记录。</p>
         </article>
+      </section>
+
+      <section class="dashboard-insight-grid">
+        <article class="workspace-panel">
+          <div class="panel-header">
+            <h2>学习趋势</h2>
+            <RouterLink class="table-action" to="/reports">完整报告</RouterLink>
+          </div>
+          <ol v-if="latestTrend.length" class="dashboard-trend-list">
+            <li v-for="point in latestTrend" :key="point.date">
+              <time :datetime="point.date">{{ point.date }}</time>
+              <div class="progress-track" :aria-label="`${point.date}正确率`">
+                <span :style="{ width: percent(point.accuracy) }"></span>
+              </div>
+              <strong>{{ percent(point.accuracy) }}</strong>
+              <small>{{ point.correctQuestionCount }}/{{ point.gradedQuestionCount }} 题</small>
+            </li>
+          </ol>
+          <p v-else class="empty-state-copy">生成学习报告后展示近期趋势。</p>
+        </article>
+
+        <article class="workspace-panel dashboard-focus-panel">
+          <p class="eyebrow">当前强化方向</p>
+          <template v-if="latestReport">
+            <h2>优先强化 {{ latestReport.weakestKnowledgePoint }}</h2>
+            <p>{{ latestReport.recommendation }}</p>
+            <RouterLink
+              class="button-link"
+              data-action="dashboard-strengthen"
+              :to="{ path: '/practice', query: { knowledgePoint: latestReport.weakestKnowledgePoint } }"
+            >
+              开始定向练习
+            </RouterLink>
+          </template>
+          <template v-else>
+            <h2>尚无薄弱点结论</h2>
+            <RouterLink class="button-link" to="/reports">生成学习报告</RouterLink>
+          </template>
+        </article>
+      </section>
+
+      <section class="dashboard-quick-bar" aria-label="快捷入口">
+        <h2>快捷入口</h2>
+        <nav>
+          <RouterLink to="/import">题库导入</RouterLink>
+          <RouterLink to="/exams">自定义组卷</RouterLink>
+          <RouterLink to="/mistakes">错题整理</RouterLink>
+          <RouterLink to="/reports">学习报告</RouterLink>
+        </nav>
       </section>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { getPracticeStats, listMistakes, listUserFeedback } from '../api'
+import {
+  getPracticeStats,
+  getRecentPractices,
+  listExamSessions,
+  listLearningReports,
+  listMistakes,
+  listUserFeedback,
+  type ExamSummary,
+  type LearningReport,
+  type RecentPracticeSummary
+} from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
@@ -91,41 +170,98 @@ const dashboardMetrics = reactive({
   correctQuestionCount: 0,
   mistakeCount: 0,
   feedbackCount: 0,
-  weakestKnowledgePoint: ''
+  fallbackWeakestKnowledgePoint: ''
 })
+const recentPractices = ref<RecentPracticeSummary[]>([])
+const recentExams = ref<ExamSummary[]>([])
+const latestReport = ref<LearningReport | null>(null)
+const statusMessage = ref('')
 
+const latestTrend = computed(() => latestReport.value?.recentTrend ?? [])
 const accuracyText = computed(() => {
   if (dashboardMetrics.gradedQuestionCount === 0) {
     return '0%'
   }
-  return `${Math.round((dashboardMetrics.correctQuestionCount / dashboardMetrics.gradedQuestionCount) * 100)}%`
+  return percent(dashboardMetrics.correctQuestionCount / dashboardMetrics.gradedQuestionCount)
 })
+const weakestKnowledgePoint = computed(() => (
+  latestReport.value?.weakestKnowledgePoint ?? dashboardMetrics.fallbackWeakestKnowledgePoint
+))
 const weakestKnowledgeText = computed(() => (
-  dashboardMetrics.weakestKnowledgePoint ? `优先复习 ${dashboardMetrics.weakestKnowledgePoint}` : '暂无待复盘知识点'
+  weakestKnowledgePoint.value ? `优先复习 ${weakestKnowledgePoint.value}` : '暂无待复盘知识点'
 ))
 const feedbackText = computed(() => (
   dashboardMetrics.feedbackCount > 0 ? '等待管理员审核或处理' : '暂无题目反馈'
 ))
 
-onMounted(loadDashboardMetrics)
+onMounted(loadDashboard)
 
-async function loadDashboardMetrics() {
-  const [practiceStats, mistakes, feedback] = await Promise.all([
+async function loadDashboard() {
+  const results = await Promise.allSettled([
     getPracticeStats(),
     listMistakes(),
-    listUserFeedback()
-  ])
-  dashboardMetrics.answeredQuestionCount = practiceStats.answeredQuestionCount
-  dashboardMetrics.gradedQuestionCount = practiceStats.gradedQuestionCount
-  dashboardMetrics.correctQuestionCount = practiceStats.correctQuestionCount
-  dashboardMetrics.mistakeCount = mistakes.length
-  dashboardMetrics.feedbackCount = feedback.length
-  dashboardMetrics.weakestKnowledgePoint = mostFrequentKnowledgePoint(mistakes.map((mistake) => mistake.knowledgePoint))
+    listUserFeedback(),
+    getRecentPractices(3),
+    listExamSessions(),
+    listLearningReports()
+  ] as const)
+
+  const [statsResult, mistakesResult, feedbackResult, practicesResult, examsResult, reportsResult] = results
+  if (statsResult.status === 'fulfilled') {
+    dashboardMetrics.answeredQuestionCount = statsResult.value.answeredQuestionCount
+    dashboardMetrics.gradedQuestionCount = statsResult.value.gradedQuestionCount
+    dashboardMetrics.correctQuestionCount = statsResult.value.correctQuestionCount
+  }
+  if (mistakesResult.status === 'fulfilled') {
+    dashboardMetrics.mistakeCount = mistakesResult.value.length
+    dashboardMetrics.fallbackWeakestKnowledgePoint = mostFrequentKnowledgePoint(
+      mistakesResult.value.map((mistake) => mistake.knowledgePoint)
+    )
+  }
+  if (feedbackResult.status === 'fulfilled') {
+    dashboardMetrics.feedbackCount = feedbackResult.value.length
+  }
+  if (practicesResult.status === 'fulfilled') {
+    recentPractices.value = practicesResult.value
+  }
+  if (examsResult.status === 'fulfilled') {
+    recentExams.value = examsResult.value.slice(0, 3)
+  }
+  if (reportsResult.status === 'fulfilled') {
+    latestReport.value = reportsResult.value[0] ?? null
+  }
+
+  const failureCount = results.filter((result) => result.status === 'rejected').length
+  statusMessage.value = failureCount ? `有 ${failureCount} 项学习数据暂时加载失败，请稍后刷新。` : ''
 }
 
 function mostFrequentKnowledgePoint(points: string[]) {
   const counts = new Map<string, number>()
   points.forEach((point) => counts.set(point, (counts.get(point) ?? 0) + 1))
   return [...counts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? ''
+}
+
+function knowledgeLabel(points: string[]) {
+  return points.length ? points.join('、') : '综合练习'
+}
+
+function percent(value: number) {
+  return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`
+}
+
+function examScore(exam: ExamSummary) {
+  if (exam.score !== null && exam.totalScore !== null) {
+    return `${exam.score} / ${exam.totalScore}`
+  }
+  return exam.status === 'IN_PROGRESS' ? '进行中' : '--'
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value))
 }
 </script>

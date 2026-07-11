@@ -116,6 +116,16 @@ export type PracticeStats = {
   correctQuestionCount: number
 }
 
+export type RecentPracticeSummary = {
+  referenceId: string
+  attemptedAt: string
+  answeredQuestionCount: number
+  gradedQuestionCount: number
+  correctQuestionCount: number
+  accuracy: number
+  knowledgePoints: string[]
+}
+
 export type PracticeGeneratePayload = {
   knowledgePoint?: string
   difficulty?: string
@@ -451,6 +461,10 @@ export function generatePractice(payload: PracticeGeneratePayload) {
 
 export function getPracticeStats() {
   return request<PracticeStats>('/practice/stats', { method: 'GET' })
+}
+
+export function getRecentPractices(limit = 3) {
+  return request<RecentPracticeSummary[]>(`/practice/recent?limit=${limit}`, { method: 'GET' })
 }
 
 export function submitQuestionFeedback(payload: QuestionFeedbackPayload) {
