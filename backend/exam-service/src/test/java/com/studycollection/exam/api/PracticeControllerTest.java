@@ -113,6 +113,36 @@ class PracticeControllerTest {
                 .hasMessage("至少提交一道题目答案");
     }
 
+    @Test
+    void savesSubjectiveAnswersWithoutAutomaticScoring() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        repository.save(new Question(
+                101L,
+                "说明 ArrayList 与 LinkedList 的差异。",
+                QuestionType.SHORT_ANSWER,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "ArrayList 基于数组，LinkedList 基于链表。",
+                "应从随机访问和增删复杂度分析。"
+        ));
+        PracticeController controller = new PracticeController(repository, new InMemoryPracticeStatsRepository());
+
+        PracticeResult result = controller.submit(USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(101L, "我的理解")
+        ))).data();
+
+        assertThat(result.score()).isZero();
+        assertThat(result.totalScore()).isZero();
+        assertThat(result.items()).singleElement().satisfies(item -> {
+            assertThat(item.autoGraded()).isFalse();
+            assertThat(item.correct()).isNull();
+            assertThat(item.correctAnswer()).contains("ArrayList 基于数组");
+            assertThat(item.submittedAnswer()).isEqualTo("我的理解");
+        });
+        assertThat(controller.stats(USER).data().answeredQuestionCount()).isEqualTo(1);
+        assertThat(controller.stats(USER).data().correctQuestionCount()).isZero();
+    }
+
     private PracticeController controllerWithSampleQuestions() {
         InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
         repository.save(new Question(

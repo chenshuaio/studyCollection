@@ -45,7 +45,7 @@ export const router = createRouter({
     { path: '/import', name: 'import', component: ImportPage, meta: { requiresAuth: true } },
     { path: '/practice', name: 'practice', component: PracticePage, meta: { requiresAuth: true } },
     { path: '/exams', name: 'exams', component: ExamPage, meta: { requiresAuth: true } },
-    { path: '/exams/take', name: 'exam-taking', component: ExamTakingPage, meta: { requiresAuth: true } },
+    { path: '/exams/:examId/take', name: 'exam-taking', component: ExamTakingPage, meta: { requiresAuth: true } },
     { path: '/mistakes', name: 'mistakes', component: MistakePage, meta: { requiresAuth: true } },
     { path: '/reports', name: 'reports', component: ReportPage, meta: { requiresAuth: true } },
     { path: '/feedback', name: 'feedback', component: FeedbackReviewPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },

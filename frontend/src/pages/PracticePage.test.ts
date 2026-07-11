@@ -141,6 +141,15 @@ describe('PracticePage', () => {
   })
 
   it('records a mistake when the submitted answer is wrong', async () => {
+    vi.mocked(searchQuestions).mockResolvedValue([{
+      id: 88,
+      title: 'JVM 栈内存主要保存什么？',
+      type: 'FILL_BLANK',
+      difficulty: 'BEGINNER',
+      knowledgePoint: 'JVM',
+      answer: '',
+      analysis: ''
+    }])
     window.localStorage.setItem('studyCollectionUser', JSON.stringify({
       token: 'user-token', userId: 7, username: 'alice', role: 'USER', displayName: 'Alice'
     }))
@@ -152,6 +161,7 @@ describe('PracticePage', () => {
           questionId: 88,
           submittedAnswer: '堆对象',
           correctAnswer: '栈帧',
+          autoGraded: true,
           correct: false,
           score: 0,
           analysis: '虚拟机栈保存方法调用的栈帧。'
@@ -190,6 +200,42 @@ describe('PracticePage', () => {
       knowledgePoint: 'JVM',
       status: 'PENDING'
     })
+  })
+
+  it('shows a subjective reference answer without recording a mistake', async () => {
+    vi.mocked(submitUserPractice).mockResolvedValue({
+      score: 0,
+      totalScore: 0,
+      items: [
+        {
+          questionId: 88,
+          submittedAnswer: '我的理解',
+          correctAnswer: '栈帧',
+          autoGraded: false,
+          correct: null,
+          score: 0,
+          analysis: '虚拟机栈保存方法调用的栈帧。'
+        }
+      ]
+    })
+
+    const wrapper = mount(PracticePage, {
+      global: {
+        stubs: {
+          RouterLink: routerLinkStub,
+          LogoutButton: true
+        }
+      }
+    })
+    await flushPromises()
+
+    await wrapper.find('input[aria-label="练习答案"]').setValue('我的理解')
+    await wrapper.findAll('button')[1].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('本题不自动评分，请结合参考答案自行核对。')
+    expect(wrapper.text()).toContain('参考答案')
+    expect(recordMistake).not.toHaveBeenCalled()
   })
 
   it('prioritizes the selected mistake when retrying from mistake book', async () => {

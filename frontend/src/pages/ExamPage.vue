@@ -47,9 +47,12 @@
                 <td>
                   <input v-model="selectedQuestionIds" type="checkbox" :value="question.id" />
                 </td>
-                <td>{{ question.title }}</td>
+                <td>{{ questionStem(question.title) }}</td>
                 <td>{{ question.knowledgePoint }}</td>
-                <td>{{ question.difficulty }}</td>
+                <td>{{ difficultyLabel(question.difficulty) }}</td>
+              </tr>
+              <tr v-if="availableQuestions.length === 0">
+                <td colspan="4">题库中暂无可用题目。</td>
               </tr>
             </tbody>
           </table>
@@ -60,23 +63,62 @@
           <form class="question-form" @submit.prevent="createPaper">
             <label>
               试卷名称
-              <input v-model="draft.name" />
+              <input v-model="draft.name" required maxlength="128" />
             </label>
             <label>
               时长（分钟）
-              <input v-model.number="draft.durationMinutes" type="number" min="1" />
+              <input v-model.number="draft.durationMinutes" type="number" min="1" max="480" required />
             </label>
             <p v-if="statusMessage" class="form-message">{{ statusMessage }}</p>
-            <button type="submit">生成考试卷</button>
+            <button type="submit" :disabled="creating">
+              {{ creating ? '正在生成...' : '生成考试卷' }}
+            </button>
           </form>
 
           <section v-if="createdPaper" class="paper-summary" aria-label="已生成考试卷">
             <h3>{{ createdPaper.name }}</h3>
             <p>{{ createdPaper.durationMinutes }} 分钟</p>
-            <p>共 {{ createdPaper.questionIds.length }} 题</p>
-            <RouterLink class="button-link" to="/exams/take">进入答题</RouterLink>
+            <p>共 {{ createdPaper.questions.length }} 题</p>
+            <RouterLink class="button-link" :to="`/exams/${createdPaper.id}/take`">进入答题</RouterLink>
           </section>
         </aside>
+      </section>
+
+      <section class="table-panel exam-history-panel" aria-label="考试记录">
+        <div class="panel-header">
+          <h2>考试记录</h2>
+          <span class="panel-count">{{ histories.length }} 次</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>试卷</th>
+              <th>进度</th>
+              <th>状态</th>
+              <th>成绩</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="history in histories" :key="history.id">
+              <td>
+                <strong>{{ history.name }}</strong>
+                <small>{{ formatDateTime(history.startedAt) }}</small>
+              </td>
+              <td>{{ history.answeredCount }} / {{ history.questionCount }} 题</td>
+              <td>{{ history.status === 'SUBMITTED' ? '已提交' : '进行中' }}</td>
+              <td>{{ history.status === 'SUBMITTED' ? `${history.score ?? 0} / ${history.totalScore ?? 0}` : '--' }}</td>
+              <td>
+                <RouterLink class="table-action" :to="`/exams/${history.id}/take`">
+                  {{ history.status === 'SUBMITTED' ? '查看结果' : '继续答题' }}
+                </RouterLink>
+              </td>
+            </tr>
+            <tr v-if="histories.length === 0">
+              <td colspan="5">还没有考试记录，先从题库组合一套试卷。</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
     </section>
   </main>
@@ -85,107 +127,115 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { composeCustomExam, searchQuestions, type CustomExamPaper, type Question } from '../api'
+import {
+  composeCustomExam,
+  listExamSessions,
+  searchQuestions,
+  type CustomExamPaper,
+  type ExamSummary,
+  type Question
+} from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
 
 const isAdminUser = isAdmin()
-
 const availableQuestions = ref<Question[]>([])
-
+const histories = ref<ExamSummary[]>([])
+const selectedQuestionIds = ref<number[]>([])
+const statusMessage = ref('')
+const createdPaper = ref<CustomExamPaper | null>(null)
+const creating = ref(false)
 const draft = reactive({
   name: '集合专项测试',
   durationMinutes: 45
 })
-const selectedQuestionIds = ref<number[]>([])
-const statusMessage = ref('')
-const createdPaper = ref<CustomExamPaper | null>(null)
 
-onMounted(loadQuestions)
+onMounted(async () => {
+  await Promise.all([loadQuestions(), loadHistory()])
+})
 
 async function loadQuestions() {
-  statusMessage.value = ''
   try {
     availableQuestions.value = await searchQuestions()
     selectedQuestionIds.value = availableQuestions.value.map((question) => question.id)
   } catch (error) {
-    statusMessage.value = error instanceof Error ? error.message : '加载题库失败，请检查本地后端是否启动。'
+    statusMessage.value = errorMessage(error, '加载题库失败，请检查本地后端是否启动。')
+  }
+}
+
+async function loadHistory() {
+  try {
+    histories.value = await listExamSessions()
+  } catch (error) {
+    statusMessage.value = errorMessage(error, '加载考试记录失败，请检查本地后端是否启动。')
   }
 }
 
 async function createPaper() {
   statusMessage.value = ''
+  createdPaper.value = null
+  if (!draft.name.trim()) {
+    statusMessage.value = '请输入试卷名称。'
+    return
+  }
   if (selectedQuestionIds.value.length === 0) {
-    createdPaper.value = null
     statusMessage.value = '请至少选择一道题。'
     return
   }
 
+  creating.value = true
   try {
-    createdPaper.value = await composeCustomExam({
-      name: draft.name,
+    const created = await composeCustomExam({
+      name: draft.name.trim(),
       durationMinutes: draft.durationMinutes,
       questionIds: selectedQuestionIds.value
     })
-    const selectedQuestions = availableQuestions.value
-      .filter((question) => selectedQuestionIds.value.includes(question.id))
-      .map(toExamQuestion)
-    window.sessionStorage.setItem(
-      'studyCollectionExamPaper',
-      JSON.stringify({
-        ...createdPaper.value,
-        questions: selectedQuestions
-      })
-    )
-    statusMessage.value = '考试卷已生成，可以进入答题流程。'
+    createdPaper.value = created
+    histories.value = [toSummary(created), ...histories.value.filter((item) => item.id !== created.id)]
+    statusMessage.value = '考试卷已生成，答题进度会自动保存。'
   } catch (error) {
-    statusMessage.value = error instanceof Error ? error.message : '生成考试卷失败，请检查本地后端是否启动。'
+    statusMessage.value = errorMessage(error, '生成考试卷失败，请检查本地后端是否启动。')
+  } finally {
+    creating.value = false
   }
 }
 
-function toExamQuestion(question: Question) {
-  const parsed = parseChoiceOptions(question.title)
-  if (parsed.options.length >= 2) {
-    return { ...question, title: parsed.title, options: parsed.options }
-  }
-  const fallbackOptions = fallbackOptionsFor(question)
-  return fallbackOptions.length > 0 ? { ...question, options: fallbackOptions } : question
-}
-
-function parseChoiceOptions(title: string) {
-  const lines = title.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-  const options: Array<{ value: string; label: string }> = []
-  const stemLines: string[] = []
-
-  lines.forEach((line) => {
-    const match = line.match(/^([A-D])[\.\u3001\uff0e]\s*(.+)$/i)
-    if (match) {
-      options.push({ value: match[1].toUpperCase(), label: match[2].trim() })
-    } else {
-      stemLines.push(line)
-    }
-  })
-
+function toSummary(paper: CustomExamPaper): ExamSummary {
   return {
-    title: stemLines.join('\n'),
-    options
+    id: paper.id,
+    name: paper.name,
+    durationMinutes: paper.durationMinutes,
+    status: paper.status,
+    questionCount: paper.questions.length,
+    answeredCount: paper.questions.filter((question) => question.submittedAnswer.trim()).length,
+    startedAt: paper.startedAt,
+    expiresAt: paper.expiresAt,
+    submittedAt: paper.submittedAt,
+    score: paper.score,
+    totalScore: paper.totalScore
   }
 }
 
-function fallbackOptionsFor(question: Question) {
-  if (question.type === 'TRUE_FALSE') {
-    return [
-      { value: 'true', label: '正确' },
-      { value: 'false', label: '错误' }
-    ]
-  }
-  if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
-    return ['A', 'B', 'C', 'D'].map((value) => ({
-      value,
-      label: `选项 ${value}（原题未提供选项内容）`
-    }))
-  }
-  return []
+function questionStem(title: string) {
+  return title.split(/\r?\n/).find((line) => line.trim())?.trim() ?? title
+}
+
+function difficultyLabel(difficulty: string) {
+  return ({ BEGINNER: '入门', INTERMEDIATE: '进阶', ADVANCED: '精通' } as Record<string, string>)[difficulty] ?? difficulty
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(new Date(value))
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
 }
 </script>

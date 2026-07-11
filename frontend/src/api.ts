@@ -107,7 +107,8 @@ export type PracticeResult = {
     questionId: number
     submittedAnswer: string
     correctAnswer: string
-    correct: boolean
+    autoGraded: boolean
+    correct: boolean | null
     score: number
     analysis: string
   }>
@@ -153,7 +154,53 @@ export type CustomExamPayload = {
   questionIds: number[]
 }
 
-export type CustomExamPaper = CustomExamPayload
+export type ExamQuestion = {
+  id: number
+  title: string
+  type: string
+  difficulty: string
+  knowledgePoint: string
+  submittedAnswer: string
+  autoGraded: boolean
+  correct: boolean | null
+  score: number
+  correctAnswer: string
+  analysis: string
+  options?: Array<{
+    value: string
+    label: string
+  }>
+}
+
+export type ExamSession = {
+  id: number
+  name: string
+  durationMinutes: number
+  status: 'IN_PROGRESS' | 'SUBMITTED'
+  startedAt: string
+  expiresAt: string
+  submittedAt: string | null
+  remainingSeconds: number
+  score: number | null
+  totalScore: number | null
+  questions: ExamQuestion[]
+}
+
+export type ExamSummary = {
+  id: number
+  name: string
+  durationMinutes: number
+  status: 'IN_PROGRESS' | 'SUBMITTED'
+  questionCount: number
+  answeredCount: number
+  startedAt: string
+  expiresAt: string
+  submittedAt: string | null
+  score: number | null
+  totalScore: number | null
+}
+
+export type CustomExamPaper = ExamSession
 
 export type LearningReportPayload = {
   mode: 'ONLINE_MODEL' | 'OFFLINE_RULES'
@@ -228,6 +275,13 @@ async function request<T>(path: string, options: RequestInit = {}) {
 function post<T>(path: string, body: unknown) {
   return request<T>(path, {
     method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+function put<T>(path: string, body: unknown) {
+  return request<T>(path, {
+    method: 'PUT',
     body: JSON.stringify(body)
   })
 }
@@ -349,6 +403,22 @@ export function markFeedbackNeedsReview(feedbackId: number, payload: ReviewFeedb
 
 export function composeCustomExam(payload: CustomExamPayload) {
   return post<CustomExamPaper>('/exams/custom', payload)
+}
+
+export function listExamSessions() {
+  return request<ExamSummary[]>('/exams', { method: 'GET' })
+}
+
+export function getExamSession(sessionId: number) {
+  return request<ExamSession>(`/exams/${sessionId}`, { method: 'GET' })
+}
+
+export function saveExamAnswer(sessionId: number, questionId: number, answer: string) {
+  return put<ExamSession>(`/exams/${sessionId}/answers/${questionId}`, { answer })
+}
+
+export function submitExamSession(sessionId: number) {
+  return post<ExamSession>(`/exams/${sessionId}/submit`, {})
 }
 
 export function generateLearningReport(payload: LearningReportPayload) {

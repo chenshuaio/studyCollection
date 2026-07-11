@@ -63,7 +63,7 @@
 
         <aside class="workspace-panel score-panel">
           <h2>得分</h2>
-          <strong>{{ submitted ? scoreText : '--/10' }}</strong>
+          <strong>{{ submitted ? scoreText : '--/--' }}</strong>
           <p>{{ submitted ? resultText : '提交后会显示本次练习结果。' }}</p>
           <div class="progress-track" aria-label="正确率">
             <span :style="{ width: submitted ? progressWidth : '0%' }"></span>
@@ -79,12 +79,12 @@
               <dd>{{ submitted ? selectedAnswer : '未提交' }}</dd>
             </div>
             <div>
-              <dt>标准答案</dt>
+              <dt>{{ isAutoGraded ? '标准答案' : '参考答案' }}</dt>
               <dd>{{ submitted ? correctAnswer : '提交后可见' }}</dd>
             </div>
             <div>
               <dt>错题反馈</dt>
-              <dd>{{ submitted && !isCorrect ? '可提交给管理员复核题目或解析。' : '暂无反馈' }}</dd>
+              <dd>{{ submitted && isAutoGraded && !isCorrect ? '可提交给管理员复核题目或解析。' : '暂无反馈' }}</dd>
             </div>
           </dl>
         </article>
@@ -148,17 +148,26 @@ type RetryMistakeTarget = {
 }
 
 const firstItem = computed(() => backendResult.value?.items[0])
-const isCorrect = computed(() => firstItem.value?.correct ?? selectedAnswer.value === currentQuestion.value?.answer)
+const isAutoGraded = computed(() => firstItem.value?.autoGraded ?? false)
+const isCorrect = computed(() => firstItem.value?.correct === true)
 const correctAnswer = computed(() => firstItem.value?.correctAnswer ?? currentQuestion.value?.answer ?? '')
 const analysisText = computed(() => firstItem.value?.analysis ?? currentQuestion.value?.analysis ?? '')
 const scoreText = computed(() => {
+  if (!isAutoGraded.value) {
+    return '不评分'
+  }
   if (!backendResult.value) {
     return isCorrect.value ? '10/10' : '0/10'
   }
   return `${backendResult.value.score}/${backendResult.value.totalScore}`
 })
-const progressWidth = computed(() => (isCorrect.value ? '100%' : '0%'))
-const resultText = computed(() => (isCorrect.value ? '回答正确，继续保持。' : '回答错误，已加入错题整理候选。'))
+const progressWidth = computed(() => (isAutoGraded.value && isCorrect.value ? '100%' : '0%'))
+const resultText = computed(() => {
+  if (!isAutoGraded.value) {
+    return '本题不自动评分，请结合参考答案自行核对。'
+  }
+  return isCorrect.value ? '回答正确，继续保持。' : '回答错误，已加入错题整理候选。'
+})
 
 onMounted(loadPracticeQuestion)
 
@@ -264,7 +273,7 @@ async function submitAnswer() {
     }])
     submitted.value = true
     const item = backendResult.value.items[0]
-    if (item && !item.correct) {
+    if (item?.autoGraded && item.correct === false) {
       await recordMistake({
         questionId: currentQuestion.value.id,
         questionTitle: currentQuestion.value.title,

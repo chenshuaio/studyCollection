@@ -622,6 +622,43 @@ th {
   margin: 0 0 8px;
 }
 
+.exam-history-panel {
+  margin-top: 16px;
+}
+
+.exam-history-panel td:first-child strong,
+.exam-history-panel td:first-child small {
+  display: block;
+}
+
+.exam-history-panel td:first-child small,
+.answer-save-state {
+  color: #667085;
+  margin-top: 4px;
+}
+
+.table-action {
+  color: #1f6feb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.exam-countdown {
+  font-variant-numeric: tabular-nums;
+  min-width: 132px;
+}
+
+.answer-field textarea {
+  border: 1px solid #cfd8e6;
+  border-radius: 7px;
+  color: #172033;
+  font: inherit;
+  min-height: 108px;
+  padding: 10px 12px;
+  resize: vertical;
+  width: 100%;
+}
+
 .review-panel {
   margin-top: 16px;
 }

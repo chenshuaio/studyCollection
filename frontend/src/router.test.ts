@@ -75,4 +75,11 @@ describe('route access control', () => {
     expect(knowledgePointRoute?.path).toBe('/knowledge-points')
     expect(knowledgePointRoute?.meta).toEqual(expect.objectContaining({ requiresAuth: true, requiredRole: 'ADMIN' }))
   })
+
+  it('registers persisted exam taking with a session id', () => {
+    const examTakingRoute = router.getRoutes().find((route) => route.name === 'exam-taking')
+
+    expect(examTakingRoute?.path).toBe('/exams/:examId/take')
+    expect(examTakingRoute?.meta).toEqual(expect.objectContaining({ requiresAuth: true }))
+  })
 })

@@ -120,6 +120,48 @@ CREATE TABLE IF NOT EXISTS exam_paper_questions (
   FOREIGN KEY (question_id) REFERENCES questions(id)
 );
 
+CREATE TABLE IF NOT EXISTS exam_sessions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  name VARCHAR(128) NOT NULL,
+  duration_minutes INT NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  started_at DATETIME(6) NOT NULL,
+  expires_at DATETIME(6) NOT NULL,
+  submitted_at DATETIME(6) NULL,
+  score INT NULL,
+  total_score INT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_exam_sessions_user_started (user_id, started_at)
+);
+
+CREATE TABLE IF NOT EXISTS exam_session_questions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  session_id BIGINT NOT NULL,
+  question_id BIGINT NOT NULL,
+  question_title TEXT NOT NULL,
+  question_type VARCHAR(32) NOT NULL,
+  difficulty VARCHAR(32) NOT NULL,
+  knowledge_point VARCHAR(128) NOT NULL,
+  correct_answer TEXT NOT NULL,
+  analysis TEXT NULL,
+  sort_order INT NOT NULL,
+  UNIQUE KEY uk_exam_session_question (session_id, question_id),
+  FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS exam_session_answers (
+  session_id BIGINT NOT NULL,
+  question_id BIGINT NOT NULL,
+  submitted_answer TEXT NOT NULL,
+  auto_graded BOOLEAN NOT NULL DEFAULT FALSE,
+  correct BOOLEAN NULL,
+  score INT NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (session_id, question_id),
+  FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS mistake_records (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,

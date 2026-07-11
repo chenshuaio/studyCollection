@@ -40,7 +40,9 @@ public class PracticeController {
                 .toList();
         int score = items.stream().mapToInt(PracticeResultItem::score).sum();
         recordStats(currentUser.userId(), items);
-        return ApiResponse.success(new PracticeResult(score, items.size() * POINTS_PER_QUESTION, items));
+        int totalScore = (int) items.stream().filter(PracticeResultItem::autoGraded).count()
+                * POINTS_PER_QUESTION;
+        return ApiResponse.success(new PracticeResult(score, totalScore, items));
     }
 
     @GetMapping("/stats")
@@ -58,15 +60,24 @@ public class PracticeController {
         if (correctAnswer == null || correctAnswer.isBlank()) {
             throw new IllegalArgumentException("标准答案不能为空");
         }
-        boolean correct = answersMatch(question, answer.answer());
+        boolean autoGraded = isObjective(question);
+        Boolean correct = autoGraded ? answersMatch(question, answer.answer()) : null;
         return new PracticeResultItem(
                 answer.questionId(),
                 answer.answer(),
                 correctAnswer,
+                autoGraded,
                 correct,
-                correct ? POINTS_PER_QUESTION : 0,
+                Boolean.TRUE.equals(correct) ? POINTS_PER_QUESTION : 0,
                 analysis == null ? "" : analysis
         );
+    }
+
+    private boolean isObjective(Question question) {
+        return switch (question.type()) {
+            case SINGLE_CHOICE, MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK -> true;
+            case SHORT_ANSWER, PROGRAMMING -> false;
+        };
     }
 
     private boolean answersMatch(Question question, String submittedAnswer) {
@@ -98,7 +109,7 @@ public class PracticeController {
             return;
         }
         int answered = items.size();
-        int correct = (int) items.stream().filter(PracticeResultItem::correct).count();
+        int correct = (int) items.stream().filter(item -> Boolean.TRUE.equals(item.correct())).count();
         statsRepository.add(userId, answered, correct);
     }
 

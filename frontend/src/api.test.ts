@@ -8,7 +8,9 @@ import {
   disableKnowledgePoint,
   generateKnowledgeQuestions,
   generateLearningReport,
+  getExamSession,
   getPracticeStats,
+  listExamSessions,
   listKnowledgePoints,
   listPendingFeedback,
   listPendingQuestions,
@@ -22,10 +24,12 @@ import {
   rejectPendingQuestion,
   rejectQuestionFeedback,
   searchQuestions,
+  saveExamAnswer,
   submitPendingQuestion,
   submitPractice,
   submitUserPractice,
   submitQuestionFeedback,
+  submitExamSession,
   updateMistakeStatus,
   uploadKnowledgeFile
 } from './api'
@@ -376,29 +380,66 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/1/accept', expect.objectContaining({ method: 'POST' }))
   })
 
-  it('creates custom exam papers', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        code: 'OK',
-        data: {
-          name: '集合专项测试',
-          durationMinutes: 45,
-          questionIds: [1, 2, 3]
+  it('creates, lists, restores, saves and submits persisted exam sessions', async () => {
+    const session = {
+      id: 91,
+      name: '集合专项测试',
+      durationMinutes: 45,
+      status: 'IN_PROGRESS',
+      startedAt: '2026-07-11T06:00:00Z',
+      expiresAt: '2026-07-11T06:45:00Z',
+      submittedAt: null,
+      remainingSeconds: 2700,
+      score: null,
+      totalScore: null,
+      questions: [
+        {
+          id: 1,
+          title: 'HashMap 默认负载因子是多少？',
+          type: 'SINGLE_CHOICE',
+          difficulty: 'INTERMEDIATE',
+          knowledgePoint: '集合框架',
+          submittedAnswer: '',
+          autoGraded: false,
+          correct: null,
+          score: 0,
+          correctAnswer: '',
+          analysis: ''
         }
-      })
-    })
+      ]
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: session }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: [{ ...session, questionCount: 1, answeredCount: 0, questions: undefined }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: session }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: { ...session, questions: [{ ...session.questions[0], submittedAnswer: 'A' }] } }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: { ...session, status: 'SUBMITTED', score: 10, totalScore: 10 } }) })
     vi.stubGlobal('fetch', fetchMock)
 
-    const paper = await composeCustomExam({
+    const created = await composeCustomExam({
       name: '集合专项测试',
       durationMinutes: 45,
       questionIds: [1, 2, 3]
     })
+    const history = await listExamSessions()
+    const restored = await getExamSession(91)
+    const saved = await saveExamAnswer(91, 1, 'A')
+    const submitted = await submitExamSession(91)
 
-    expect(paper.name).toBe('集合专项测试')
-    expect(paper.questionIds).toEqual([1, 2, 3])
+    expect(created.id).toBe(91)
+    expect(history[0].questionCount).toBe(1)
+    expect(restored.remainingSeconds).toBe(2700)
+    expect(saved.questions[0].submittedAnswer).toBe('A')
+    expect(submitted.status).toBe('SUBMITTED')
     expect(fetchMock).toHaveBeenCalledWith('/api/exams/custom', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exams', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exams/91', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exams/91/answers/1', expect.objectContaining({
+      method: 'PUT',
+      body: JSON.stringify({ answer: 'A' })
+    }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exams/91/submit', expect.objectContaining({ method: 'POST' }))
   })
 
   it('generates learning reports with selectable analysis mode', async () => {

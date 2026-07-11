@@ -4,7 +4,8 @@ public record PracticeResultItem(
         Long questionId,
         String submittedAnswer,
         String correctAnswer,
-        boolean correct,
+        boolean autoGraded,
+        Boolean correct,
         int score,
         String analysis
 ) {
