@@ -130,7 +130,12 @@ public class LearningReportService {
                 .filter(attempt -> Boolean.TRUE.equals(attempt.correct()))
                 .count();
         LearningReport analysis = analyzer.analyze(attempts);
-        AnalysisAdvice advice = aiAnalysisService.generate(mode, analysis.recommendation());
+        AnalysisAdvice advice = aiAnalysisService.generate(
+                mode,
+                userId,
+                "LEARNING_REPORT",
+                analysis.recommendation()
+        );
         LearningReportResponse report = new LearningReportResponse(
                 null,
                 clock.instant(),

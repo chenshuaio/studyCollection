@@ -581,6 +581,28 @@ PREPARE learning_report_details_statement FROM @learning_report_details_ddl;
 EXECUTE learning_report_details_statement;
 DEALLOCATE PREPARE learning_report_details_statement;
 
+CREATE TABLE IF NOT EXISTS ai_model_settings (
+  id BIGINT PRIMARY KEY,
+  provider VARCHAR(32) NOT NULL,
+  endpoint VARCHAR(512) NOT NULL,
+  model_name VARCHAR(128) NOT NULL,
+  updated_by BIGINT NOT NULL,
+  updated_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_call_audits (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NULL,
+  purpose VARCHAR(32) NOT NULL,
+  provider VARCHAR(32) NOT NULL,
+  model_name VARCHAR(128) NOT NULL,
+  status VARCHAR(16) NOT NULL,
+  failure_reason VARCHAR(240) NULL,
+  duration_ms BIGINT NOT NULL,
+  created_at DATETIME NOT NULL,
+  INDEX idx_ai_audit_created_at (created_at)
+);
+
 INSERT INTO users (username, password_hash, display_name, role)
 VALUES
   ('admin', '{plain}admin123', '系统管理员', 'ADMIN'),

@@ -1,6 +1,7 @@
 package com.studycollection.report.api;
 
 import com.studycollection.ai.app.AiAnalysisService;
+import com.studycollection.ai.app.InMemoryAiCallAuditRepository;
 import com.studycollection.common.security.AuthenticatedUser;
 import com.studycollection.common.security.Role;
 import com.studycollection.exam.app.InMemoryLearningAttemptRepository;
@@ -33,6 +34,7 @@ class LearningReportControllerTest {
     private static final AuthenticatedUser OTHER_USER = new AuthenticatedUser(8L, "bob", Role.USER);
 
     private InMemoryLearningAttemptRepository attempts;
+    private InMemoryAiCallAuditRepository aiAudits;
     private LearningReportController controller;
 
     @BeforeEach
@@ -78,9 +80,14 @@ class LearningReportControllerTest {
                 "类加载器",
                 "他人强化题解析"
         ));
-        AiAnalysisService aiAnalysisService = new AiAnalysisService(summary -> {
-            throw new IllegalStateException("测试中的在线模型不可用");
-        });
+        aiAudits = new InMemoryAiCallAuditRepository();
+        AiAnalysisService aiAnalysisService = new AiAnalysisService(
+                summary -> {
+                    throw new IllegalStateException("测试中的在线模型不可用");
+                },
+                aiAudits,
+                Clock.fixed(Instant.parse("2026-07-11T08:59:00Z"), ZoneOffset.UTC)
+        );
         LearningReportService service = new LearningReportService(
                 attempts,
                 reports,
@@ -156,6 +163,11 @@ class LearningReportControllerTest {
 
         assertThat(first.adviceSource()).isEqualTo("RULES");
         assertThat(first.adviceContent()).contains("在线模型暂不可用");
+        assertThat(aiAudits.findRecent(10)).singleElement().satisfies(audit -> {
+            assertThat(audit.userId()).isEqualTo(USER.userId());
+            assertThat(audit.purpose()).isEqualTo("LEARNING_REPORT");
+            assertThat(audit.status()).isEqualTo("FALLBACK");
+        });
         assertThat(controller.history(USER).data()).extracting(LearningReportResponse::id)
                 .containsExactly(second.id(), first.id());
     }

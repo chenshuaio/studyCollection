@@ -68,11 +68,11 @@
 - 测试：`backend/ai-service/src/test/java/com/studycollection/ai/api/AiAdminControllerTest.java`
 - 测试：`backend/report-service/src/test/java/com/studycollection/report/api/LearningReportControllerTest.java`
 
-- [ ] 写失败测试：在线成功保存 `SUCCESS` 审计；异常、空响应和缺少配置保存 `FALLBACK` 审计并返回 `RULES`；审计包含用户、用途、provider、model 和非负耗时。
-- [ ] 写失败测试：失败原因去掉换行并截断到 240 字符，不包含 API 密钥或响应正文；离线规则模式不写在线调用审计。
-- [ ] 写失败接口测试：`GET/PUT /ai/settings`、`POST /ai/settings/test`、`GET /ai/audits?limit=50` 返回统一响应，普通用户由现有 `@AdminOnly` 拦截。
-- [ ] 写失败报告测试：`LearningReportService` 调用 AI 时传入当前用户编号与 `LEARNING_REPORT`，成功报告来源为 `ONLINE_MODEL`，失败报告来源为 `RULES` 且仍保存。
-- [ ] 在 `scripts/mysql-init.sql` 增加幂等表：
+- [x] 写失败测试：在线成功保存 `SUCCESS` 审计；异常、空响应和缺少配置保存 `FALLBACK` 审计并返回 `RULES`；审计包含用户、用途、provider、model 和非负耗时。
+- [x] 写失败测试：失败原因去掉换行并截断到 240 字符，不包含 API 密钥或响应正文；离线规则模式不写在线调用审计。
+- [x] 写失败接口测试：`GET/PUT /ai/settings`、`POST /ai/settings/test`、`GET /ai/audits?limit=50` 返回统一响应，普通用户由现有 `@AdminOnly` 拦截。
+- [x] 写失败报告测试：`LearningReportService` 调用 AI 时传入当前用户编号与 `LEARNING_REPORT`，成功报告来源为 `ONLINE_MODEL`，失败报告来源为 `RULES` 且仍保存。
+- [x] 在 `scripts/mysql-init.sql` 增加幂等表：
 
 ```sql
 CREATE TABLE IF NOT EXISTS ai_model_settings (
@@ -98,11 +98,11 @@ CREATE TABLE IF NOT EXISTS ai_call_audits (
 );
 ```
 
-- [ ] 实现审计仓储和 `AiAnalysisService.generate(mode, userId, purpose, summary)`；保留原双参数重载供既有测试和非审计调用兼容。
-- [ ] 实现管理员设置、连接测试与最近审计接口；`limit` 必须在 1 到 100，测试连接使用用途 `CONFIG_TEST`。
-- [ ] 修改 Spring 配置为注入设置仓储、HTTP 客户端和审计仓储，避免 `report-service` 再创建不可配置的默认客户端。
-- [ ] 运行 `mvn test`，确认 AI、报告和本地应用上下文全部通过。
-- [ ] 提交：`git commit -m "feat: audit online ai calls"`。
+- [x] 实现审计仓储和 `AiAnalysisService.generate(mode, userId, purpose, summary)`；保留原双参数重载供既有测试和非审计调用兼容。
+- [x] 实现管理员设置、连接测试与最近审计接口；`limit` 必须在 1 到 100，测试连接使用用途 `CONFIG_TEST`。
+- [x] 修改 Spring 配置为注入设置仓储、HTTP 客户端和审计仓储，避免 `report-service` 再创建不可配置的默认客户端。
+- [x] 运行 `mvn test`，确认 AI、报告和本地应用上下文全部通过。
+- [x] 提交：`git commit -m "feat: audit online ai calls"`。
 
 ### 任务 3：管理员 AI 设置与审计页面
 
