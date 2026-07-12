@@ -548,9 +548,13 @@ function errorMessage(error: unknown, fallback: string) {
   color: #b42318;
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1300px) {
   .rule-management-layout {
     grid-template-columns: 1fr;
+  }
+
+  .rule-list-panel {
+    order: -1;
   }
 }
 

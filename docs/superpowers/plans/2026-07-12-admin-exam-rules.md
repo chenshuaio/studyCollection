@@ -82,9 +82,9 @@
 - 修改：`docs/project-completeness-2026-07-11.md`
 - 修改：`docs/superpowers/plans/2026-07-12-admin-exam-rules.md`
 
-- [ ] 运行后端全量 Maven 测试、前端全量 Vitest、`vue-tsc --noEmit` 和 Vite 生产构建。
-- [ ] 使用 MySQL `root/root` 完成管理员创建并发布规则、普通用户查询并启动、精确配额校验、答题提交和历史记录端到端验证，结束后清理临时数据。
-- [ ] 在 1280x720 与 390x844 检查规则管理页、考试中心和答题跳转，无页面级横向溢出、文字遮挡或不可操作控件，并检查浏览器控制台无错误。
-- [ ] 更新完整度矩阵，将管理员考试规则与模拟考试标记为已实现。
-- [ ] 运行 `.\scripts\publish-local.ps1 -UseMysql -RestartLocal`，验证本地前后端和新的公网入口。
+- [x] 运行后端全量 Maven 测试、前端全量 Vitest、`vue-tsc --noEmit` 和 Vite 生产构建。
+- [x] 使用 MySQL `root/root` 完成管理员创建并发布规则、普通用户查询并启动、精确配额校验、答题提交和历史记录端到端验证，结束后清理临时数据。
+- [x] 在 1280x720 与 390x844 检查规则管理页、考试中心和答题跳转，无页面级横向溢出、文字遮挡或不可操作控件，并检查浏览器控制台无错误。
+- [x] 更新完整度矩阵，将管理员考试规则与模拟考试标记为已实现。
+- [x] 运行 `.\scripts\publish-local.ps1 -UseMysql -RestartLocal`，验证本地前后端和新的公网入口。
 - [ ] 提交并推送 `codex/java-learning-platform-implementation` 分支。
