@@ -2,6 +2,7 @@ package com.studycollection.question.app;
 
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
+import com.studycollection.question.domain.QuestionBankScope;
 import com.studycollection.question.domain.QuestionType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
@@ -23,6 +24,7 @@ public class MySqlQuestionRepository implements QuestionRepository {
     private final JdbcTemplate jdbcTemplate;
     private final RowMapper<Question> rowMapper = (rs, rowNum) -> new Question(
             rs.getLong("id"),
+            nullableLong(rs, "owner_user_id"),
             rs.getString("title"),
             QuestionType.valueOf(rs.getString("type")),
             Difficulty.valueOf(rs.getString("difficulty")),
@@ -40,22 +42,28 @@ public class MySqlQuestionRepository implements QuestionRepository {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement statement = connection.prepareStatement("""
-                    insert into questions (title, type, difficulty, knowledge_point, answer, analysis, source)
-                    values (?, ?, ?, ?, ?, ?, ?)
+                    insert into questions (owner_user_id, title, type, difficulty, knowledge_point, answer, analysis, source)
+                    values (?, ?, ?, ?, ?, ?, ?, ?)
                     """, Statement.RETURN_GENERATED_KEYS);
-            statement.setString(1, question.title());
-            statement.setString(2, question.type().name());
-            statement.setString(3, question.difficulty().name());
-            statement.setString(4, question.knowledgePoint());
-            statement.setString(5, question.answer());
-            statement.setString(6, question.analysis());
-            statement.setString(7, "LOCAL_UPLOAD");
+            if (question.ownerUserId() == null) {
+                statement.setNull(1, java.sql.Types.BIGINT);
+            } else {
+                statement.setLong(1, question.ownerUserId());
+            }
+            statement.setString(2, question.title());
+            statement.setString(3, question.type().name());
+            statement.setString(4, question.difficulty().name());
+            statement.setString(5, question.knowledgePoint());
+            statement.setString(6, question.answer());
+            statement.setString(7, question.analysis());
+            statement.setString(8, "LOCAL_UPLOAD");
             return statement;
         }, keyHolder);
 
         Number key = keyHolder.getKey();
         return new Question(
                 key == null ? question.id() : key.longValue(),
+                question.ownerUserId(),
                 question.title(),
                 question.type(),
                 question.difficulty(),
@@ -67,12 +75,47 @@ public class MySqlQuestionRepository implements QuestionRepository {
 
     @Override
     public List<Question> search(String keyword, String knowledgePoint, Difficulty difficulty, QuestionType type) {
+        return searchWithVisibility(null, null, keyword, knowledgePoint, difficulty, type);
+    }
+
+    @Override
+    public List<Question> searchAccessible(
+            Long userId,
+            QuestionBankScope scope,
+            String keyword,
+            String knowledgePoint,
+            Difficulty difficulty,
+            QuestionType type
+    ) {
+        return searchWithVisibility(userId, scope == null ? QuestionBankScope.ALL : scope,
+                keyword, knowledgePoint, difficulty, type);
+    }
+
+    private List<Question> searchWithVisibility(
+            Long userId,
+            QuestionBankScope scope,
+            String keyword,
+            String knowledgePoint,
+            Difficulty difficulty,
+            QuestionType type
+    ) {
         List<Object> args = new ArrayList<>();
         StringBuilder sql = new StringBuilder("""
-                select id, title, type, difficulty, knowledge_point, answer, analysis
+                select id, owner_user_id, title, type, difficulty, knowledge_point, answer, analysis
                 from questions
                 where deleted = false
                 """);
+        if (scope != null) {
+            if (scope == QuestionBankScope.PUBLIC) {
+                sql.append(" and owner_user_id is null");
+            } else if (scope == QuestionBankScope.PERSONAL) {
+                sql.append(" and owner_user_id = ?");
+                args.add(userId);
+            } else {
+                sql.append(" and (owner_user_id is null or owner_user_id = ?)");
+                args.add(userId);
+            }
+        }
         if (keyword != null && !keyword.isBlank()) {
             sql.append(" and lower(title) like ?");
             args.add("%" + keyword.toLowerCase() + "%");
@@ -96,7 +139,7 @@ public class MySqlQuestionRepository implements QuestionRepository {
     @Override
     public Question findById(Long id) {
         List<Question> matches = jdbcTemplate.query("""
-                select id, title, type, difficulty, knowledge_point, answer, analysis
+                select id, owner_user_id, title, type, difficulty, knowledge_point, answer, analysis
                 from questions
                 where id = ? and deleted = false
                 """, rowMapper, id);
@@ -104,6 +147,19 @@ public class MySqlQuestionRepository implements QuestionRepository {
             throw new IllegalArgumentException("题目不存在");
         }
         return matches.get(0);
+    }
+
+    @Override
+    public Question findAccessibleById(Long id, Long userId) {
+        return jdbcTemplate.query("""
+                        select id, owner_user_id, title, type, difficulty, knowledge_point, answer, analysis
+                        from questions
+                        where id = ? and deleted = false
+                          and (owner_user_id is null or owner_user_id = ?)
+                        """, rowMapper, id, userId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("题目不存在或无权访问"));
     }
 
     @Override
@@ -146,5 +202,22 @@ public class MySqlQuestionRepository implements QuestionRepository {
         if (updated == 0) {
             throw new IllegalArgumentException("题目不存在");
         }
+    }
+
+    @Override
+    public void deleteOwnedById(Long id, Long userId) {
+        int updated = jdbcTemplate.update(
+                "update questions set deleted = true where id = ? and owner_user_id = ? and deleted = false",
+                id,
+                userId
+        );
+        if (updated == 0) {
+            throw new IllegalArgumentException("题目不存在或无权访问");
+        }
+    }
+
+    private static Long nullableLong(java.sql.ResultSet resultSet, String column) throws java.sql.SQLException {
+        long value = resultSet.getLong(column);
+        return resultSet.wasNull() ? null : value;
     }
 }

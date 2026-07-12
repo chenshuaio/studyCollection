@@ -28,6 +28,7 @@ public class InMemoryPendingQuestionRepository implements PendingQuestionReposit
                 question.knowledgePoint(),
                 question.answer(),
                 question.analysis(),
+                question.targetScope(),
                 question.status()
         );
         questions.put(id, saved);

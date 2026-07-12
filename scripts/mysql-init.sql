@@ -27,8 +27,24 @@ CREATE TABLE IF NOT EXISTS questions (
   deleted BOOLEAN NOT NULL DEFAULT FALSE,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_questions_filter (knowledge_point, difficulty, type)
+  INDEX idx_questions_filter (knowledge_point, difficulty, type),
+  INDEX idx_questions_owner_filter (owner_user_id, knowledge_point, difficulty, type)
 );
+
+SET @question_owner_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'questions'
+    AND column_name = 'owner_user_id'
+);
+SET @question_owner_ddl = IF(
+  @question_owner_column_exists = 0,
+  'ALTER TABLE questions ADD COLUMN owner_user_id BIGINT NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE question_owner_statement FROM @question_owner_ddl;
+EXECUTE question_owner_statement;
+DEALLOCATE PREPARE question_owner_statement;
 
 SET @question_deleted_column_exists = (
   SELECT COUNT(*) FROM information_schema.columns
@@ -44,6 +60,21 @@ SET @question_deleted_ddl = IF(
 PREPARE question_deleted_statement FROM @question_deleted_ddl;
 EXECUTE question_deleted_statement;
 DEALLOCATE PREPARE question_deleted_statement;
+
+SET @question_owner_index_exists = (
+  SELECT COUNT(*) FROM information_schema.statistics
+  WHERE table_schema = DATABASE()
+    AND table_name = 'questions'
+    AND index_name = 'idx_questions_owner_filter'
+);
+SET @question_owner_index_ddl = IF(
+  @question_owner_index_exists = 0,
+  'CREATE INDEX idx_questions_owner_filter ON questions (owner_user_id, knowledge_point, difficulty, type)',
+  'SELECT 1'
+);
+PREPARE question_owner_index_statement FROM @question_owner_index_ddl;
+EXECUTE question_owner_index_statement;
+DEALLOCATE PREPARE question_owner_index_statement;
 
 CREATE TABLE IF NOT EXISTS knowledge_points (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -193,11 +224,27 @@ CREATE TABLE IF NOT EXISTS pending_questions (
   knowledge_point VARCHAR(128) NOT NULL,
   answer TEXT NOT NULL,
   analysis TEXT NULL,
+  target_scope VARCHAR(16) NOT NULL DEFAULT 'PUBLIC',
   status VARCHAR(32) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_pending_questions_status (status)
 );
+
+SET @pending_target_scope_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'pending_questions'
+    AND column_name = 'target_scope'
+);
+SET @pending_target_scope_ddl = IF(
+  @pending_target_scope_exists = 0,
+  'ALTER TABLE pending_questions ADD COLUMN target_scope VARCHAR(16) NOT NULL DEFAULT ''PUBLIC'' AFTER analysis',
+  'SELECT 1'
+);
+PREPARE pending_target_scope_statement FROM @pending_target_scope_ddl;
+EXECUTE pending_target_scope_statement;
+DEALLOCATE PREPARE pending_target_scope_statement;
 
 CREATE TABLE IF NOT EXISTS exam_papers (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,

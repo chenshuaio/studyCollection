@@ -20,6 +20,7 @@ public class InMemoryQuestionRepository implements QuestionRepository {
     public Question save(Question question) {
         Question saved = new Question(
                 question.id() == null ? ids.getAndIncrement() : question.id(),
+                question.ownerUserId(),
                 question.title(),
                 question.type(),
                 question.difficulty(),

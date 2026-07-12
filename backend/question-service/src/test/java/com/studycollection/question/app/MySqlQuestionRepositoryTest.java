@@ -17,6 +17,17 @@ class MySqlQuestionRepositoryTest {
         assertThat(jdbcTemplate.arguments).containsExactly(23L);
     }
 
+    @Test
+    void deletingPersonalQuestionAlsoMatchesOwner() {
+        RecordingJdbcTemplate jdbcTemplate = new RecordingJdbcTemplate();
+        MySqlQuestionRepository repository = new MySqlQuestionRepository(jdbcTemplate);
+
+        repository.deleteOwnedById(23L, 7L);
+
+        assertThat(jdbcTemplate.sql).contains("owner_user_id = ?");
+        assertThat(jdbcTemplate.arguments).containsExactly(23L, 7L);
+    }
+
     private static final class RecordingJdbcTemplate extends JdbcTemplate {
         private String sql;
         private Object[] arguments;

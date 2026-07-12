@@ -28,13 +28,13 @@
 - 测试：`backend/question-service/src/test/java/com/studycollection/question/app/MySqlQuestionRepositoryTest.java`
 - 测试：`backend/question-service/src/test/java/com/studycollection/question/api/PendingQuestionControllerTest.java`
 
-- [ ] 写失败测试：公共题对所有用户可见，个人题只对所有者可见，`PUBLIC`、`PERSONAL`、`ALL` 三种范围返回正确集合，其他用户无法删除不属于自己的个人题。
-- [ ] 运行 `mvn -pl question-service -am test`，确认测试因所有者模型和可见范围尚未实现而失败。
-- [ ] 为 `Question` 增加 `ownerUserId` 并保留七参数公共题兼容构造；实现 `QuestionBankScope`，其中待审核目标只允许 `PUBLIC` 或 `PERSONAL`。
-- [ ] 为仓储增加 `searchAccessible`、`findAccessibleById` 和 `deleteOwnedById`；内存与 MySQL 实现相同行为，未授权统一返回“题目不存在或无权访问”。
-- [ ] 写失败测试：用户提交个人题和公开申请后均进入待审核；审核个人题时所有者为提交用户，审核公开题时所有者为空；旧客户端未传目标范围时保持 `PUBLIC` 兼容行为。
-- [ ] 在 `pending_questions` 增加 `target_scope VARCHAR(16) NOT NULL DEFAULT 'PUBLIC'` 的幂等迁移，并为 `questions.owner_user_id` 增加筛选索引；更新待审核内存/MySQL 仓储和审核入库映射。
-- [ ] 重跑题库模块测试，确认领域、审核和两种仓储全部通过。
+- [x] 写失败测试：公共题对所有用户可见，个人题只对所有者可见，`PUBLIC`、`PERSONAL`、`ALL` 三种范围返回正确集合，其他用户无法删除不属于自己的个人题。
+- [x] 运行 `mvn -pl question-service -am test`，确认测试因所有者模型和可见范围尚未实现而失败。
+- [x] 为 `Question` 增加 `ownerUserId` 并保留七参数公共题兼容构造；实现 `QuestionBankScope`，其中待审核目标只允许 `PUBLIC` 或 `PERSONAL`。
+- [x] 为仓储增加 `searchAccessible`、`findAccessibleById` 和 `deleteOwnedById`；内存与 MySQL 实现相同行为，未授权统一返回“题目不存在或无权访问”。
+- [x] 写失败测试：用户提交个人题和公开申请后均进入待审核；审核个人题时所有者为提交用户，审核公开题时所有者为空；旧客户端未传目标范围时保持 `PUBLIC` 兼容行为。
+- [x] 在 `pending_questions` 增加 `target_scope VARCHAR(16) NOT NULL DEFAULT 'PUBLIC'` 的幂等迁移，并为 `questions.owner_user_id` 增加筛选索引；更新待审核内存/MySQL 仓储和审核入库映射。
+- [x] 重跑题库模块测试，确认领域、审核和两种仓储全部通过。
 
 ### 任务 2：查询、练习、考试与反馈的服务端权限边界
 

@@ -3,6 +3,7 @@ package com.studycollection.question.app;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.PendingQuestion;
 import com.studycollection.question.domain.PendingQuestionStatus;
+import com.studycollection.question.domain.QuestionBankScope;
 import com.studycollection.question.domain.QuestionType;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,6 +29,7 @@ public class MySqlPendingQuestionRepository implements PendingQuestionRepository
             rs.getString("knowledge_point"),
             rs.getString("answer"),
             rs.getString("analysis"),
+            QuestionBankScope.valueOf(rs.getString("target_scope")),
             PendingQuestionStatus.valueOf(rs.getString("status"))
     );
 
@@ -41,7 +43,7 @@ public class MySqlPendingQuestionRepository implements PendingQuestionRepository
             int updated = jdbcTemplate.update("""
                     update pending_questions
                     set submitter_user_id = ?, title = ?, type = ?, difficulty = ?, knowledge_point = ?,
-                        answer = ?, analysis = ?, status = ?
+                        answer = ?, analysis = ?, target_scope = ?, status = ?
                     where id = ?
                     """,
                     question.submitterUserId(),
@@ -51,6 +53,7 @@ public class MySqlPendingQuestionRepository implements PendingQuestionRepository
                     question.knowledgePoint(),
                     question.answer(),
                     question.analysis(),
+                    question.targetScope().name(),
                     question.status().name(),
                     question.id());
             if (updated == 0) {
@@ -63,8 +66,8 @@ public class MySqlPendingQuestionRepository implements PendingQuestionRepository
         jdbcTemplate.update(connection -> {
             PreparedStatement statement = connection.prepareStatement("""
                     insert into pending_questions
-                      (submitter_user_id, title, type, difficulty, knowledge_point, answer, analysis, status)
-                    values (?, ?, ?, ?, ?, ?, ?, ?)
+                      (submitter_user_id, title, type, difficulty, knowledge_point, answer, analysis, target_scope, status)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, Statement.RETURN_GENERATED_KEYS);
             statement.setLong(1, question.submitterUserId());
             statement.setString(2, question.title());
@@ -73,7 +76,8 @@ public class MySqlPendingQuestionRepository implements PendingQuestionRepository
             statement.setString(5, question.knowledgePoint());
             statement.setString(6, question.answer());
             statement.setString(7, question.analysis());
-            statement.setString(8, question.status().name());
+            statement.setString(8, question.targetScope().name());
+            statement.setString(9, question.status().name());
             return statement;
         }, keyHolder);
         Number key = keyHolder.getKey();
@@ -86,6 +90,7 @@ public class MySqlPendingQuestionRepository implements PendingQuestionRepository
                 question.knowledgePoint(),
                 question.answer(),
                 question.analysis(),
+                question.targetScope(),
                 question.status()
         );
     }
@@ -93,7 +98,8 @@ public class MySqlPendingQuestionRepository implements PendingQuestionRepository
     @Override
     public PendingQuestion find(Long id) {
         return jdbcTemplate.query("""
-                        select id, submitter_user_id, title, type, difficulty, knowledge_point, answer, analysis, status
+                        select id, submitter_user_id, title, type, difficulty, knowledge_point, answer, analysis,
+                               target_scope, status
                         from pending_questions
                         where id = ?
                         """, rowMapper, id)
@@ -105,7 +111,8 @@ public class MySqlPendingQuestionRepository implements PendingQuestionRepository
     @Override
     public List<PendingQuestion> findByStatus(PendingQuestionStatus status) {
         return jdbcTemplate.query("""
-                select id, submitter_user_id, title, type, difficulty, knowledge_point, answer, analysis, status
+                select id, submitter_user_id, title, type, difficulty, knowledge_point, answer, analysis,
+                       target_scope, status
                 from pending_questions
                 where status = ?
                 order by created_at asc, id asc

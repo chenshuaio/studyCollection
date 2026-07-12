@@ -44,6 +44,7 @@ public class PendingQuestionController {
                 request.knowledgePoint(),
                 request.answer(),
                 request.analysis(),
+                request.targetScope(),
                 PendingQuestionStatus.PENDING
         )));
     }

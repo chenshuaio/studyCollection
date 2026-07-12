@@ -8,6 +8,7 @@ import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.PendingQuestion;
 import com.studycollection.question.domain.PendingQuestionStatus;
 import com.studycollection.question.domain.Question;
+import com.studycollection.question.domain.QuestionBankScope;
 import com.studycollection.question.domain.QuestionType;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +34,17 @@ class PendingQuestionControllerTest {
                 Difficulty.INTERMEDIATE,
                 "集合框架",
                 "A",
-                "由导入提交，等待管理员审核"
+                "由导入提交，等待管理员审核",
+                QuestionBankScope.PERSONAL
+        )).data();
+        PendingQuestion publicSubmission = controller.submit(USER, new SubmitPendingQuestionRequest(
+                "Java 中 int 默认值是多少？",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "申请进入公共题库",
+                QuestionBankScope.PUBLIC
         )).data();
         PendingQuestion rejected = controller.submit(USER, new SubmitPendingQuestionRequest(
                 "错误题目",
@@ -46,17 +57,21 @@ class PendingQuestionControllerTest {
 
         assertThat(submitted.status()).isEqualTo(PendingQuestionStatus.PENDING);
         assertThat(submitted.submitterUserId()).isEqualTo(USER.userId());
+        assertThat(submitted.targetScope()).isEqualTo(QuestionBankScope.PERSONAL);
         assertThat(controller.pending().data()).extracting(PendingQuestion::id)
-                .containsExactly(submitted.id(), rejected.id());
+                .containsExactly(submitted.id(), publicSubmission.id(), rejected.id());
 
         Question approved = controller.approve(submitted.id()).data();
+        Question approvedPublic = controller.approve(publicSubmission.id()).data();
         PendingQuestion rejectedResult = controller.reject(rejected.id()).data();
-        List<Question> formalQuestions = questionRepository.search("HashMap", null, null, null);
+        List<Question> formalQuestions = questionRepository.search(null, null, null, null);
 
         assertThat(approved.title()).isEqualTo("HashMap 默认负载因子是多少？");
+        assertThat(approved.ownerUserId()).isEqualTo(USER.userId());
+        assertThat(approvedPublic.ownerUserId()).isNull();
         assertThat(rejectedResult.status()).isEqualTo(PendingQuestionStatus.REJECTED);
         assertThat(formalQuestions).extracting(Question::title)
-                .containsExactly("HashMap 默认负载因子是多少？");
+                .containsExactly("HashMap 默认负载因子是多少？", "Java 中 int 默认值是多少？");
         assertThat(controller.pending().data()).isEmpty();
     }
 
@@ -75,6 +90,8 @@ class PendingQuestionControllerTest {
                 "A",
                 "成员变量默认值为 0"
         )).data();
+
+        assertThat(submitted.targetScope()).isEqualTo(QuestionBankScope.PUBLIC);
 
         controller.approve(submitted.id());
 
