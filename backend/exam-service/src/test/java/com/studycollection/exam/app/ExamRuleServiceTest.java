@@ -78,6 +78,60 @@ class ExamRuleServiceTest {
         });
     }
 
+    @Test
+    void startsSessionFromGeneratedQuestionsWithoutQueryingThemAgain() {
+        Question original = new Question(
+                1L,
+                "原始题目\nA. 0\nB. null",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "原始解析"
+        );
+        Question concurrentlyChanged = new Question(
+                1L,
+                "并发修改后的题目",
+                QuestionType.SHORT_ANSWER,
+                Difficulty.ADVANCED,
+                "并发编程",
+                "修改后的答案",
+                "修改后的解析"
+        );
+        InMemoryQuestionRepository questions = new InMemoryQuestionRepository() {
+            @Override
+            public Question findById(Long id) {
+                return concurrentlyChanged;
+            }
+        };
+        questions.save(original);
+        ExamSessionService sessions = new ExamSessionService(
+                new InMemoryExamSessionRepository(),
+                questions,
+                new InMemoryPracticeStatsRepository(),
+                new InMemoryLearningAttemptRepository(),
+                CLOCK
+        );
+        ExamRuleService service = new ExamRuleService(
+                new InMemoryExamRuleRepository(),
+                new RuleBasedExamGenerator(questions),
+                sessions,
+                CLOCK
+        );
+
+        ExamRule rule = service.create(1L, request("并发一致性考试"));
+        service.publish(rule.id());
+        ExamSession session = service.start(7L, rule.id());
+
+        assertThat(session.questions()).singleElement().satisfies(question -> {
+            assertThat(question.title()).isEqualTo(original.title());
+            assertThat(question.type()).isEqualTo(original.type());
+            assertThat(question.difficulty()).isEqualTo(original.difficulty());
+            assertThat(question.knowledgePoint()).isEqualTo(original.knowledgePoint());
+            assertThat(question.correctAnswer()).isEqualTo(original.answer());
+        });
+    }
+
     private Fixture fixture(boolean withQuestion) {
         InMemoryQuestionRepository questions = new InMemoryQuestionRepository();
         if (withQuestion) {

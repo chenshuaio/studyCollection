@@ -27,6 +27,9 @@ public record ExamRule(
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("考试名称不能为空");
         }
+        if (name.trim().length() > 128) {
+            throw new IllegalArgumentException("考试名称不能超过 128 个字符");
+        }
         if (durationMinutes < 1 || durationMinutes > 480) {
             throw new IllegalArgumentException("考试时长必须在 1 到 480 分钟之间");
         }
@@ -124,7 +127,7 @@ public record ExamRule(
         return value;
     }
 
-    private static int sum(Map<?, Integer> quotas) {
-        return quotas.values().stream().mapToInt(Integer::intValue).sum();
+    private static long sum(Map<?, Integer> quotas) {
+        return quotas.values().stream().mapToLong(Integer::longValue).sum();
     }
 }

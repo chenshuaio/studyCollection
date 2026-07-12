@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 @Service
 public class ExamSessionService {
@@ -69,14 +70,35 @@ public class ExamSessionService {
         if (uniqueIds.size() != request.questionIds().size()) {
             throw new IllegalArgumentException("题目不能重复选择");
         }
-        List<ExamQuestionSnapshot> snapshots = request.questionIds().stream()
+        List<Question> questions = request.questionIds().stream()
                 .map(questionRepository::findById)
-                .map(question -> snapshot(question, request.questionIds().indexOf(question.id())))
+                .toList();
+        return createFromQuestions(userId, request.name(), request.durationMinutes(), questions);
+    }
+
+    public synchronized ExamSession createFromQuestions(
+            Long userId,
+            String name,
+            int durationMinutes,
+            List<Question> questions
+    ) {
+        if (questions == null || questions.isEmpty()) {
+            throw new IllegalArgumentException("至少选择一道题目");
+        }
+        if (questions.stream().anyMatch(question -> question == null || question.id() == null)) {
+            throw new IllegalArgumentException("题目编号不能为空");
+        }
+        Set<Long> uniqueIds = new LinkedHashSet<>(questions.stream().map(Question::id).toList());
+        if (uniqueIds.size() != questions.size()) {
+            throw new IllegalArgumentException("题目不能重复选择");
+        }
+        List<ExamQuestionSnapshot> snapshots = IntStream.range(0, questions.size())
+                .mapToObj(index -> snapshot(questions.get(index), index))
                 .toList();
         ExamSession session = ExamSession.start(
                 userId,
-                request.name(),
-                request.durationMinutes(),
+                name,
+                durationMinutes,
                 clock.instant(),
                 snapshots
         );

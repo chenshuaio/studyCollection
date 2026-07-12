@@ -1,6 +1,5 @@
 package com.studycollection.exam.app;
 
-import com.studycollection.exam.api.CustomExamRequest;
 import com.studycollection.exam.api.ExamRuleRequest;
 import com.studycollection.exam.domain.ExamRule;
 import com.studycollection.exam.domain.ExamRuleStatus;
@@ -89,11 +88,12 @@ public class ExamRuleService {
             throw new IllegalArgumentException("考试规则尚未发布");
         }
         List<Question> questions = generator.generate(rule);
-        return sessionService.create(userId, new CustomExamRequest(
+        return sessionService.createFromQuestions(
+                userId,
                 rule.name(),
                 rule.durationMinutes(),
-                questions.stream().map(Question::id).toList()
-        ));
+                questions
+        );
     }
 
     private ExamRule ruleFrom(

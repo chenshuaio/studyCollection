@@ -46,6 +46,20 @@ class RuleBasedExamGeneratorTest {
     }
 
     @Test
+    void rejectsQuotaTotalsThatOverflowIntegerRange() {
+        assertThatIllegalArgumentException().isThrownBy(() -> rule(
+                1,
+                Map.of(
+                        QuestionType.SINGLE_CHOICE, Integer.MAX_VALUE,
+                        QuestionType.MULTIPLE_CHOICE, Integer.MAX_VALUE,
+                        QuestionType.TRUE_FALSE, 3
+                ),
+                Map.of(Difficulty.BEGINNER, 1),
+                List.of()
+        )).withMessageContaining("题型配额");
+    }
+
+    @Test
     void validatesRuleFieldsAndRejectsEmptyQuotaKeys() {
         assertThatIllegalArgumentException().isThrownBy(() -> new ExamRule(
                 1L,
@@ -87,6 +101,21 @@ class RuleBasedExamGeneratorTest {
                 Map.of(Difficulty.BEGINNER, 1),
                 List.of()
         )).withMessageContaining("题型配额不能包含空键");
+
+        assertThatIllegalArgumentException().isThrownBy(() -> new ExamRule(
+                1L,
+                "测".repeat(129),
+                "",
+                60,
+                1,
+                List.of(),
+                Map.of(QuestionType.SINGLE_CHOICE, 1),
+                Map.of(Difficulty.BEGINNER, 1),
+                ExamRuleStatus.DRAFT,
+                1L,
+                NOW,
+                NOW
+        )).withMessageContaining("128");
     }
 
     @Test
