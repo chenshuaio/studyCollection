@@ -80,7 +80,7 @@ public class AiAdminController {
 
     @GetMapping("/audits")
     public ApiResponse<List<AiCallAudit>> audits(
-            @RequestParam(defaultValue = "50") Integer limit
+            @RequestParam(name = "limit", defaultValue = "50") Integer limit
     ) {
         int normalizedLimit = limit == null ? 50 : limit;
         if (normalizedLimit < 1 || normalizedLimit > 100) {

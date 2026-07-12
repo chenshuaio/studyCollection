@@ -134,10 +134,10 @@ CREATE TABLE IF NOT EXISTS ai_call_audits (
 - 修改：`docs/project-completeness-2026-07-11.md`
 - 修改：`docs/superpowers/plans/2026-07-12-online-ai-configuration-audit.md`
 
-- [ ] 使用本地假 OpenAI 服务和 MySQL `root/root` 验证：管理员保存端点/模型、测试连接成功、用户在线报告返回模型建议、审计分别记录 `CONFIG_TEST` 与 `LEARNING_REPORT`。
-- [ ] 停止假模型或返回非法响应，验证在线报告自动回退 `RULES`、报告仍保存、审计记录脱敏失败原因；结束后清理临时设置、用户、作答、报告和审计数据。
-- [ ] 在 1280x720 与 390x844 检查 AI 设置页，确认表单、状态、按钮、审计表内部滚动和文字可用且无页面级横向溢出。
-- [ ] 更新 README，说明 `STUDY_COLLECTION_AI_API_KEY`、可选默认端点/模型、管理员配置页、在线失败回退与审计不保存敏感内容。
-- [ ] 更新完整度矩阵，将标准在线模型配置/调用审计标记为已实现，并重新列出剩余数据库并发约束等差距。
-- [ ] 运行后端全量 Maven、前端全量 Vitest、类型检查、生产构建、两个真实 MySQL E2E 脚本和 `git diff --check`。
+- [x] 使用本地假 OpenAI 服务和 MySQL `root/root` 验证：管理员保存端点/模型、测试连接成功、用户在线报告返回模型建议、审计分别记录 `CONFIG_TEST` 与 `LEARNING_REPORT`。
+- [x] 停止假模型或返回非法响应，验证在线报告自动回退 `RULES`、报告仍保存、审计记录脱敏失败原因；结束后清理临时设置、用户、作答、报告和审计数据。
+- [x] 在 1280x720 与 390x844 检查 AI 设置页，确认表单、状态、按钮、审计表内部滚动和文字可用且无页面级横向溢出。
+- [x] 更新 README，说明 `STUDY_COLLECTION_AI_API_KEY`、可选默认端点/模型、管理员配置页、在线失败回退与审计不保存敏感内容。
+- [x] 更新完整度矩阵，将标准在线模型配置/调用审计标记为已实现，并重新列出剩余数据库并发约束等差距。
+- [x] 运行后端全量 Maven、前端全量 Vitest、类型检查、生产构建、两个真实 MySQL E2E 脚本和 `git diff --check`。
 - [ ] 提交代码，运行 `.\scripts\publish-local.ps1 -UseMysql -RestartLocal`，验证本地与新公网入口后推送 `codex/java-learning-platform-implementation` 分支。

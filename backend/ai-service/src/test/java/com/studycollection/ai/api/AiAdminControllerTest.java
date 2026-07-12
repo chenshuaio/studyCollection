@@ -9,7 +9,9 @@ import com.studycollection.common.security.AdminOnly;
 import com.studycollection.common.security.AuthenticatedUser;
 import com.studycollection.common.security.Role;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.lang.reflect.Method;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -75,5 +77,14 @@ class AiAdminControllerTest {
 
         assertThatIllegalArgumentException().isThrownBy(() -> controller.audits(0));
         assertThatIllegalArgumentException().isThrownBy(() -> controller.audits(101));
+    }
+
+    @Test
+    void auditLimitHasAnExplicitHttpParameterName() throws Exception {
+        Method method = AiAdminController.class.getMethod("audits", Integer.class);
+        RequestParam requestParam = method.getParameters()[0].getAnnotation(RequestParam.class);
+
+        assertThat(requestParam).isNotNull();
+        assertThat(requestParam.name()).isEqualTo("limit");
     }
 }

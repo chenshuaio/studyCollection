@@ -60,6 +60,26 @@ mysql -u root -proot < scripts/mysql-init.sql
 
 结构化题目和学习资料生成题共用“个人题库 / 申请公开”目标选择，默认提交到个人题库。两种目标都必须先由管理员审核：个人题审核通过后仅提交者本人可见和使用，公开申请审核通过后所有用户可用。普通用户可在题库、练习和自定义组卷中选择“全部可用、公共题库、我的题库”；管理员模拟考试固定只从公共题库抽题。
 
+## 在线 AI 与规则回退
+
+学习报告支持“规则分析”和“在线模型”两种模式。在线模式使用 OpenAI 兼容 Chat Completions 接口；远端不可用、超时、响应格式错误或配置不完整时，报告仍会保存，并自动回退到规则分析。
+
+API 密钥只通过启动环境提供，不会保存到数据库或返回浏览器：
+
+```powershell
+$env:STUDY_COLLECTION_AI_API_KEY='your-api-key'
+.\scripts\start-local.ps1 -UseMysql
+```
+
+管理员登录后进入 `/ai-settings`，可维护完整接口地址和模型名称、测试连接并查看最近调用审计。也可以在启动前提供默认值：
+
+```powershell
+$env:STUDY_COLLECTION_AI_ENDPOINT='https://api.example.com/v1/chat/completions'
+$env:STUDY_COLLECTION_AI_MODEL='model-name'
+```
+
+调用审计只记录用户、用途、模型、成功/回退状态、耗时和脱敏失败原因，不保存提示词、模型输出、Authorization 请求头或 API 密钥。
+
 ## 登录与接口权限
 
 除注册和登录外，后端接口都要求登录令牌。前端会自动发送 `Authorization: Bearer <token>`；管理员题库、审核、知识点和用户管理接口还会在后端校验管理员角色。令牌默认有效期为 12 小时，重启本地后端后需要重新登录。
