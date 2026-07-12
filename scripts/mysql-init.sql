@@ -217,6 +217,22 @@ CREATE TABLE IF NOT EXISTS exam_paper_questions (
   FOREIGN KEY (question_id) REFERENCES questions(id)
 );
 
+CREATE TABLE IF NOT EXISTS exam_rules (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(128) NOT NULL,
+  description TEXT NOT NULL,
+  duration_minutes INT NOT NULL,
+  total_questions INT NOT NULL,
+  knowledge_points TEXT NOT NULL,
+  type_quotas TEXT NOT NULL,
+  difficulty_quotas TEXT NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  created_by BIGINT NOT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_exam_rules_status_updated (status, updated_at)
+);
+
 CREATE TABLE IF NOT EXISTS exam_sessions (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,

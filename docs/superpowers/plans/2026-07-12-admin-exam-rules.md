@@ -18,12 +18,12 @@
 - 新建：`backend/exam-service/src/main/java/com/studycollection/exam/app/RuleBasedExamGenerator.java`
 - 测试：`backend/exam-service/src/test/java/com/studycollection/exam/app/RuleBasedExamGeneratorTest.java`
 
-- [ ] 写失败测试：规则名称、题量和时限合法，题型配额与难度配额各自之和必须等于总题量，空知识点表示全部知识点。
-- [ ] 运行 `mvn -pl exam-service -am -Dtest=RuleBasedExamGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test`，确认因模型和生成器尚不存在而失败。
-- [ ] 实现不可变规则模型；总题量限制为 1 至 200，时限限制为 1 至 480 分钟，配额不得为负数或包含空键。
-- [ ] 写失败测试：生成器只使用指定知识点，并同时精确满足题型和难度两个维度的配额；题库容量无法满足联合分布时返回明确中文错误。
-- [ ] 实现按“题型 × 难度”候选单元分配数量的回溯求解，再对每个单元随机抽题，避免简单贪心导致存在可行解却组卷失败。
-- [ ] 重跑定向测试，确认全部通过。
+- [x] 写失败测试：规则名称、题量和时限合法，题型配额与难度配额各自之和必须等于总题量，空知识点表示全部知识点。
+- [x] 运行 `mvn -pl exam-service -am -Dtest=RuleBasedExamGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test`，确认因模型和生成器尚不存在而失败。
+- [x] 实现不可变规则模型；总题量限制为 1 至 200，时限限制为 1 至 480 分钟，配额不得为负数或包含空键。
+- [x] 写失败测试：生成器只使用指定知识点，并同时精确满足题型和难度两个维度的配额；题库容量无法满足联合分布时返回明确中文错误。
+- [x] 实现按“题型 × 难度”候选单元分配数量的回溯求解，再对每个单元随机抽题，避免简单贪心导致存在可行解却组卷失败。
+- [x] 重跑定向测试，确认全部通过。
 
 ### 任务 2：规则持久化、管理员生命周期与模拟考试启动
 
@@ -39,13 +39,13 @@
 - 测试：`backend/exam-service/src/test/java/com/studycollection/exam/app/ExamRuleServiceTest.java`
 - 测试：`backend/exam-service/src/test/java/com/studycollection/exam/api/ExamRuleControllerTest.java`
 
-- [ ] 写失败测试：管理员可创建草稿、修改、发布、停用和删除规则；修改已发布规则后自动回到草稿，普通列表只返回已发布规则。
-- [ ] 写失败测试：发布时校验当前公共题库存在可行组卷，启动时再次校验并生成属于当前用户的考试会话。
-- [ ] 运行考试模块测试，确认因仓储、服务和控制器尚不存在而失败。
-- [ ] 实现内存仓储与服务；`GET /exam-rules` 和 `POST /exam-rules/{id}/start` 面向已登录用户，`/exam-rules/admin` 及创建、修改、发布、停用、删除接口使用 `@AdminOnly`。
-- [ ] 实现 MySQL `exam_rules` 表与仓储，列表、知识点和配额使用 JSON 文本持久化，保存创建人、创建时间和更新时间。
-- [ ] 让规则启动调用现有会话快照创建逻辑，确保后续规则或原题修改不改变已开始考试。
-- [ ] 重跑 `mvn -pl exam-service -am test`，确认规则与既有考试测试全部通过。
+- [x] 写失败测试：管理员可创建草稿、修改、发布、停用和删除规则；修改已发布规则后自动回到草稿，普通列表只返回已发布规则。
+- [x] 写失败测试：发布时校验当前公共题库存在可行组卷，启动时再次校验并生成属于当前用户的考试会话。
+- [x] 运行考试模块测试，确认因仓储、服务和控制器尚不存在而失败。
+- [x] 实现内存仓储与服务；`GET /exam-rules` 和 `POST /exam-rules/{id}/start` 面向已登录用户，`/exam-rules/admin` 及创建、修改、发布、停用、删除接口使用 `@AdminOnly`。
+- [x] 实现 MySQL `exam_rules` 表与仓储，列表、知识点和配额使用 JSON 文本持久化，保存创建人、创建时间和更新时间。
+- [x] 让规则启动调用现有会话快照创建逻辑，确保后续规则或原题修改不改变已开始考试。
+- [x] 重跑 `mvn -pl exam-service -am test`，确认规则与既有考试测试全部通过。
 
 ### 任务 3：前端考试规则管理与模拟考试入口
 
