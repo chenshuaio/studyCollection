@@ -9,10 +9,171 @@ import com.studycollection.question.domain.QuestionRevision;
 import com.studycollection.question.domain.QuestionType;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class QuestionFeedbackServiceTest {
+    @Test
+    void groupsDuplicatePendingAndNeedsReviewFeedbackWithUserAnswerAndSource() {
+        InMemoryQuestionRepository questions = new InMemoryQuestionRepository();
+        Question question = questions.save(new Question(
+                null,
+                "Java 中 int 成员变量默认值是多少？",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "成员变量默认值为 0。"
+        ));
+        InMemoryQuestionFeedbackRepository feedbacks = new InMemoryQuestionFeedbackRepository();
+        QuestionFeedbackService firstService = service(
+                feedbacks,
+                questions,
+                Instant.parse("2026-07-10T08:00:00Z")
+        );
+        QuestionFeedback first = firstService.submit(
+                7L,
+                question.id(),
+                FeedbackType.ANSWER_ERROR,
+                "标准答案应为 B",
+                "B",
+                "PRACTICE",
+                "practice-91"
+        );
+        QuestionFeedbackService secondService = service(
+                feedbacks,
+                questions,
+                Instant.parse("2026-07-12T09:00:00Z")
+        );
+        QuestionFeedback second = secondService.submit(
+                8L,
+                question.id(),
+                FeedbackType.ANSWER_ERROR,
+                "答案 A 不正确",
+                "B",
+                "EXAM",
+                "exam-12"
+        );
+        secondService.markNeedsReview(second.id(), 1L, "交给教研复核");
+
+        List<QuestionFeedbackGroup> groups = secondService.pendingGroups();
+
+        assertThat(groups).singleElement().satisfies(group -> {
+            assertThat(group.questionId()).isEqualTo(question.id());
+            assertThat(group.questionTitle()).contains("int 成员变量");
+            assertThat(group.questionSource()).isEqualTo("LOCAL_UPLOAD");
+            assertThat(group.type()).isEqualTo(FeedbackType.ANSWER_ERROR);
+            assertThat(group.feedbackCount()).isEqualTo(2);
+            assertThat(group.latestAt()).isEqualTo(Instant.parse("2026-07-12T09:00:00Z"));
+            assertThat(group.items()).extracting(QuestionFeedback::id)
+                    .containsExactly(second.id(), first.id());
+            assertThat(group.items().get(0).submittedAnswer()).isEqualTo("B");
+            assertThat(group.items().get(0).sourceContext()).isEqualTo("EXAM");
+            assertThat(group.items().get(0).sourceReference()).isEqualTo("exam-12");
+        });
+    }
+
+    @Test
+    void acceptingDuplicateGroupPersistsReviewAuditAndCompleteRevisionSnapshots() {
+        InMemoryQuestionRepository questions = new InMemoryQuestionRepository();
+        Question question = questions.save(new Question(
+                null,
+                "Java 中 int 成员变量默认值是多少？",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "旧解析"
+        ));
+        InMemoryQuestionFeedbackRepository feedbacks = new InMemoryQuestionFeedbackRepository();
+        QuestionFeedbackService service = service(
+                feedbacks,
+                questions,
+                Instant.parse("2026-07-12T10:00:00Z")
+        );
+        QuestionFeedback first = service.submit(7L, question.id(), FeedbackType.ANSWER_ERROR, "应为 B");
+        QuestionFeedback second = service.submit(8L, question.id(), FeedbackType.ANSWER_ERROR, "答案标错了");
+
+        QuestionRevision revision = service.acceptGroup(
+                List.of(first.id(), second.id()),
+                1L,
+                "标准答案从 A 修改为 B",
+                "两位用户反馈一致，已核验",
+                "B",
+                "int 成员变量默认值是 0。"
+        );
+
+        assertThat(revision.feedbackId()).isEqualTo(first.id());
+        assertThat(revision.relatedFeedbackIds()).containsExactly(first.id(), second.id());
+        assertThat(revision.beforeQuestion().answer()).isEqualTo("A");
+        assertThat(revision.afterQuestion().answer()).isEqualTo("B");
+        assertThat(revision.beforeQuestion().analysis()).isEqualTo("旧解析");
+        assertThat(revision.afterQuestion().analysis()).contains("默认值是 0");
+        assertThat(revision.scoringAffected()).isTrue();
+        assertThat(revision.revisedAt()).isEqualTo(Instant.parse("2026-07-12T10:00:00Z"));
+        assertThat(service.find(first.id()).status()).isEqualTo(FeedbackStatus.ACCEPTED);
+        assertThat(service.find(second.id()).status()).isEqualTo(FeedbackStatus.ACCEPTED);
+        assertThat(service.find(second.id()).reviewNote()).contains("已核验");
+        assertThat(service.find(second.id()).reviewedBy()).isEqualTo(1L);
+        assertThat(service.find(second.id()).reviewedAt()).isEqualTo(Instant.parse("2026-07-12T10:00:00Z"));
+        assertThat(service.revisions(question.id())).containsExactly(revision);
+        assertThat(feedbacks.findScoringAffectedQuestionIds()).containsExactly(question.id());
+    }
+
+    @Test
+    void acceptingFeedbackCanReviseStemTypeDifficultyAndKnowledgePoint() {
+        InMemoryQuestionRepository questions = new InMemoryQuestionRepository();
+        Question question = questions.save(new Question(
+                null,
+                "旧题干",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "旧解析"
+        ));
+        InMemoryQuestionFeedbackRepository feedbacks = new InMemoryQuestionFeedbackRepository();
+        QuestionFeedbackService service = service(
+                feedbacks,
+                questions,
+                Instant.parse("2026-07-12T11:00:00Z")
+        );
+        QuestionFeedback feedback = service.submit(
+                7L,
+                question.id(),
+                FeedbackType.STEM_ERROR,
+                "题干和分类都需要修订"
+        );
+
+        QuestionRevision revision = service.acceptGroup(
+                List.of(feedback.id()),
+                1L,
+                "修订题干与分类",
+                "已核验",
+                "新题干\nA. 选项一\nB. 选项二",
+                QuestionType.MULTIPLE_CHOICE,
+                Difficulty.ADVANCED,
+                "集合框架",
+                "AB",
+                "新解析"
+        );
+
+        assertThat(revision.beforeQuestion().title()).isEqualTo("旧题干");
+        assertThat(revision.afterQuestion()).satisfies(snapshot -> {
+            assertThat(snapshot.title()).contains("新题干", "选项一");
+            assertThat(snapshot.type()).isEqualTo(QuestionType.MULTIPLE_CHOICE);
+            assertThat(snapshot.difficulty()).isEqualTo(Difficulty.ADVANCED);
+            assertThat(snapshot.knowledgePoint()).isEqualTo("集合框架");
+            assertThat(snapshot.answer()).isEqualTo("AB");
+        });
+        assertThat(revision.scoringAffected()).isFalse();
+    }
+
     @Test
     void acceptedFeedbackUpdatesQuestionAndCreatesRevisionHistory() {
         InMemoryQuestionRepository questionRepository = new InMemoryQuestionRepository();
@@ -121,6 +282,18 @@ class QuestionFeedbackServiceTest {
         return new QuestionFeedbackService(
                 new InMemoryQuestionFeedbackRepository(),
                 new InMemoryQuestionRepository()
+        );
+    }
+
+    private QuestionFeedbackService service(
+            InMemoryQuestionFeedbackRepository feedbacks,
+            InMemoryQuestionRepository questions,
+            Instant now
+    ) {
+        return new QuestionFeedbackService(
+                feedbacks,
+                questions,
+                Clock.fixed(now, ZoneOffset.UTC)
         );
     }
 }

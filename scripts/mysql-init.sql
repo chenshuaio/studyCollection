@@ -68,7 +68,13 @@ CREATE TABLE IF NOT EXISTS question_feedback (
   question_id BIGINT NOT NULL,
   type VARCHAR(32) NOT NULL,
   content TEXT NOT NULL,
+  submitted_answer TEXT NOT NULL,
+  source_context VARCHAR(32) NOT NULL,
+  source_reference VARCHAR(128) NOT NULL,
   status VARCHAR(32) NOT NULL,
+  reviewed_by BIGINT NULL,
+  review_note TEXT NULL,
+  reviewed_at DATETIME(6) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_feedback_status (status),
@@ -79,13 +85,104 @@ CREATE TABLE IF NOT EXISTS question_revisions (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   question_id BIGINT NOT NULL,
   feedback_id BIGINT NULL,
+  related_feedback_ids LONGTEXT NOT NULL,
   admin_user_id BIGINT NOT NULL,
   change_summary TEXT NOT NULL,
   review_note TEXT NULL,
+  before_snapshot LONGTEXT NOT NULL,
+  after_snapshot LONGTEXT NOT NULL,
+  scoring_affected BOOLEAN NOT NULL DEFAULT FALSE,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (question_id) REFERENCES questions(id),
   FOREIGN KEY (feedback_id) REFERENCES question_feedback(id)
 );
+
+SET @feedback_columns = CONCAT(
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_feedback' AND column_name = 'submitted_answer') = 0,
+    ', ADD COLUMN submitted_answer TEXT NULL AFTER content', ''),
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_feedback' AND column_name = 'source_context') = 0,
+    ', ADD COLUMN source_context VARCHAR(32) NULL AFTER submitted_answer', ''),
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_feedback' AND column_name = 'source_reference') = 0,
+    ', ADD COLUMN source_reference VARCHAR(128) NULL AFTER source_context', ''),
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_feedback' AND column_name = 'reviewed_by') = 0,
+    ', ADD COLUMN reviewed_by BIGINT NULL AFTER status', ''),
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_feedback' AND column_name = 'review_note') = 0,
+    ', ADD COLUMN review_note TEXT NULL AFTER reviewed_by', ''),
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_feedback' AND column_name = 'reviewed_at') = 0,
+    ', ADD COLUMN reviewed_at DATETIME(6) NULL AFTER review_note', '')
+);
+SET @feedback_columns_ddl = IF(
+  @feedback_columns = '',
+  'SELECT 1',
+  CONCAT('ALTER TABLE question_feedback ', SUBSTRING(@feedback_columns, 3))
+);
+PREPARE feedback_columns_statement FROM @feedback_columns_ddl;
+EXECUTE feedback_columns_statement;
+DEALLOCATE PREPARE feedback_columns_statement;
+
+UPDATE question_feedback
+SET submitted_answer = COALESCE(submitted_answer, ''),
+    source_context = COALESCE(source_context, 'UNKNOWN'),
+    source_reference = COALESCE(source_reference, ''),
+    review_note = COALESCE(review_note, '');
+ALTER TABLE question_feedback MODIFY submitted_answer TEXT NOT NULL;
+ALTER TABLE question_feedback MODIFY source_context VARCHAR(32) NOT NULL;
+ALTER TABLE question_feedback MODIFY source_reference VARCHAR(128) NOT NULL;
+
+SET @revision_columns = CONCAT(
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_revisions' AND column_name = 'related_feedback_ids') = 0,
+    ', ADD COLUMN related_feedback_ids LONGTEXT NULL AFTER feedback_id', ''),
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_revisions' AND column_name = 'before_snapshot') = 0,
+    ', ADD COLUMN before_snapshot LONGTEXT NULL AFTER review_note', ''),
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_revisions' AND column_name = 'after_snapshot') = 0,
+    ', ADD COLUMN after_snapshot LONGTEXT NULL AFTER before_snapshot', ''),
+  IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'question_revisions' AND column_name = 'scoring_affected') = 0,
+    ', ADD COLUMN scoring_affected BOOLEAN NOT NULL DEFAULT FALSE AFTER after_snapshot', '')
+);
+SET @revision_columns_ddl = IF(
+  @revision_columns = '',
+  'SELECT 1',
+  CONCAT('ALTER TABLE question_revisions ', SUBSTRING(@revision_columns, 3))
+);
+PREPARE revision_columns_statement FROM @revision_columns_ddl;
+EXECUTE revision_columns_statement;
+DEALLOCATE PREPARE revision_columns_statement;
+
+UPDATE question_revisions revisions
+JOIN questions question ON question.id = revisions.question_id
+SET revisions.related_feedback_ids = COALESCE(
+      revisions.related_feedback_ids,
+      JSON_ARRAY(revisions.feedback_id)
+    ),
+    revisions.before_snapshot = COALESCE(
+      revisions.before_snapshot,
+      JSON_OBJECT(
+        'id', question.id,
+        'title', question.title,
+        'type', question.type,
+        'difficulty', question.difficulty,
+        'knowledgePoint', question.knowledge_point,
+        'answer', question.answer,
+        'analysis', question.analysis,
+        'source', question.source
+      )
+    ),
+    revisions.after_snapshot = COALESCE(
+      revisions.after_snapshot,
+      JSON_OBJECT(
+        'id', question.id,
+        'title', question.title,
+        'type', question.type,
+        'difficulty', question.difficulty,
+        'knowledgePoint', question.knowledge_point,
+        'answer', question.answer,
+        'analysis', question.analysis,
+        'source', question.source
+      )
+    );
+ALTER TABLE question_revisions MODIFY related_feedback_ids LONGTEXT NOT NULL;
+ALTER TABLE question_revisions MODIFY before_snapshot LONGTEXT NOT NULL;
+ALTER TABLE question_revisions MODIFY after_snapshot LONGTEXT NOT NULL;
 
 CREATE TABLE IF NOT EXISTS pending_questions (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -167,8 +264,14 @@ CREATE TABLE IF NOT EXISTS mistake_records (
   user_id BIGINT NOT NULL,
   question_id BIGINT NOT NULL,
   question_title TEXT NOT NULL,
+  question_type VARCHAR(32) NOT NULL,
   knowledge_point VARCHAR(128) NOT NULL,
+  last_submitted_answer TEXT NOT NULL,
+  source_context VARCHAR(32) NOT NULL,
   status VARCHAR(32) NOT NULL,
+  wrong_count INT NOT NULL DEFAULT 1,
+  first_wrong_at DATETIME(6) NOT NULL,
+  last_wrong_at DATETIME(6) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_mistakes_user_status (user_id, status),
@@ -194,6 +297,111 @@ UPDATE mistake_records
 SET question_title = CONCAT('题目 ', question_id)
 WHERE question_title IS NULL OR question_title = '';
 ALTER TABLE mistake_records MODIFY question_title TEXT NOT NULL;
+
+SET @mistake_type_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'mistake_records'
+    AND column_name = 'question_type'
+);
+SET @mistake_type_ddl = IF(
+  @mistake_type_column_exists = 0,
+  'ALTER TABLE mistake_records ADD COLUMN question_type VARCHAR(32) NULL AFTER question_title',
+  'SELECT 1'
+);
+PREPARE mistake_type_statement FROM @mistake_type_ddl;
+EXECUTE mistake_type_statement;
+DEALLOCATE PREPARE mistake_type_statement;
+
+SET @mistake_answer_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'mistake_records'
+    AND column_name = 'last_submitted_answer'
+);
+SET @mistake_answer_ddl = IF(
+  @mistake_answer_column_exists = 0,
+  'ALTER TABLE mistake_records ADD COLUMN last_submitted_answer TEXT NULL AFTER knowledge_point',
+  'SELECT 1'
+);
+PREPARE mistake_answer_statement FROM @mistake_answer_ddl;
+EXECUTE mistake_answer_statement;
+DEALLOCATE PREPARE mistake_answer_statement;
+
+SET @mistake_source_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'mistake_records'
+    AND column_name = 'source_context'
+);
+SET @mistake_source_ddl = IF(
+  @mistake_source_column_exists = 0,
+  'ALTER TABLE mistake_records ADD COLUMN source_context VARCHAR(32) NULL AFTER last_submitted_answer',
+  'SELECT 1'
+);
+PREPARE mistake_source_statement FROM @mistake_source_ddl;
+EXECUTE mistake_source_statement;
+DEALLOCATE PREPARE mistake_source_statement;
+
+SET @mistake_count_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'mistake_records'
+    AND column_name = 'wrong_count'
+);
+SET @mistake_count_ddl = IF(
+  @mistake_count_column_exists = 0,
+  'ALTER TABLE mistake_records ADD COLUMN wrong_count INT NOT NULL DEFAULT 1 AFTER status',
+  'SELECT 1'
+);
+PREPARE mistake_count_statement FROM @mistake_count_ddl;
+EXECUTE mistake_count_statement;
+DEALLOCATE PREPARE mistake_count_statement;
+
+SET @mistake_first_time_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'mistake_records'
+    AND column_name = 'first_wrong_at'
+);
+SET @mistake_first_time_ddl = IF(
+  @mistake_first_time_column_exists = 0,
+  'ALTER TABLE mistake_records ADD COLUMN first_wrong_at DATETIME(6) NULL AFTER wrong_count',
+  'SELECT 1'
+);
+PREPARE mistake_first_time_statement FROM @mistake_first_time_ddl;
+EXECUTE mistake_first_time_statement;
+DEALLOCATE PREPARE mistake_first_time_statement;
+
+SET @mistake_last_time_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'mistake_records'
+    AND column_name = 'last_wrong_at'
+);
+SET @mistake_last_time_ddl = IF(
+  @mistake_last_time_column_exists = 0,
+  'ALTER TABLE mistake_records ADD COLUMN last_wrong_at DATETIME(6) NULL AFTER first_wrong_at',
+  'SELECT 1'
+);
+PREPARE mistake_last_time_statement FROM @mistake_last_time_ddl;
+EXECUTE mistake_last_time_statement;
+DEALLOCATE PREPARE mistake_last_time_statement;
+
+UPDATE mistake_records mistakes
+LEFT JOIN questions question ON question.id = mistakes.question_id
+SET mistakes.question_type = COALESCE(mistakes.question_type, question.type, 'SHORT_ANSWER'),
+    mistakes.last_submitted_answer = COALESCE(mistakes.last_submitted_answer, ''),
+    mistakes.source_context = COALESCE(mistakes.source_context, 'UNKNOWN'),
+    mistakes.wrong_count = GREATEST(COALESCE(mistakes.wrong_count, 1), 1),
+    mistakes.first_wrong_at = COALESCE(mistakes.first_wrong_at, mistakes.created_at),
+    mistakes.last_wrong_at = COALESCE(mistakes.last_wrong_at, mistakes.updated_at, mistakes.created_at);
+
+ALTER TABLE mistake_records MODIFY question_type VARCHAR(32) NOT NULL;
+ALTER TABLE mistake_records MODIFY last_submitted_answer TEXT NOT NULL;
+ALTER TABLE mistake_records MODIFY source_context VARCHAR(32) NOT NULL;
+ALTER TABLE mistake_records MODIFY first_wrong_at DATETIME(6) NOT NULL;
+ALTER TABLE mistake_records MODIFY last_wrong_at DATETIME(6) NOT NULL;
 
 DELETE older
 FROM mistake_records older

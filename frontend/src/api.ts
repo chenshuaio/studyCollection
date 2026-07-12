@@ -151,23 +151,64 @@ export type QuestionFeedbackPayload = {
   questionId: number
   type: string
   content: string
+  submittedAnswer?: string
+  sourceContext?: 'PRACTICE' | 'EXAM' | 'MISTAKE_BOOK' | 'QUESTION_DETAIL' | 'UNKNOWN'
+  sourceReference?: string
 }
 
 export type QuestionFeedback = QuestionFeedbackPayload & {
   id: number
   userId: number
   status: string
+  createdAt?: string
+  reviewedBy?: number | null
+  reviewNote?: string
+  reviewedAt?: string | null
+}
+
+export type QuestionFeedbackGroup = {
+  questionId: number
+  questionTitle: string
+  questionType: string
+  difficulty: string
+  knowledgePoint: string
+  currentAnswer: string
+  currentAnalysis: string
+  questionSource: string
+  type: string
+  feedbackCount: number
+  latestAt: string
+  items: QuestionFeedback[]
 }
 
 export type AcceptFeedbackPayload = {
   changeSummary: string
   reviewNote: string
+  correctedTitle?: string
+  correctedType?: string
+  correctedDifficulty?: string
+  correctedKnowledgePoint?: string
   correctedAnswer?: string
   correctedAnalysis?: string
 }
 
 export type ReviewFeedbackPayload = {
   reviewNote: string
+}
+
+export type AcceptFeedbackGroupPayload = AcceptFeedbackPayload & {
+  feedbackIds: number[]
+}
+
+export type QuestionSnapshot = {
+  id: number
+  title: string
+  type: string
+  difficulty: string
+  knowledgePoint: string
+  answer: string
+  analysis: string
+  source: string
 }
 
 export type QuestionRevision = {
@@ -177,6 +218,11 @@ export type QuestionRevision = {
   adminUserId: number
   changeSummary: string
   reviewNote: string
+  relatedFeedbackIds?: number[]
+  beforeQuestion?: QuestionSnapshot
+  afterQuestion?: QuestionSnapshot
+  scoringAffected?: boolean
+  revisedAt?: string
 }
 
 export type CustomExamPayload = {
@@ -235,6 +281,7 @@ export type CustomExamPaper = ExamSession
 
 export type LearningReportPayload = {
   mode: 'ONLINE_MODEL' | 'OFFLINE_RULES'
+  revisedQuestionPolicy: 'EXCLUDE_REVISED' | 'RECALCULATE_REVISED'
 }
 
 export type PerformanceBreakdown = {
@@ -275,14 +322,36 @@ export type LearningReport = {
   questionTypePerformance: PerformanceBreakdown[]
   recentTrend: ReportTrendPoint[]
   strengtheningQuestions: StrengtheningQuestion[]
+  revisionPolicy: string
+  revisedAttemptCount: number
 }
 
 export type MistakeRecord = {
   userId: number
   questionId: number
   questionTitle: string
+  questionType: string
   knowledgePoint: string
+  lastSubmittedAnswer: string
+  sourceContext: string
   status: string
+  wrongCount: number
+  firstWrongAt: string
+  lastWrongAt: string
+}
+
+export type RecordMistakePayload = {
+  questionId: number
+  submittedAnswer: string
+  sourceContext: 'PRACTICE' | 'EXAM' | 'MISTAKE_RETRY'
+}
+
+export type MistakeFilters = {
+  knowledgePoint?: string
+  questionType?: string
+  status?: string
+  wrongFrom?: string
+  wrongTo?: string
 }
 
 export type UpdateMistakeStatusPayload = {
@@ -475,12 +544,24 @@ export function listPendingFeedback() {
   return request<QuestionFeedback[]>('/questions/feedback/pending', { method: 'GET' })
 }
 
+export function listPendingFeedbackGroups() {
+  return request<QuestionFeedbackGroup[]>('/questions/feedback/pending/groups', { method: 'GET' })
+}
+
 export function listUserFeedback() {
   return request<QuestionFeedback[]>('/questions/feedback', { method: 'GET' })
 }
 
 export function acceptQuestionFeedback(feedbackId: number, payload: AcceptFeedbackPayload) {
   return post<QuestionRevision>(`/questions/feedback/${feedbackId}/accept`, payload)
+}
+
+export function acceptQuestionFeedbackGroup(payload: AcceptFeedbackGroupPayload) {
+  return post<QuestionRevision>('/questions/feedback/groups/accept', payload)
+}
+
+export function listQuestionRevisions(questionId: number) {
+  return request<QuestionRevision[]>(`/questions/feedback/revisions/${questionId}`, { method: 'GET' })
 }
 
 export function rejectQuestionFeedback(feedbackId: number, payload: ReviewFeedbackPayload) {
@@ -519,7 +600,7 @@ export function listLearningReports() {
   return request<LearningReport[]>('/reports/learning', { method: 'GET' })
 }
 
-export function recordMistake(payload: Omit<MistakeRecord, 'userId'>) {
+export function recordMistake(payload: RecordMistakePayload) {
   return post<MistakeRecord>('/mistakes', payload)
 }
 
@@ -527,8 +608,13 @@ export function updateMistakeStatus(payload: UpdateMistakeStatusPayload) {
   return post<MistakeRecord>('/mistakes/status', payload)
 }
 
-export function listMistakes() {
-  return request<MistakeRecord[]>('/mistakes', { method: 'GET' })
+export function listMistakes(filters: MistakeFilters = {}) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value)
+  })
+  const query = params.toString()
+  return request<MistakeRecord[]>(`/mistakes${query ? `?${query}` : ''}`, { method: 'GET' })
 }
 
 function authorizationHeaders() {

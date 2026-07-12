@@ -5,6 +5,7 @@ import com.studycollection.common.api.ApiResponse;
 import com.studycollection.common.security.AuthenticatedUser;
 import com.studycollection.report.app.LearningReportResponse;
 import com.studycollection.report.app.LearningReportService;
+import com.studycollection.report.app.RevisedQuestionPolicy;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,7 +29,11 @@ public class LearningReportController {
             @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
             @RequestBody LearningReportRequest request
     ) {
-        return ApiResponse.success(service.generate(currentUser.userId(), parseMode(request.mode())));
+        return ApiResponse.success(service.generate(
+                currentUser.userId(),
+                parseMode(request.mode()),
+                parseRevisionPolicy(request.revisedQuestionPolicy())
+        ));
     }
 
     @GetMapping
@@ -43,6 +48,15 @@ public class LearningReportController {
             return AnalysisMode.valueOf(value == null ? "" : value.trim().toUpperCase());
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("分析模式仅支持 OFFLINE_RULES 或 ONLINE_MODEL");
+        }
+    }
+
+    private RevisedQuestionPolicy parseRevisionPolicy(String value) {
+        String normalized = value == null || value.isBlank() ? "EXCLUDE_REVISED" : value.trim().toUpperCase();
+        try {
+            return RevisedQuestionPolicy.valueOf(normalized);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("修订题策略仅支持 EXCLUDE_REVISED 或 RECALCULATE_REVISED");
         }
     }
 }

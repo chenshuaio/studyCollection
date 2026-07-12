@@ -17,13 +17,18 @@ public record LearningReportResponse(
         List<PerformanceBreakdown> knowledgePointPerformance,
         List<PerformanceBreakdown> questionTypePerformance,
         List<TrendPoint> recentTrend,
-        List<StrengtheningQuestion> strengtheningQuestions
+        List<StrengtheningQuestion> strengtheningQuestions,
+        String revisionPolicy,
+        int revisedAttemptCount
 ) {
     public LearningReportResponse {
         knowledgePointPerformance = List.copyOf(knowledgePointPerformance);
         questionTypePerformance = List.copyOf(questionTypePerformance);
         recentTrend = List.copyOf(recentTrend);
         strengtheningQuestions = List.copyOf(strengtheningQuestions);
+        revisionPolicy = revisionPolicy == null || revisionPolicy.isBlank()
+                ? "RECORDED_HISTORY"
+                : revisionPolicy;
     }
 
     public LearningReportResponse withIdentity(Long persistedId, Instant persistedAt) {
@@ -41,7 +46,9 @@ public record LearningReportResponse(
                 knowledgePointPerformance,
                 questionTypePerformance,
                 recentTrend,
-                strengtheningQuestions
+                strengtheningQuestions,
+                revisionPolicy,
+                revisedAttemptCount
         );
     }
 }

@@ -3,7 +3,10 @@ package com.studycollection.question.api;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.QuestionType;
 
-public record AcceptFeedbackRequest(
+import java.util.List;
+
+public record AcceptFeedbackGroupRequest(
+        List<Long> feedbackIds,
         String changeSummary,
         String reviewNote,
         String correctedTitle,
@@ -13,12 +16,4 @@ public record AcceptFeedbackRequest(
         String correctedAnswer,
         String correctedAnalysis
 ) {
-    public AcceptFeedbackRequest(
-            String changeSummary,
-            String reviewNote,
-            String correctedAnswer,
-            String correctedAnalysis
-    ) {
-        this(changeSummary, reviewNote, null, null, null, null, correctedAnswer, correctedAnalysis);
-    }
 }

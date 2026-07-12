@@ -73,7 +73,9 @@ public class MySqlLearningReportRepository implements LearningReportRepository {
                     details.knowledgePointPerformance(),
                     details.questionTypePerformance(),
                     details.recentTrend(),
-                    details.strengtheningQuestions()
+                    details.strengtheningQuestions(),
+                    details.revisionPolicy(),
+                    details.revisedAttemptCount()
             );
         }, userId);
     }
@@ -88,7 +90,9 @@ public class MySqlLearningReportRepository implements LearningReportRepository {
                     report.knowledgePointPerformance(),
                     report.questionTypePerformance(),
                     report.recentTrend(),
-                    report.strengtheningQuestions()
+                    report.strengtheningQuestions(),
+                    report.revisionPolicy(),
+                    report.revisedAttemptCount()
             ));
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("学习报告序列化失败", exception);
@@ -114,17 +118,33 @@ public class MySqlLearningReportRepository implements LearningReportRepository {
             List<PerformanceBreakdown> knowledgePointPerformance,
             List<PerformanceBreakdown> questionTypePerformance,
             List<TrendPoint> recentTrend,
-            List<StrengtheningQuestion> strengtheningQuestions
+            List<StrengtheningQuestion> strengtheningQuestions,
+            String revisionPolicy,
+            int revisedAttemptCount
     ) {
         public ReportDetails {
             knowledgePointPerformance = safeCopy(knowledgePointPerformance);
             questionTypePerformance = safeCopy(questionTypePerformance);
             recentTrend = safeCopy(recentTrend);
             strengtheningQuestions = safeCopy(strengtheningQuestions);
+            revisionPolicy = revisionPolicy == null || revisionPolicy.isBlank()
+                    ? "RECORDED_HISTORY"
+                    : revisionPolicy;
         }
 
         static ReportDetails empty() {
-            return new ReportDetails(0, 0, 0, 0, List.of(), List.of(), List.of(), List.of());
+            return new ReportDetails(
+                    0,
+                    0,
+                    0,
+                    0,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    "RECORDED_HISTORY",
+                    0
+            );
         }
 
         private static <T> List<T> safeCopy(List<T> items) {

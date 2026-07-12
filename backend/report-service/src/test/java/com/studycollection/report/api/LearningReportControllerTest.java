@@ -7,7 +7,10 @@ import com.studycollection.exam.app.InMemoryLearningAttemptRepository;
 import com.studycollection.exam.app.LearningActivityType;
 import com.studycollection.exam.app.LearningAttempt;
 import com.studycollection.question.app.InMemoryQuestionRepository;
+import com.studycollection.question.app.InMemoryQuestionFeedbackRepository;
+import com.studycollection.question.app.QuestionFeedbackService;
 import com.studycollection.question.domain.Difficulty;
+import com.studycollection.question.domain.FeedbackType;
 import com.studycollection.question.domain.Question;
 import com.studycollection.question.domain.QuestionType;
 import com.studycollection.report.app.InMemoryLearningReportRepository;
@@ -141,6 +144,85 @@ class LearningReportControllerTest {
                 .hasMessage("暂无可用于分析的真实作答记录");
     }
 
+    @Test
+    void excludesOrRecalculatesAttemptsAffectedByAcceptedAnswerRevision() {
+        InMemoryLearningAttemptRepository attemptRepository = new InMemoryLearningAttemptRepository();
+        InMemoryLearningReportRepository reportRepository = new InMemoryLearningReportRepository();
+        InMemoryQuestionRepository questionRepository = new InMemoryQuestionRepository();
+        Question revisedQuestion = questionRepository.save(new Question(
+                101L,
+                "Java 中 int 成员变量默认值是多少？",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "旧解析"
+        ));
+        questionRepository.save(new Question(
+                102L,
+                "String 是否不可变？",
+                QuestionType.TRUE_FALSE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "true",
+                "String 是不可变类。"
+        ));
+        InMemoryQuestionFeedbackRepository feedbackRepository = new InMemoryQuestionFeedbackRepository();
+        QuestionFeedbackService feedbackService = new QuestionFeedbackService(
+                feedbackRepository,
+                questionRepository,
+                Clock.fixed(Instant.parse("2026-07-12T08:00:00Z"), ZoneOffset.UTC)
+        );
+        var feedback = feedbackService.submit(
+                7L,
+                revisedQuestion.id(),
+                FeedbackType.ANSWER_ERROR,
+                "标准答案应为 B"
+        );
+        feedbackService.accept(
+                feedback.id(),
+                1L,
+                "答案从 A 修改为 B",
+                "已核验",
+                "B",
+                "正确答案是 B。"
+        );
+        attemptRepository.saveAll(List.of(
+                attemptWithAnswer(7L, 101L, "Java 基础", QuestionType.SINGLE_CHOICE, "B", false),
+                attemptWithAnswer(7L, 102L, "Java 基础", QuestionType.TRUE_FALSE, "true", true)
+        ));
+        LearningReportService service = new LearningReportService(
+                attemptRepository,
+                reportRepository,
+                new WeakPointAnalyzer(),
+                new AiAnalysisService(summary -> "在线建议"),
+                questionRepository,
+                feedbackRepository,
+                Clock.fixed(Instant.parse("2026-07-12T09:00:00Z"), ZoneOffset.UTC)
+        );
+        LearningReportController controller = new LearningReportController(service);
+
+        LearningReportResponse excluded = controller.generate(
+                USER,
+                new LearningReportRequest("OFFLINE_RULES", "EXCLUDE_REVISED")
+        ).data();
+        LearningReportResponse recalculated = controller.generate(
+                USER,
+                new LearningReportRequest("OFFLINE_RULES", "RECALCULATE_REVISED")
+        ).data();
+
+        assertThat(excluded.revisionPolicy()).isEqualTo("EXCLUDE_REVISED");
+        assertThat(excluded.revisedAttemptCount()).isEqualTo(1);
+        assertThat(excluded.gradedQuestionCount()).isEqualTo(1);
+        assertThat(excluded.correctQuestionCount()).isEqualTo(1);
+        assertThat(recalculated.revisionPolicy()).isEqualTo("RECALCULATE_REVISED");
+        assertThat(recalculated.revisedAttemptCount()).isEqualTo(1);
+        assertThat(recalculated.gradedQuestionCount()).isEqualTo(2);
+        assertThat(recalculated.correctQuestionCount()).isEqualTo(2);
+        assertThat(recalculated.accuracy()).isEqualTo(1.0);
+        assertThat(attemptRepository.findByUserId(7L).get(0).correct()).isFalse();
+    }
+
     private LearningAttempt attempt(
             Long userId,
             Long questionId,
@@ -207,6 +289,32 @@ class LearningReportControllerTest {
                 false,
                 0,
                 attemptedAt
+        );
+    }
+
+    private LearningAttempt attemptWithAnswer(
+            Long userId,
+            Long questionId,
+            String knowledgePoint,
+            QuestionType type,
+            String submittedAnswer,
+            boolean correct
+    ) {
+        return new LearningAttempt(
+                null,
+                userId,
+                LearningActivityType.PRACTICE,
+                "revision-practice-" + questionId,
+                questionId,
+                "第 " + questionId + " 题",
+                type,
+                Difficulty.BEGINNER,
+                knowledgePoint,
+                submittedAnswer,
+                true,
+                correct,
+                correct ? 10 : 0,
+                Instant.parse("2026-07-12T07:00:00Z")
         );
     }
 }

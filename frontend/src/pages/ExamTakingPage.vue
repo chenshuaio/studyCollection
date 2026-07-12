@@ -112,13 +112,42 @@
                 你的答案：{{ displayAnswer(question.submittedAnswer) }}；标准答案：{{ question.correctAnswer }}。
                 {{ question.correct ? '回答正确。' : '回答错误，已加入错题整理。' }}
                 {{ question.analysis }}
+                <button type="button" :aria-label="`反馈 ${question.title}`" @click="prepareExamFeedback(question)">
+                  反馈题目
+                </button>
               </dd>
               <dd v-else>
                 你的答案：{{ displayAnswer(question.submittedAnswer) }}；参考答案：{{ question.correctAnswer }}。
                 本题不自动评分，请结合参考答案自行核对。{{ question.analysis }}
+                <button type="button" :aria-label="`反馈 ${question.title}`" @click="prepareExamFeedback(question)">
+                  反馈题目
+                </button>
               </dd>
             </div>
           </dl>
+          <div v-if="feedbackTarget" class="exam-feedback-editor">
+            <h3>反馈：{{ feedbackTarget.title }}</h3>
+            <label>
+              问题类型
+              <select v-model="feedbackType" aria-label="考试反馈类型">
+                <option value="ANSWER_ERROR">答案错误</option>
+                <option value="EXPLANATION_ERROR">解析错误</option>
+                <option value="STEM_ERROR">题干错误</option>
+                <option value="OPTION_ERROR">选项错误</option>
+                <option value="KNOWLEDGE_POINT_ERROR">知识点错误</option>
+                <option value="DIFFICULTY_ERROR">难度错误</option>
+                <option value="OTHER">其他问题</option>
+              </select>
+            </label>
+            <label>
+              具体问题
+              <textarea v-model="feedbackContent" aria-label="考试反馈内容"></textarea>
+            </label>
+            <div class="action-row">
+              <button type="button" data-action="submit-exam-feedback" @click="submitExamFeedback">提交反馈</button>
+              <button type="button" @click="feedbackTarget = null">取消</button>
+            </div>
+          </div>
         </article>
       </section>
     </section>
@@ -133,6 +162,7 @@ import {
   recordMistake,
   saveExamAnswer,
   submitExamSession,
+  submitQuestionFeedback,
   type ExamQuestion,
   type ExamSession
 } from '../api'
@@ -154,6 +184,9 @@ const statusMessage = ref('')
 const remainingSeconds = ref(0)
 const mistakeSyncFailedCount = ref(0)
 const recordedMistakes = new Set<number>()
+const feedbackTarget = ref<ExamQuestion | null>(null)
+const feedbackType = ref('ANSWER_ERROR')
+const feedbackContent = ref('标准答案或解析可能有误，请管理员复核。')
 const saveTimers = new Map<number, number>()
 let countdownTimer: number | null = null
 let finalSavePromise: Promise<void> | null = null
@@ -348,9 +381,8 @@ async function syncMistakes() {
     try {
       await recordMistake({
         questionId: question.id,
-        questionTitle: question.title,
-        knowledgePoint: question.knowledgePoint,
-        status: 'PENDING'
+        submittedAnswer: question.submittedAnswer,
+        sourceContext: 'EXAM'
       })
       recordedMistakes.add(question.id)
       return true
@@ -361,6 +393,31 @@ async function syncMistakes() {
   const failedCount = results.filter((succeeded) => !succeeded).length
   mistakeSyncFailedCount.value = failedCount
   return failedCount
+}
+
+function prepareExamFeedback(question: ExamQuestion) {
+  feedbackTarget.value = question
+  feedbackType.value = question.autoGraded ? 'ANSWER_ERROR' : 'EXPLANATION_ERROR'
+  statusMessage.value = ''
+}
+
+async function submitExamFeedback() {
+  if (!feedbackTarget.value || !paper.value) return
+  statusMessage.value = ''
+  try {
+    await submitQuestionFeedback({
+      questionId: feedbackTarget.value.id,
+      type: feedbackType.value,
+      content: feedbackContent.value,
+      submittedAnswer: feedbackTarget.value.submittedAnswer,
+      sourceContext: 'EXAM',
+      sourceReference: `exam-${paper.value.id}`
+    })
+    statusMessage.value = '反馈已提交，管理员可在反馈审核页查看。'
+    feedbackTarget.value = null
+  } catch (error) {
+    statusMessage.value = errorMessage(error, '反馈提交失败，请稍后重试。')
+  }
 }
 
 function normalizeExamQuestion(question: ExamQuestion): ExamQuestion {
@@ -458,3 +515,28 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }
 </script>
+
+<style scoped>
+.analysis-panel dd button {
+  display: block;
+  margin-top: 8px;
+}
+
+.exam-feedback-editor {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #e4e7ec;
+}
+
+.exam-feedback-editor label {
+  display: grid;
+  gap: 6px;
+}
+
+.exam-feedback-editor textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+</style>

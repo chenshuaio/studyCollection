@@ -4,6 +4,7 @@ import com.studycollection.common.api.ApiResponse;
 import com.studycollection.common.security.AdminOnly;
 import com.studycollection.common.security.AuthenticatedUser;
 import com.studycollection.question.app.QuestionFeedbackService;
+import com.studycollection.question.app.QuestionFeedbackGroup;
 import com.studycollection.question.domain.QuestionFeedback;
 import com.studycollection.question.domain.QuestionRevision;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,7 +35,10 @@ public class QuestionFeedbackController {
                 currentUser.userId(),
                 request.questionId(),
                 request.type(),
-                request.content()
+                request.content(),
+                request.submittedAnswer(),
+                request.sourceContext(),
+                request.sourceReference()
         ));
     }
 
@@ -42,6 +46,12 @@ public class QuestionFeedbackController {
     @AdminOnly
     public ApiResponse<List<QuestionFeedback>> pending() {
         return ApiResponse.success(feedbackService.pending());
+    }
+
+    @GetMapping("/pending/groups")
+    @AdminOnly
+    public ApiResponse<List<QuestionFeedbackGroup>> pendingGroups() {
+        return ApiResponse.success(feedbackService.pendingGroups());
     }
 
     @GetMapping
@@ -63,9 +73,41 @@ public class QuestionFeedbackController {
                 currentUser.userId(),
                 request.changeSummary(),
                 request.reviewNote(),
+                request.correctedTitle(),
+                request.correctedType(),
+                request.correctedDifficulty(),
+                request.correctedKnowledgePoint(),
                 request.correctedAnswer(),
                 request.correctedAnalysis()
         ));
+    }
+
+    @PostMapping("/groups/accept")
+    @AdminOnly
+    public ApiResponse<QuestionRevision> acceptGroup(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
+            @RequestBody AcceptFeedbackGroupRequest request
+    ) {
+        return ApiResponse.success(feedbackService.acceptGroup(
+                request.feedbackIds(),
+                currentUser.userId(),
+                request.changeSummary(),
+                request.reviewNote(),
+                request.correctedTitle(),
+                request.correctedType(),
+                request.correctedDifficulty(),
+                request.correctedKnowledgePoint(),
+                request.correctedAnswer(),
+                request.correctedAnalysis()
+        ));
+    }
+
+    @GetMapping("/revisions/{questionId}")
+    @AdminOnly
+    public ApiResponse<List<QuestionRevision>> revisions(
+            @PathVariable("questionId") Long questionId
+    ) {
+        return ApiResponse.success(feedbackService.revisions(questionId));
     }
 
     @PostMapping("/{feedbackId}/reject")

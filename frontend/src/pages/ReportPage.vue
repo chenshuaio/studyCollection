@@ -63,6 +63,13 @@
                 <option value="ONLINE_MODEL">在线模型</option>
               </select>
             </label>
+            <label>
+              修订题处理
+              <select v-model="revisedQuestionPolicy" aria-label="修订题处理策略">
+                <option value="EXCLUDE_REVISED">排除已确认答案错误的旧作答</option>
+                <option value="RECALCULATE_REVISED">按当前标准答案重新计算</option>
+              </select>
+            </label>
             <p v-if="statusMessage" class="form-message" aria-live="polite">{{ statusMessage }}</p>
             <button type="submit" :disabled="generating">
               {{ generating ? '生成中...' : '生成报告' }}
@@ -85,6 +92,9 @@
             </dl>
             <p class="report-recommendation">{{ report.recommendation }}</p>
             <p>{{ report.adviceContent }}</p>
+            <p v-if="report.revisedAttemptCount" class="revision-policy-note">
+              {{ revisionPolicyText(report) }}
+            </p>
           </template>
           <p v-else class="empty-state-copy">完成练习或考试后即可生成第一份报告。</p>
         </article>
@@ -198,6 +208,7 @@ import { isAdmin } from '../permissions'
 
 const isAdminUser = isAdmin()
 const mode = ref<LearningReportPayload['mode']>('OFFLINE_RULES')
+const revisedQuestionPolicy = ref<LearningReportPayload['revisedQuestionPolicy']>('EXCLUDE_REVISED')
 const statusMessage = ref('')
 const report = ref<LearningReport | null>(null)
 const history = ref<LearningReport[]>([])
@@ -234,7 +245,10 @@ async function createReport() {
   generating.value = true
   statusMessage.value = ''
   try {
-    const generated = await generateLearningReport({ mode: mode.value })
+    const generated = await generateLearningReport({
+      mode: mode.value,
+      revisedQuestionPolicy: revisedQuestionPolicy.value
+    })
     report.value = generated
     history.value = [generated, ...history.value.filter((item) => item.id !== generated.id)]
     statusMessage.value = '报告已生成。'
@@ -270,4 +284,22 @@ function formatDateTime(value: string) {
     minute: '2-digit'
   }).format(new Date(value))
 }
+
+function revisionPolicyText(value: LearningReport) {
+  if (value.revisionPolicy === 'RECALCULATE_REVISED') {
+    return `已按当前标准答案重算 ${value.revisedAttemptCount} 条受题目修订影响的历史作答。`
+  }
+  if (value.revisionPolicy === 'EXCLUDE_REVISED') {
+    return `已排除 ${value.revisedAttemptCount} 条受题目修订影响的历史作答。`
+  }
+  return `本报告包含 ${value.revisedAttemptCount} 条后来发生题目修订的历史作答。`
+}
 </script>
+
+<style scoped>
+.revision-policy-note {
+  padding-left: 10px;
+  border-left: 3px solid #f79009;
+  color: #7a2e0e;
+}
+</style>

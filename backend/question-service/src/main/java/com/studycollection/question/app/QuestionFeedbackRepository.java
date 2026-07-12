@@ -5,6 +5,7 @@ import com.studycollection.question.domain.QuestionFeedback;
 import com.studycollection.question.domain.QuestionRevision;
 
 import java.util.List;
+import java.util.Set;
 
 public interface QuestionFeedbackRepository {
     QuestionFeedback saveFeedback(QuestionFeedback feedback);
@@ -13,7 +14,13 @@ public interface QuestionFeedbackRepository {
 
     List<QuestionFeedback> findByStatus(FeedbackStatus status);
 
+    List<QuestionFeedback> findByStatuses(Set<FeedbackStatus> statuses);
+
     List<QuestionFeedback> findByUserId(Long userId);
 
     QuestionRevision saveRevision(QuestionRevision revision);
+
+    List<QuestionRevision> findRevisionsByQuestionId(Long questionId);
+
+    Set<Long> findScoringAffectedQuestionIds();
 }

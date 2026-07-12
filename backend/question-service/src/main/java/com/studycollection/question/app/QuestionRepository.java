@@ -11,6 +11,11 @@ public interface QuestionRepository {
 
     Question findById(Long id);
 
+    default String findSourceById(Long id) {
+        findById(id);
+        return "LOCAL_UPLOAD";
+    }
+
     Question update(Question question);
 
     List<Question> search(String keyword, String knowledgePoint, Difficulty difficulty, QuestionType type);

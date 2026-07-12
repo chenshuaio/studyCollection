@@ -6,9 +6,12 @@ import com.studycollection.question.domain.QuestionRevision;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
@@ -22,14 +25,7 @@ public class InMemoryQuestionFeedbackRepository implements QuestionFeedbackRepos
     @Override
     public synchronized QuestionFeedback saveFeedback(QuestionFeedback feedback) {
         Long id = feedback.id() == null ? feedbackIds.getAndIncrement() : feedback.id();
-        QuestionFeedback saved = new QuestionFeedback(
-                id,
-                feedback.userId(),
-                feedback.questionId(),
-                feedback.type(),
-                feedback.content(),
-                feedback.status()
-        );
+        QuestionFeedback saved = feedback.withId(id);
         feedbacks.put(id, saved);
         return saved;
     }
@@ -45,8 +41,16 @@ public class InMemoryQuestionFeedbackRepository implements QuestionFeedbackRepos
 
     @Override
     public synchronized List<QuestionFeedback> findByStatus(FeedbackStatus status) {
+        return findByStatuses(Set.of(status));
+    }
+
+    @Override
+    public synchronized List<QuestionFeedback> findByStatuses(Set<FeedbackStatus> statuses) {
         return feedbacks.values().stream()
-                .filter(feedback -> feedback.status() == status)
+                .filter(feedback -> statuses.contains(feedback.status()))
+                .sorted(Comparator.comparing(QuestionFeedback::createdAt)
+                        .thenComparing(QuestionFeedback::id)
+                        .reversed())
                 .toList();
     }
 
@@ -54,21 +58,35 @@ public class InMemoryQuestionFeedbackRepository implements QuestionFeedbackRepos
     public synchronized List<QuestionFeedback> findByUserId(Long userId) {
         return feedbacks.values().stream()
                 .filter(feedback -> feedback.userId().equals(userId))
+                .sorted(Comparator.comparing(QuestionFeedback::createdAt)
+                        .thenComparing(QuestionFeedback::id)
+                        .reversed())
                 .toList();
     }
 
     @Override
     public synchronized QuestionRevision saveRevision(QuestionRevision revision) {
         Long id = revision.id() == null ? revisionIds.getAndIncrement() : revision.id();
-        QuestionRevision saved = new QuestionRevision(
-                id,
-                revision.questionId(),
-                revision.feedbackId(),
-                revision.adminUserId(),
-                revision.changeSummary(),
-                revision.reviewNote()
-        );
+        QuestionRevision saved = revision.withId(id);
         revisions.put(id, saved);
         return saved;
+    }
+
+    @Override
+    public synchronized List<QuestionRevision> findRevisionsByQuestionId(Long questionId) {
+        return revisions.values().stream()
+                .filter(revision -> revision.questionId().equals(questionId))
+                .sorted(Comparator.comparing(QuestionRevision::revisedAt)
+                        .thenComparing(QuestionRevision::id)
+                        .reversed())
+                .toList();
+    }
+
+    @Override
+    public synchronized Set<Long> findScoringAffectedQuestionIds() {
+        return revisions.values().stream()
+                .filter(QuestionRevision::scoringAffected)
+                .map(QuestionRevision::questionId)
+                .collect(LinkedHashSet::new, Set::add, Set::addAll);
     }
 }

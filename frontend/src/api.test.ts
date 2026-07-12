@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   acceptQuestionFeedback,
+  acceptQuestionFeedbackGroup,
   approvePendingQuestion,
   composeCustomExam,
   createKnowledgePoint,
@@ -16,10 +17,12 @@ import {
   listLearningReports,
   listKnowledgePoints,
   listPendingFeedback,
+  listPendingFeedbackGroups,
   listPendingQuestions,
   listMistakes,
   listUsers,
   listUserFeedback,
+  listQuestionRevisions,
   login,
   markFeedbackNeedsReview,
   previewImport,
@@ -474,6 +477,50 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/feedback/1/accept', expect.objectContaining({ method: 'POST' }))
   })
 
+  it('lists grouped feedback, accepts duplicates together and reads revisions', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: [] }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 'OK',
+          data: { id: 11, questionId: 101, feedbackId: 2, relatedFeedbackIds: [2, 1] }
+        })
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: [] }) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await listPendingFeedbackGroups()
+    await acceptQuestionFeedbackGroup({
+      feedbackIds: [2, 1],
+      changeSummary: '答案从 A 修改为 B',
+      reviewNote: '重复反馈已核验',
+      correctedAnswer: 'B',
+      correctedAnalysis: '新解析'
+    })
+    await listQuestionRevisions(101)
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/questions/feedback/pending/groups',
+      expect.objectContaining({ method: 'GET' })
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/questions/feedback/groups/accept',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"feedbackIds":[2,1]')
+      })
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/questions/feedback/revisions/101',
+      expect.objectContaining({ method: 'GET' })
+    )
+  })
+
   it('creates, lists, restores, saves and submits persisted exam sessions', async () => {
     const session = {
       id: 91,
@@ -551,21 +598,26 @@ describe('api client', () => {
       knowledgePointPerformance: [],
       questionTypePerformance: [],
       recentTrend: [],
-      strengtheningQuestions: []
+      strengtheningQuestions: [],
+      revisionPolicy: 'EXCLUDE_REVISED',
+      revisedAttemptCount: 0
     }
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: report }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: [report] }) })
     vi.stubGlobal('fetch', fetchMock)
 
-    const generated = await generateLearningReport({ mode: 'OFFLINE_RULES' })
+    const generated = await generateLearningReport({
+      mode: 'OFFLINE_RULES',
+      revisedQuestionPolicy: 'EXCLUDE_REVISED'
+    })
     const history = await listLearningReports()
 
     expect(generated.weakestKnowledgePoint).toBe('JVM')
     expect(history).toHaveLength(1)
     expect(fetchMock).toHaveBeenCalledWith('/api/reports/learning', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ mode: 'OFFLINE_RULES' })
+      body: JSON.stringify({ mode: 'OFFLINE_RULES', revisedQuestionPolicy: 'EXCLUDE_REVISED' })
     }))
     expect(fetchMock).toHaveBeenCalledWith('/api/reports/learning', expect.objectContaining({ method: 'GET' }))
   })
@@ -581,8 +633,14 @@ describe('api client', () => {
             userId: 7,
             questionId: 1,
             questionTitle: 'HashMap 默认负载因子是多少？',
+            questionType: 'SINGLE_CHOICE',
             knowledgePoint: '集合框架',
-            status: 'PENDING'
+            lastSubmittedAnswer: 'A',
+            sourceContext: 'PRACTICE',
+            status: 'PENDING',
+            wrongCount: 1,
+            firstWrongAt: '2026-07-10T08:00:00Z',
+            lastWrongAt: '2026-07-10T08:00:00Z'
           }
         })
       })
@@ -595,8 +653,14 @@ describe('api client', () => {
               userId: 7,
               questionId: 1,
               questionTitle: 'HashMap 默认负载因子是多少？',
+              questionType: 'SINGLE_CHOICE',
               knowledgePoint: '集合框架',
-              status: 'PENDING'
+              lastSubmittedAnswer: 'A',
+              sourceContext: 'PRACTICE',
+              status: 'PENDING',
+              wrongCount: 1,
+              firstWrongAt: '2026-07-10T08:00:00Z',
+              lastWrongAt: '2026-07-10T08:00:00Z'
             }
           ]
         })
@@ -605,16 +669,24 @@ describe('api client', () => {
 
     const recorded = await recordMistake({
       questionId: 1,
-      questionTitle: 'HashMap 默认负载因子是多少？',
-      knowledgePoint: '集合框架',
-      status: 'PENDING'
+      submittedAnswer: 'A',
+      sourceContext: 'PRACTICE'
     })
-    const mistakes = await listMistakes()
+    const mistakes = await listMistakes({
+      knowledgePoint: '集合框架',
+      questionType: 'SINGLE_CHOICE',
+      status: 'PENDING',
+      wrongFrom: '2026-07-10',
+      wrongTo: '2026-07-12'
+    })
 
     expect(recorded.status).toBe('PENDING')
     expect(mistakes).toHaveLength(1)
     expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'POST' }))
-    expect(fetchMock).toHaveBeenCalledWith('/api/mistakes', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/mistakes?knowledgePoint=%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6&questionType=SINGLE_CHOICE&status=PENDING&wrongFrom=2026-07-10&wrongTo=2026-07-12',
+      expect.objectContaining({ method: 'GET' })
+    )
   })
 
   it('updates mistake mastery status', async () => {

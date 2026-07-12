@@ -6,6 +6,7 @@ import {
   listKnowledgePoints,
   recordMistake,
   searchQuestions,
+  submitQuestionFeedback,
   submitUserPractice,
   type GeneratedPracticeQuestion
 } from '../api'
@@ -40,6 +41,7 @@ describe('PracticePage', () => {
     vi.mocked(listKnowledgePoints).mockReset()
     vi.mocked(searchQuestions).mockReset()
     vi.mocked(submitUserPractice).mockReset()
+    vi.mocked(submitQuestionFeedback).mockReset()
     vi.mocked(recordMistake).mockReset()
     vi.mocked(listKnowledgePoints).mockResolvedValue([
       { id: 1, name: 'Java 基础', description: '语言基础', enabled: true },
@@ -77,6 +79,37 @@ describe('PracticePage', () => {
     expect(wrapper.text()).toContain('得分')
     expect(wrapper.text()).toContain('反馈题目问题')
     expect(wrapper.find('textarea[aria-label="题目反馈内容"]').exists()).toBe(true)
+  })
+
+  it('submits feedback with the current user answer and practice source', async () => {
+    vi.mocked(submitQuestionFeedback).mockResolvedValue({
+      id: 1,
+      userId: 7,
+      questionId: 88,
+      type: 'ANSWER_ERROR',
+      content: '标准答案或解析可能有误，请管理员复核。',
+      submittedAnswer: '我的答案',
+      sourceContext: 'PRACTICE',
+      sourceReference: 'question-88',
+      status: 'PENDING'
+    })
+    const wrapper = mount(PracticePage, {
+      global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
+    })
+    await flushPromises()
+
+    await wrapper.find('input[aria-label="练习答案"]').setValue('我的答案')
+    await wrapper.findAll('button').find((button) => button.text() === '提交反馈')?.trigger('click')
+    await flushPromises()
+
+    expect(submitQuestionFeedback).toHaveBeenCalledWith({
+      questionId: 88,
+      type: 'ANSWER_ERROR',
+      content: '标准答案或解析可能有误，请管理员复核。',
+      submittedAnswer: '我的答案',
+      sourceContext: 'PRACTICE',
+      sourceReference: 'question-88'
+    })
   })
 
   it('renders unselected radio options for a single choice question', async () => {
@@ -188,8 +221,14 @@ describe('PracticePage', () => {
       userId: 7,
       questionId: 88,
       questionTitle: 'JVM 栈内存主要保存什么？',
+      questionType: 'FILL_BLANK',
       knowledgePoint: 'JVM',
-      status: 'PENDING'
+      lastSubmittedAnswer: '堆对象',
+      sourceContext: 'PRACTICE',
+      status: 'PENDING',
+      wrongCount: 1,
+      firstWrongAt: '2026-07-12T08:00:00Z',
+      lastWrongAt: '2026-07-12T08:00:00Z'
     })
 
     const wrapper = mount(PracticePage, {
@@ -212,9 +251,8 @@ describe('PracticePage', () => {
     }])
     expect(recordMistake).toHaveBeenCalledWith({
       questionId: 88,
-      questionTitle: 'JVM 栈内存主要保存什么？',
-      knowledgePoint: 'JVM',
-      status: 'PENDING'
+      submittedAnswer: '堆对象',
+      sourceContext: 'PRACTICE'
     })
   })
 

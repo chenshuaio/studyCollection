@@ -38,7 +38,9 @@ const report: LearningReport = {
   ],
   strengtheningQuestions: [
     { id: 91, title: 'JVM 堆中主要保存什么？', type: 'FILL_BLANK', difficulty: 'INTERMEDIATE', knowledgePoint: 'JVM' }
-  ]
+  ],
+  revisionPolicy: 'EXCLUDE_REVISED',
+  revisedAttemptCount: 2
 }
 
 describe('ReportPage', () => {
@@ -68,20 +70,25 @@ describe('ReportPage', () => {
     expect(wrapper.text()).toContain('2026-07-09')
     expect(wrapper.text()).toContain('历史报告')
     expect(wrapper.text()).toContain('JVM 堆中主要保存什么？')
+    expect(wrapper.text()).toContain('已排除 2 条受题目修订影响的历史作答')
     expect(wrapper.get('[data-action="strengthen"]').attributes('data-to')).toContain('knowledgePoint')
     expect(wrapper.get('[data-action="strengthen"]').attributes('data-to')).toContain('JVM')
   })
 
-  it('generates a new report using only the selected server-side analysis mode', async () => {
+  it('generates a new report with the selected analysis and revised-question policies', async () => {
     const wrapper = mount(ReportPage, {
       global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
     })
     await flushPromises()
 
+    await wrapper.find('select[aria-label="修订题处理策略"]').setValue('RECALCULATE_REVISED')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(generateLearningReport).toHaveBeenCalledWith({ mode: 'OFFLINE_RULES' })
+    expect(generateLearningReport).toHaveBeenCalledWith({
+      mode: 'OFFLINE_RULES',
+      revisedQuestionPolicy: 'RECALCULATE_REVISED'
+    })
     expect(wrapper.text()).toContain('报告已生成')
     expect(wrapper.text()).toContain('JVM')
   })
@@ -97,7 +104,10 @@ describe('ReportPage', () => {
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(generateLearningReport).toHaveBeenCalledWith({ mode: 'OFFLINE_RULES' })
+    expect(generateLearningReport).toHaveBeenCalledWith({
+      mode: 'OFFLINE_RULES',
+      revisedQuestionPolicy: 'EXCLUDE_REVISED'
+    })
     expect(wrapper.text()).toContain('暂无可用于分析的真实作答记录')
   })
 })

@@ -107,6 +107,17 @@ public class MySqlQuestionRepository implements QuestionRepository {
     }
 
     @Override
+    public String findSourceById(Long id) {
+        return jdbcTemplate.query(
+                        "select source from questions where id = ? and deleted = false",
+                        (rs, rowNum) -> rs.getString("source"),
+                        id
+                ).stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("题目不存在"));
+    }
+
+    @Override
     public Question update(Question question) {
         int updated = jdbcTemplate.update("""
                 update questions

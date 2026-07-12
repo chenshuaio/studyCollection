@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ExamTakingPage from './ExamTakingPage.vue'
-import { getExamSession, recordMistake, saveExamAnswer, submitExamSession, type ExamSession } from '../api'
+import { getExamSession, recordMistake, saveExamAnswer, submitExamSession, submitQuestionFeedback, type ExamSession } from '../api'
 
 vi.mock('vue-router', () => ({
   RouterLink: {
@@ -16,6 +16,7 @@ vi.mock('../api', () => ({
   getExamSession: vi.fn(),
   saveExamAnswer: vi.fn(),
   submitExamSession: vi.fn(),
+  submitQuestionFeedback: vi.fn(),
   recordMistake: vi.fn()
 }))
 
@@ -107,12 +108,29 @@ describe('ExamTakingPage', () => {
         analysis: index === 2 ? 'ArrayList 在容量不足时扩容。' : '题目解析'
       }))
     })
+    vi.mocked(submitQuestionFeedback).mockReset().mockResolvedValue({
+      id: 1,
+      userId: 7,
+      questionId: 12,
+      type: 'EXPLANATION_ERROR',
+      content: '参考答案遗漏复杂度说明',
+      submittedAnswer: '我的作答',
+      sourceContext: 'EXAM',
+      sourceReference: 'exam-91',
+      status: 'PENDING'
+    })
     vi.mocked(recordMistake).mockReset().mockResolvedValue({
       userId: 7,
       questionId: 3,
       questionTitle: 'ArrayList 扩容通常发生在什么时候？',
+      questionType: 'SINGLE_CHOICE',
       knowledgePoint: '集合框架',
-      status: 'PENDING'
+      lastSubmittedAnswer: 'B',
+      sourceContext: 'EXAM',
+      status: 'PENDING',
+      wrongCount: 1,
+      firstWrongAt: '2026-07-11T06:10:00Z',
+      lastWrongAt: '2026-07-11T06:10:00Z'
     })
   })
 
@@ -147,9 +165,8 @@ describe('ExamTakingPage', () => {
     expect(submitExamSession).toHaveBeenCalledWith(91)
     expect(recordMistake).toHaveBeenCalledWith({
       questionId: 3,
-      questionTitle: 'ArrayList 扩容通常发生在什么时候？',
-      knowledgePoint: '集合框架',
-      status: 'PENDING'
+      submittedAnswer: 'B',
+      sourceContext: 'EXAM'
     })
     expect(wrapper.text()).toContain('20/30')
     expect(wrapper.text()).toContain('ArrayList 在容量不足时扩容。')
@@ -218,6 +235,47 @@ describe('ExamTakingPage', () => {
     expect(wrapper.text()).toContain('本题不自动评分，请结合参考答案自行核对。')
     expect(wrapper.text()).toContain('ArrayList 基于数组，LinkedList 基于链表。')
     expect(recordMistake).not.toHaveBeenCalled()
+  })
+
+  it('submits feedback from an exam result with the saved answer and exam reference', async () => {
+    vi.mocked(getExamSession).mockResolvedValueOnce({
+      ...activeSession(),
+      status: 'SUBMITTED',
+      remainingSeconds: 0,
+      score: 0,
+      totalScore: 0,
+      questions: [{
+        ...activeSession().questions[0],
+        id: 12,
+        title: '说明 ArrayList 与 LinkedList 的差异。',
+        type: 'SHORT_ANSWER',
+        submittedAnswer: '我的作答',
+        autoGraded: false,
+        correct: null,
+        correctAnswer: '参考答案',
+        analysis: '题目解析'
+      }]
+    })
+    const wrapper = mount(ExamTakingPage, {
+      global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
+    })
+    await flushPromises()
+
+    await wrapper.find('button[aria-label="反馈 说明 ArrayList 与 LinkedList 的差异。"]').trigger('click')
+    await wrapper.find('select[aria-label="考试反馈类型"]').setValue('EXPLANATION_ERROR')
+    await wrapper.find('textarea[aria-label="考试反馈内容"]').setValue('参考答案遗漏复杂度说明')
+    await wrapper.find('button[data-action="submit-exam-feedback"]').trigger('click')
+    await flushPromises()
+
+    expect(submitQuestionFeedback).toHaveBeenCalledWith({
+      questionId: 12,
+      type: 'EXPLANATION_ERROR',
+      content: '参考答案遗漏复杂度说明',
+      submittedAnswer: '我的作答',
+      sourceContext: 'EXAM',
+      sourceReference: 'exam-91'
+    })
+    expect(wrapper.text()).toContain('反馈已提交')
   })
 
   it('keeps a successful exam result when mistake synchronization fails', async () => {

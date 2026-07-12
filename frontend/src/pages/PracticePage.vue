@@ -164,6 +164,18 @@
         <article class="workspace-panel analysis-panel">
           <h2>反馈题目问题</h2>
           <p>如果你认为答案、解析或题干有误，可以提交给管理员审核。</p>
+          <label>
+            问题类型
+            <select v-model="feedbackType" aria-label="练习反馈类型">
+              <option value="ANSWER_ERROR">答案错误</option>
+              <option value="EXPLANATION_ERROR">解析错误</option>
+              <option value="STEM_ERROR">题干错误</option>
+              <option value="OPTION_ERROR">选项错误</option>
+              <option value="KNOWLEDGE_POINT_ERROR">知识点错误</option>
+              <option value="DIFFICULTY_ERROR">难度错误</option>
+              <option value="OTHER">其他问题</option>
+            </select>
+          </label>
           <textarea
             v-model="feedbackContent"
             class="feedback-editor"
@@ -232,6 +244,7 @@ const finished = ref(false)
 const loading = ref(false)
 const statusMessage = ref('')
 const feedbackStatus = ref('')
+const feedbackType = ref('ANSWER_ERROR')
 const feedbackContent = ref('标准答案或解析可能有误，请管理员复核。')
 const backendResult = ref<PracticeResult | null>(null)
 const completedCount = ref(0)
@@ -412,9 +425,8 @@ async function submitAnswer() {
       try {
         await recordMistake({
           questionId: currentQuestion.value.id,
-          questionTitle: currentQuestion.value.title,
-          knowledgePoint: currentQuestion.value.knowledgePoint,
-          status: 'PENDING'
+          submittedAnswer: serializedAnswer(),
+          sourceContext: retryTarget.value ? 'MISTAKE_RETRY' : 'PRACTICE'
         })
       } catch {
         statusMessage.value = '答案已提交，但同步错题本失败，请稍后重试。'
@@ -450,8 +462,11 @@ async function sendFeedback() {
   try {
     await submitQuestionFeedback({
       questionId: currentQuestion.value.id,
-      type: 'ANSWER_ERROR',
-      content: feedbackContent.value
+      type: feedbackType.value,
+      content: feedbackContent.value,
+      submittedAnswer: serializedAnswer(),
+      sourceContext: retryTarget.value ? 'MISTAKE_BOOK' : 'PRACTICE',
+      sourceReference: `question-${currentQuestion.value.id}`
     })
     feedbackStatus.value = '反馈已提交，管理员可在反馈审核页处理。'
   } catch (error) {
