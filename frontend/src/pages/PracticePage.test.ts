@@ -72,7 +72,8 @@ describe('PracticePage', () => {
 
     expect(wrapper.text()).toContain('练习中心')
     expect(listKnowledgePoints).toHaveBeenCalledWith()
-    expect(generatePractice).toHaveBeenCalledWith({ count: 10 })
+    expect(generatePractice).toHaveBeenCalledWith({ count: 10, scope: 'ALL' })
+    expect(wrapper.text()).toContain('题库范围')
     expect(wrapper.text()).toContain('JVM 栈内存主要保存什么？')
     expect(wrapper.text()).toContain('提交答案')
     expect(wrapper.text()).toContain('答案解析')
@@ -342,6 +343,7 @@ describe('PracticePage', () => {
     await wrapper.get('select[aria-label="知识点筛选"]').setValue('JVM')
     await wrapper.get('select[aria-label="难度筛选"]').setValue('ADVANCED')
     await wrapper.get('select[aria-label="题型筛选"]').setValue('PROGRAMMING')
+    await wrapper.get('select[aria-label="练习题库范围"]').setValue('PERSONAL')
     await wrapper.get('input[aria-label="练习题数"]').setValue(3)
     await wrapper.get('[data-action="generate-practice"]').trigger('click')
     await flushPromises()
@@ -350,7 +352,8 @@ describe('PracticePage', () => {
       knowledgePoint: 'JVM',
       difficulty: 'ADVANCED',
       type: 'PROGRAMMING',
-      count: 3
+      count: 3,
+      scope: 'PERSONAL'
     })
   })
 
@@ -364,7 +367,7 @@ describe('PracticePage', () => {
 
     const knowledgePointSelect = wrapper.get('select[aria-label="知识点筛选"]').element as HTMLSelectElement
     expect(knowledgePointSelect.value).toBe('JVM')
-    expect(generatePractice).toHaveBeenCalledWith({ knowledgePoint: 'JVM', count: 10 })
+    expect(generatePractice).toHaveBeenCalledWith({ knowledgePoint: 'JVM', count: 10, scope: 'ALL' })
   })
 
   it('answers generated questions in sequence and shows a completion summary', async () => {

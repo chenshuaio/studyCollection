@@ -4,7 +4,7 @@
       <p class="brand">StudyCollection</p>
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
-        <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
+        <RouterLink to="/questions">{{ isAdminUser ? '题库管理' : '我的题库' }}</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>

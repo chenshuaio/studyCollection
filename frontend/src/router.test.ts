@@ -30,11 +30,18 @@ describe('route access control', () => {
     )).toBe('dashboard')
   })
 
-  it('keeps normal users out of question bank management', () => {
+  it('allows normal users to open their accessible question bank', () => {
     expect(resolveRouteAccess(
-      { name: 'questions', meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
+      { name: 'questions', meta: { requiresAuth: true } },
       currentUser('USER')
-    )).toBe('dashboard')
+    )).toBe(true)
+  })
+
+  it('registers the question bank as an authenticated route', () => {
+    const questionsRoute = router.getRoutes().find((route) => route.name === 'questions')
+
+    expect(questionsRoute?.path).toBe('/questions')
+    expect(questionsRoute?.meta).toEqual({ requiresAuth: true })
   })
 
   it('keeps normal users out of user management', () => {

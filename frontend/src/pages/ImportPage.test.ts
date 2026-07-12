@@ -34,6 +34,9 @@ describe('ImportPage', () => {
     })
 
     expect(wrapper.text()).toContain('题目导入')
+    expect(wrapper.text()).toContain('个人题库')
+    expect(wrapper.text()).toContain('申请公开')
+    expect((wrapper.get('input[value="PERSONAL"]').element as HTMLInputElement).checked).toBe(true)
     expect(wrapper.text()).toContain('结构化题目导入')
     expect(wrapper.text()).toContain('解析预览')
     expect(wrapper.text()).toContain('提交审核')
@@ -66,6 +69,7 @@ describe('ImportPage', () => {
       knowledgePoint: 'Java 基础',
       answer: 'A',
       analysis: '由导入预览提交审核',
+      targetScope: 'PUBLIC',
       status: 'PENDING'
     })
 
@@ -78,6 +82,7 @@ describe('ImportPage', () => {
       }
     })
 
+    await wrapper.get('input[value="PUBLIC"]').setValue(true)
     await wrapper.get('textarea[aria-label="解析预览第 1 题题干"]').setValue('说明 Java 中 final 的作用。')
     await wrapper.get('select[aria-label="解析预览第 1 题题型"]').setValue('SHORT_ANSWER')
     await wrapper.get('select[aria-label="解析预览第 1 题难度"]').setValue('INTERMEDIATE')
@@ -93,9 +98,11 @@ describe('ImportPage', () => {
       difficulty: 'INTERMEDIATE',
       knowledgePoint: 'Java 基础',
       answer: '可修饰类、方法和变量。',
-      analysis: '根据修饰目标含义不同。'
+      analysis: '根据修饰目标含义不同。',
+      targetScope: 'PUBLIC'
     })
     expect(wrapper.text()).toContain('已提交管理员审核')
+    expect(wrapper.text()).toContain('申请公开')
   })
 
   it('previews a structured question file without submitting it', async () => {
@@ -161,6 +168,7 @@ describe('ImportPage', () => {
       knowledgePoint: 'JVM',
       answer: '栈保存方法调用栈帧，堆保存对象实例',
       analysis: '上传资料生成的预览题',
+      targetScope: 'PERSONAL',
       status: 'PENDING'
     })
 
@@ -198,7 +206,8 @@ describe('ImportPage', () => {
     expect(submitPendingQuestion).toHaveBeenCalledWith(expect.objectContaining({
       title: 'JVM 栈和堆通常分别保存什么内容？',
       knowledgePoint: 'JVM',
-      analysis: '用户已修正的 JVM 解析'
+      analysis: '用户已修正的 JVM 解析',
+      targetScope: 'PERSONAL'
     }))
   })
 })

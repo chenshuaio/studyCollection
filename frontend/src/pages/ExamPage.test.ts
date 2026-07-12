@@ -111,6 +111,8 @@ describe('ExamPage', () => {
     })
 
     await flushPromises()
+    expect(wrapper.text()).toContain('题库范围')
+    expect(searchQuestions).toHaveBeenCalledWith({ scope: 'ALL' })
     expect(wrapper.text()).toContain('ConcurrentHashMap 如何降低锁粒度？')
     expect(wrapper.text()).toContain('上次 Java 测试')
     expect(wrapper.find('a[href="/exams/55/take"]').text()).toContain('继续答题')
@@ -126,6 +128,18 @@ describe('ExamPage', () => {
     expect(wrapper.text()).toContain('共 1 题')
     expect(wrapper.find('a[href="/exams/91/take"]').exists()).toBe(true)
     expect(window.sessionStorage.getItem('studyCollectionExamPaper')).toBeNull()
+  })
+
+  it('filters personal exam candidates by question bank scope', async () => {
+    const wrapper = mount(ExamPage, {
+      global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
+    })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="组卷题库范围"]').setValue('PERSONAL')
+    await flushPromises()
+
+    expect(searchQuestions).toHaveBeenLastCalledWith({ scope: 'PERSONAL' })
   })
 
   it('shows completed exam score in history', async () => {

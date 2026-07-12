@@ -4,7 +4,7 @@
       <p class="brand">StudyCollection</p>
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
-        <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
+        <RouterLink to="/questions">{{ isAdminUser ? '题库管理' : '我的题库' }}</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
@@ -28,6 +28,14 @@
       </header>
 
       <section class="filter-bar practice-filter" aria-label="练习生成条件">
+        <label>
+          题库范围
+          <select v-model="filters.scope" aria-label="练习题库范围">
+            <option value="ALL">全部可用</option>
+            <option value="PUBLIC">公共题库</option>
+            <option value="PERSONAL">我的题库</option>
+          </select>
+        </label>
         <label>
           知识点
           <select v-model="filters.knowledgePoint" aria-label="知识点筛选">
@@ -204,7 +212,8 @@ import {
   type GeneratedPracticeQuestion,
   type KnowledgePoint,
   type PracticeResult,
-  type Question
+  type Question,
+  type QuestionBankScope
 } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
@@ -230,6 +239,7 @@ type RetryMistakeTarget = {
 }
 
 const filters = reactive({
+  scope: 'ALL' as QuestionBankScope,
   knowledgePoint: '',
   difficulty: '',
   type: '',
@@ -303,7 +313,10 @@ async function generateFilteredPractice() {
   window.sessionStorage.removeItem('studyCollectionRetryMistake')
   filters.count = Math.min(100, Math.max(1, Number(filters.count) || 10))
   try {
-    const payload: Parameters<typeof generatePractice>[0] = { count: filters.count }
+    const payload: Parameters<typeof generatePractice>[0] = {
+      count: filters.count,
+      scope: filters.scope
+    }
     if (filters.knowledgePoint) payload.knowledgePoint = filters.knowledgePoint
     if (filters.difficulty) payload.difficulty = filters.difficulty
     if (filters.type) payload.type = filters.type

@@ -4,7 +4,7 @@
       <p class="brand">StudyCollection</p>
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
-        <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
+        <RouterLink to="/questions">{{ isAdminUser ? '题库管理' : '我的题库' }}</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
@@ -25,6 +25,21 @@
           <LogoutButton />
         </div>
       </header>
+
+      <fieldset class="import-target" aria-label="导入题库范围">
+        <legend>审核后入库到</legend>
+        <div class="scope-segments">
+          <label :class="{ active: targetScope === 'PERSONAL' }">
+            <input v-model="targetScope" type="radio" name="targetScope" value="PERSONAL" />
+            <span>个人题库</span>
+          </label>
+          <label :class="{ active: targetScope === 'PUBLIC' }">
+            <input v-model="targetScope" type="radio" name="targetScope" value="PUBLIC" />
+            <span>申请公开</span>
+          </label>
+        </div>
+        <p>{{ targetScope === 'PERSONAL' ? '审核通过后仅本人可见和使用。' : '审核通过后所有用户都可使用。' }}</p>
+      </fieldset>
 
       <section class="import-layout">
         <article class="workspace-panel import-source-panel">
@@ -96,6 +111,7 @@ import {
 import { isAdmin } from '../permissions'
 
 const isAdminUser = isAdmin()
+const targetScope = ref<'PERSONAL' | 'PUBLIC'>('PERSONAL')
 
 const rawContent = ref(`## 单选题
 题目: Java 中 int 默认值是多少？
@@ -153,9 +169,9 @@ async function savePreviewQuestions() {
   }
   try {
     for (const question of previewQuestions.value) {
-      await submitPendingQuestion({ ...question })
+      await submitPendingQuestion({ ...question, targetScope: targetScope.value })
     }
-    previewStatus.value = `已提交管理员审核 ${previewQuestions.value.length} 道预览题。`
+    previewStatus.value = `已提交管理员审核 ${previewQuestions.value.length} 道预览题，目标为${targetLabel()}。`
   } catch (error) {
     previewStatus.value = error instanceof Error ? error.message : '预览题提交审核失败，请检查题目字段。'
   }
@@ -194,11 +210,76 @@ async function saveGeneratedQuestions() {
   }
   try {
     for (const question of generatedQuestions.value) {
-      await submitPendingQuestion({ ...question })
+      await submitPendingQuestion({ ...question, targetScope: targetScope.value })
     }
-    generationStatus.value = `已提交管理员审核 ${generatedQuestions.value.length} 道生成题。`
+    generationStatus.value = `已提交管理员审核 ${generatedQuestions.value.length} 道生成题，目标为${targetLabel()}。`
   } catch (error) {
     generationStatus.value = error instanceof Error ? error.message : '提交审核失败，请检查题目字段。'
   }
 }
+
+function targetLabel() {
+  return targetScope.value === 'PERSONAL' ? '个人题库' : '申请公开'
+}
 </script>
+
+<style scoped>
+.import-target {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+}
+
+.import-target legend {
+  color: #344054;
+  font-weight: 800;
+  padding: 0 6px;
+}
+
+.import-target p {
+  color: #667085;
+  margin: 0;
+}
+
+.scope-segments {
+  background: #eef2f6;
+  border-radius: 7px;
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(100px, 1fr));
+  padding: 3px;
+}
+
+.scope-segments label {
+  border-radius: 5px;
+  color: #475467;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.scope-segments label.active {
+  background: #ffffff;
+  color: #175cd3;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+}
+
+.scope-segments input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 560px) {
+  .import-target,
+  .scope-segments {
+    width: 100%;
+  }
+}
+</style>

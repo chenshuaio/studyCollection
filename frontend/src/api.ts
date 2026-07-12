@@ -61,15 +61,21 @@ export type QuestionPayload = {
   analysis: string
 }
 
+export type QuestionBankScope = 'ALL' | 'PUBLIC' | 'PERSONAL'
+
 export type Question = QuestionPayload & {
   id: number
+  ownerUserId?: number | null
 }
 
-export type PendingQuestionPayload = QuestionPayload
+export type PendingQuestionPayload = QuestionPayload & {
+  targetScope: Exclude<QuestionBankScope, 'ALL'>
+}
 
 export type PendingQuestion = PendingQuestionPayload & {
   id: number
   submitterUserId: number
+  targetScope: Exclude<QuestionBankScope, 'ALL'>
   status: string
 }
 
@@ -78,6 +84,7 @@ export type QuestionSearchParams = {
   knowledgePoint?: string
   difficulty?: string
   type?: string
+  scope?: QuestionBankScope
 }
 
 export type PreviewQuestion = QuestionPayload
@@ -131,6 +138,7 @@ export type PracticeGeneratePayload = {
   difficulty?: string
   type?: string
   count: number
+  scope?: QuestionBankScope
 }
 
 export type GeneratedPracticeQuestion = {
@@ -542,6 +550,9 @@ export function generatePractice(payload: PracticeGeneratePayload) {
   }
   if (payload.type) {
     body.type = payload.type
+  }
+  if (payload.scope) {
+    body.scope = payload.scope
   }
   return post<GeneratedPractice>('/practice/generate', body)
 }

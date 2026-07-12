@@ -273,7 +273,8 @@ describe('api client', () => {
       knowledgePoint: '集合框架',
       difficulty: 'INTERMEDIATE',
       type: '',
-      count: 3
+      count: 3,
+      scope: 'PERSONAL'
     })
 
     expect(generated.actualCount).toBe(1)
@@ -281,7 +282,8 @@ describe('api client', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
       count: 3,
       knowledgePoint: '集合框架',
-      difficulty: 'INTERMEDIATE'
+      difficulty: 'INTERMEDIATE',
+      scope: 'PERSONAL'
     })
   })
 
@@ -324,10 +326,13 @@ describe('api client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await searchQuestions()
-    await searchQuestions({ keyword: 'HashMap' })
+    await searchQuestions({ keyword: 'HashMap', scope: 'PERSONAL' })
 
     expect(fetchMock).toHaveBeenCalledWith('/api/questions', expect.objectContaining({ method: 'GET' }))
-    expect(fetchMock).toHaveBeenCalledWith('/api/questions?keyword=HashMap', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/questions?keyword=HashMap&scope=PERSONAL',
+      expect.objectContaining({ method: 'GET' })
+    )
   })
 
   it('deletes formal questions by id', async () => {
@@ -383,7 +388,8 @@ describe('api client', () => {
       difficulty: 'INTERMEDIATE',
       knowledgePoint: '集合框架',
       answer: 'A',
-      analysis: '由导入预览提交审核'
+      analysis: '由导入预览提交审核',
+      targetScope: 'PERSONAL'
     })
     const pending = await listPendingQuestions()
     await approvePendingQuestion(1)
@@ -392,7 +398,10 @@ describe('api client', () => {
     expect(submitted.status).toBe('PENDING')
     expect(pending).toHaveLength(1)
     expect(rejected.status).toBe('REJECTED')
-    expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('"targetScope":"PERSONAL"')
+    }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending/1/approve', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/questions/pending/2/reject', expect.objectContaining({ method: 'POST' }))

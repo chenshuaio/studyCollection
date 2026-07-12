@@ -77,6 +77,7 @@ describe('DashboardPage', () => {
     const wrapper = mount(DashboardPage)
 
     expect(wrapper.text()).not.toContain('题库管理')
+    expect(wrapper.text()).toContain('我的题库')
     expect(wrapper.text()).not.toContain('反馈审核')
     expect(wrapper.text()).not.toContain('用户管理')
     expect(wrapper.text()).toContain('题目导入')

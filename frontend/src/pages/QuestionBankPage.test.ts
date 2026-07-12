@@ -25,6 +25,10 @@ describe('QuestionBankPage', () => {
   })
 
   it('renders searchable question bank management workspace', () => {
+    window.localStorage.setItem(
+      'studyCollectionUser',
+      JSON.stringify({ token: 'admin-token', userId: 1, username: 'admin', displayName: '系统管理员', role: 'ADMIN' })
+    )
     vi.mocked(searchQuestions).mockResolvedValue([])
 
     const wrapper = mount(QuestionBankPage, {
@@ -42,10 +46,15 @@ describe('QuestionBankPage', () => {
     expect(wrapper.text()).toContain('难度')
     expect(wrapper.text()).toContain('题型')
     expect(wrapper.text()).toContain('新增题目')
-    expect(wrapper.text()).toContain('HashMap 默认负载因子')
+    expect((wrapper.get('#new-question textarea').element as HTMLTextAreaElement).value)
+      .toContain('HashMap 默认负载因子')
   })
 
   it('loads all questions by default and searches with fuzzy title keyword', async () => {
+    window.localStorage.setItem(
+      'studyCollectionUser',
+      JSON.stringify({ token: 'admin-token', userId: 1, username: 'admin', displayName: '系统管理员', role: 'ADMIN' })
+    )
     vi.mocked(searchQuestions)
       .mockResolvedValueOnce([
         {
@@ -88,13 +97,15 @@ describe('QuestionBankPage', () => {
       keyword: '',
       knowledgePoint: '',
       difficulty: '',
-      type: ''
+      type: '',
+      scope: 'PUBLIC'
     })
     expect(searchQuestions).toHaveBeenNthCalledWith(2, {
       keyword: 'Concurrent',
       knowledgePoint: '',
       difficulty: '',
-      type: ''
+      type: '',
+      scope: 'PUBLIC'
     })
     expect(wrapper.text()).toContain('ConcurrentHashMap')
   })
@@ -141,7 +152,7 @@ describe('QuestionBankPage', () => {
     expect(wrapper.text()).toContain('题目已删除。')
   })
 
-  it('does not show delete actions to normal users', async () => {
+  it('shows normal users public and personal scopes but only lets them delete owned questions', async () => {
     window.localStorage.setItem(
       'studyCollectionUser',
       JSON.stringify({ token: 'user-token', userId: 7, username: 'alice', displayName: 'Alice', role: 'USER' })
@@ -154,7 +165,18 @@ describe('QuestionBankPage', () => {
         difficulty: 'INTERMEDIATE',
         knowledgePoint: '集合框架',
         answer: '0.75',
-        analysis: 'HashMap 默认负载因子是 0.75。'
+        analysis: 'HashMap 默认负载因子是 0.75。',
+        ownerUserId: null
+      },
+      {
+        id: 10,
+        title: '我的个人题',
+        type: 'SHORT_ANSWER',
+        difficulty: 'BEGINNER',
+        knowledgePoint: 'Java 基础',
+        answer: '',
+        analysis: '',
+        ownerUserId: 7
       }
     ])
 
@@ -169,10 +191,20 @@ describe('QuestionBankPage', () => {
 
     await flushPromises()
 
-    expect(wrapper.find('button[aria-label="删除题目"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('我的题库')
+    expect(wrapper.text()).toContain('全部可用')
+    expect(wrapper.text()).toContain('公共题库')
+    expect(searchQuestions).toHaveBeenCalledWith(expect.objectContaining({ scope: 'ALL' }))
+    expect(wrapper.findAll('button[aria-label="删除题目"]')).toHaveLength(1)
+    expect(wrapper.text()).not.toContain('新增题目')
+    expect(wrapper.text()).not.toContain('待审核导入')
   })
 
   it('reviews pending imported questions and refreshes the formal question bank after approval', async () => {
+    window.localStorage.setItem(
+      'studyCollectionUser',
+      JSON.stringify({ token: 'admin-token', userId: 1, username: 'admin', displayName: '系统管理员', role: 'ADMIN' })
+    )
     vi.mocked(searchQuestions)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -196,6 +228,7 @@ describe('QuestionBankPage', () => {
         knowledgePoint: '集合框架',
         answer: 'A',
         analysis: '由导入预览提交审核',
+        targetScope: 'PERSONAL',
         status: 'PENDING'
       }
     ])
@@ -220,6 +253,7 @@ describe('QuestionBankPage', () => {
 
     await flushPromises()
     expect(wrapper.text()).toContain('待审核导入')
+    expect(wrapper.text()).toContain('个人题库')
     expect(wrapper.text()).toContain('HashMap 默认负载因子是多少？')
 
     await wrapper.find('button[aria-label="通过待审核题目"]').trigger('click')
@@ -231,6 +265,10 @@ describe('QuestionBankPage', () => {
   })
 
   it('rejects pending imported questions without saving them', async () => {
+    window.localStorage.setItem(
+      'studyCollectionUser',
+      JSON.stringify({ token: 'admin-token', userId: 1, username: 'admin', displayName: '系统管理员', role: 'ADMIN' })
+    )
     vi.mocked(searchQuestions).mockResolvedValue([])
     vi.mocked(listPendingQuestions).mockResolvedValue([
       {
@@ -242,6 +280,7 @@ describe('QuestionBankPage', () => {
         knowledgePoint: 'Java 基础',
         answer: 'B',
         analysis: '待拒绝',
+        targetScope: 'PUBLIC',
         status: 'PENDING'
       }
     ])
@@ -254,6 +293,7 @@ describe('QuestionBankPage', () => {
       knowledgePoint: 'Java 基础',
       answer: 'B',
       analysis: '待拒绝',
+      targetScope: 'PUBLIC',
       status: 'REJECTED'
     })
 

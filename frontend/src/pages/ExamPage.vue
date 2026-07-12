@@ -4,7 +4,7 @@
       <p class="brand">StudyCollection</p>
       <nav>
         <RouterLink to="/dashboard">学习控制台</RouterLink>
-        <RouterLink v-if="isAdminUser" to="/questions">题库管理</RouterLink>
+        <RouterLink to="/questions">{{ isAdminUser ? '题库管理' : '我的题库' }}</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
@@ -80,7 +80,17 @@
       <section class="question-layout">
         <article class="table-panel">
           <div class="panel-header">
-            <h2>可选题目</h2>
+            <div class="candidate-heading">
+              <h2>可选题目</h2>
+              <label>
+                题库范围
+                <select v-model="questionScope" aria-label="组卷题库范围" @change="loadQuestions">
+                  <option value="ALL">全部可用</option>
+                  <option value="PUBLIC">公共题库</option>
+                  <option value="PERSONAL">我的题库</option>
+                </select>
+              </label>
+            </div>
             <span class="panel-count">{{ selectedQuestionIds.length }} 题已选</span>
           </div>
           <table>
@@ -186,7 +196,8 @@ import {
   type CustomExamPaper,
   type ExamRule,
   type ExamSummary,
-  type Question
+  type Question,
+  type QuestionBankScope
 } from '../api'
 import CurrentAccount from '../components/CurrentAccount.vue'
 import LogoutButton from '../components/LogoutButton.vue'
@@ -195,6 +206,7 @@ import { isAdmin } from '../permissions'
 const isAdminUser = isAdmin()
 const router = useRouter()
 const availableQuestions = ref<Question[]>([])
+const questionScope = ref<QuestionBankScope>('ALL')
 const histories = ref<ExamSummary[]>([])
 const publishedRules = ref<ExamRule[]>([])
 const selectedQuestionIds = ref<number[]>([])
@@ -249,7 +261,7 @@ async function startRule(rule: ExamRule) {
 
 async function loadQuestions() {
   try {
-    availableQuestions.value = await searchQuestions()
+    availableQuestions.value = await searchQuestions({ scope: questionScope.value })
     selectedQuestionIds.value = availableQuestions.value.map((question) => question.id)
   } catch (error) {
     statusMessage.value = errorMessage(error, '加载题库失败，请检查本地后端是否启动。')
@@ -446,6 +458,32 @@ function errorMessage(error: unknown, fallback: string) {
   color: #667085;
   margin: 0;
   padding: 18px;
+}
+
+.candidate-heading {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+
+.candidate-heading h2 {
+  margin: 0;
+}
+
+.candidate-heading label {
+  color: #667085;
+  display: grid;
+  font-size: 13px;
+  gap: 4px;
+}
+
+.candidate-heading select {
+  background: #ffffff;
+  border: 1px solid #cfd7e3;
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 0 34px 0 10px;
 }
 
 @media (max-width: 980px) {
