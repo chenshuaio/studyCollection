@@ -87,4 +87,4 @@
 - [x] 在 1280x720 与 390x844 检查规则管理页、考试中心和答题跳转，无页面级横向溢出、文字遮挡或不可操作控件，并检查浏览器控制台无错误。
 - [x] 更新完整度矩阵，将管理员考试规则与模拟考试标记为已实现。
 - [x] 运行 `.\scripts\publish-local.ps1 -UseMysql -RestartLocal`，验证本地前后端和新的公网入口。
-- [ ] 提交并推送 `codex/java-learning-platform-implementation` 分支。
+- [x] 提交并推送 `codex/java-learning-platform-implementation` 分支。
