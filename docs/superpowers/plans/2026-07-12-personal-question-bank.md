@@ -112,4 +112,4 @@
 - [x] 在 1280x720 与 390x844 检查个人题库、导入、练习和考试页面，确认筛选控件、表格内部滚动、按钮和文字均可操作且控制台无错误。
 - [x] 更新完整度矩阵与 README，将个人题库和题目可见范围标记为已实现，并记录公共/个人题都先审核的规则。
 - [x] 运行后端全量 Maven、前端全量 Vitest、类型检查、生产构建和 `git diff --check`。
-- [ ] 提交代码，运行 `.\scripts\publish-local.ps1 -UseMysql -RestartLocal`，验证本地与新公网入口后推送 `codex/java-learning-platform-implementation` 分支。
+- [x] 提交代码，运行 `.\scripts\publish-local.ps1 -UseMysql -RestartLocal`，验证本地与新公网入口后推送 `codex/java-learning-platform-implementation` 分支。
