@@ -26,9 +26,9 @@
 - 测试：`backend/ai-service/src/test/java/com/studycollection/ai/app/HttpOnlineModelClientTest.java`
 - 测试：`backend/ai-service/src/test/java/com/studycollection/ai/app/MySqlAiModelSettingsRepositoryTest.java`
 
-- [ ] 写失败测试，固定设置语义：数据库设置优先于环境端点/模型，环境变量只提供 API 密钥，接口只返回 `apiKeyConfigured` 布尔值。
-- [ ] 写失败测试，固定校验规则：端点仅允许无用户信息的 `http/https` URI，模型名称不能为空，提供方固定为 `OPENAI_COMPATIBLE`。
-- [ ] 写本地 `HttpServer` 失败测试，断言请求包含 Bearer 头和以下标准结构，并从 `choices[0].message.content` 提取文本：
+- [x] 写失败测试，固定设置语义：数据库设置优先于环境端点/模型，环境变量只提供 API 密钥，接口只返回 `apiKeyConfigured` 布尔值。
+- [x] 写失败测试，固定校验规则：端点仅允许无用户信息的 `http/https` URI，模型名称不能为空，提供方固定为 `OPENAI_COMPATIBLE`。
+- [x] 写本地 `HttpServer` 失败测试，断言请求包含 Bearer 头和以下标准结构，并从 `choices[0].message.content` 提取文本：
 
 ```json
 {
@@ -41,12 +41,12 @@
 }
 ```
 
-- [ ] 增加 HTTP 非 2xx、非法 JSON、缺少 `choices`、空内容和超时测试，错误消息只包含状态或归一化原因，不拼接远端完整响应。
-- [ ] 运行 `mvn -pl ai-service -am test`，确认测试因设置模型、仓储和标准解析尚未实现而失败。
-- [ ] 实现 `AiModelSettings`、环境默认值合并、内存/MySQL 仓储和 `AiSettingsService`；保存时只写端点、模型、修改人和时间。
-- [ ] 使用 Jackson 生成请求并解析响应；让 `OnlineModelClient` 保持函数式接口，并通过默认方法提供当前 provider/model 元数据，兼容现有 lambda 测试。
-- [ ] 重跑 `mvn -pl ai-service -am test`，确认设置与客户端测试全部通过。
-- [ ] 提交：`git commit -m "feat: add openai compatible model settings"`。
+- [x] 增加 HTTP 非 2xx、非法 JSON、缺少 `choices`、空内容和超时测试，错误消息只包含状态或归一化原因，不拼接远端完整响应。
+- [x] 运行 `mvn -pl ai-service -am test`，确认测试因设置模型、仓储和标准解析尚未实现而失败。
+- [x] 实现 `AiModelSettings`、环境默认值合并、内存/MySQL 仓储和 `AiSettingsService`；保存时只写端点、模型、修改人和时间。
+- [x] 使用 Jackson 生成请求并解析响应；让 `OnlineModelClient` 保持函数式接口，并通过默认方法提供当前 provider/model 元数据，兼容现有 lambda 测试。
+- [x] 重跑 `mvn -pl ai-service -am test`，确认设置与客户端测试全部通过。
+- [x] 提交：`git commit -m "feat: add openai compatible model settings"`。
 
 ### 任务 2：调用审计、失败回退与管理员 API
 
