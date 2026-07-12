@@ -1,12 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ExamPage from './ExamPage.vue'
-import { composeCustomExam, listExamSessions, searchQuestions, type ExamSession } from '../api'
+import {
+  composeCustomExam,
+  listExamSessions,
+  listPublishedExamRules,
+  searchQuestions,
+  startSimulationExam,
+  type ExamSession
+} from '../api'
+
+const push = vi.fn()
+
+vi.mock('vue-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-router')>()),
+  useRouter: () => ({ push })
+}))
 
 vi.mock('../api', () => ({
   composeCustomExam: vi.fn(),
   listExamSessions: vi.fn(),
-  searchQuestions: vi.fn()
+  listPublishedExamRules: vi.fn(),
+  searchQuestions: vi.fn(),
+  startSimulationExam: vi.fn()
 }))
 
 const routerLinkStub = {
@@ -65,6 +81,22 @@ describe('ExamPage', () => {
       }
     ])
     vi.mocked(composeCustomExam).mockReset().mockResolvedValue(createdSession)
+    vi.mocked(listPublishedExamRules).mockReset().mockResolvedValue([{
+      id: 5,
+      name: 'Java 入门模拟考试',
+      description: '检验基础语法',
+      durationMinutes: 20,
+      totalQuestions: 10,
+      knowledgePoints: ['Java 基础'],
+      typeQuotas: { SINGLE_CHOICE: 10 },
+      difficultyQuotas: { BEGINNER: 10 },
+      status: 'PUBLISHED',
+      createdBy: 1,
+      createdAt: '2026-07-12T03:00:00Z',
+      updatedAt: '2026-07-12T03:00:00Z'
+    }])
+    vi.mocked(startSimulationExam).mockReset().mockResolvedValue(createdSession)
+    push.mockReset()
   })
 
   afterEach(() => {
@@ -120,5 +152,23 @@ describe('ExamPage', () => {
 
     expect(wrapper.text()).toContain('40 / 50')
     expect(wrapper.find('a[href="/exams/77/take"]').text()).toContain('查看结果')
+  })
+
+  it('starts a published simulation exam and enters the existing taking page', async () => {
+    const wrapper = mount(ExamPage, {
+      global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('管理员模拟考试')
+    expect(wrapper.text()).toContain('Java 入门模拟考试')
+    expect(wrapper.text()).toContain('10 题')
+    expect(wrapper.text()).toContain('20 分钟')
+
+    await wrapper.get('[data-rule-id="5"]').trigger('click')
+    await flushPromises()
+
+    expect(startSimulationExam).toHaveBeenCalledWith(5)
+    expect(push).toHaveBeenCalledWith({ name: 'exam-taking', params: { examId: 91 } })
   })
 })

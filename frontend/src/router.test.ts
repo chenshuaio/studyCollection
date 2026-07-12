@@ -92,4 +92,15 @@ describe('route access control', () => {
     expect(examTakingRoute?.path).toBe('/exams/:examId/take')
     expect(examTakingRoute?.meta).toEqual(expect.objectContaining({ requiresAuth: true }))
   })
+
+  it('registers exam rule management as an administrator-only route', () => {
+    const examRuleRoute = router.getRoutes().find((route) => route.name === 'exam-rule-management')
+
+    expect(examRuleRoute?.path).toBe('/exam-rules/manage')
+    expect(examRuleRoute?.meta).toEqual(expect.objectContaining({ requiresAuth: true, requiredRole: 'ADMIN' }))
+    expect(resolveRouteAccess(
+      { name: 'exam-rule-management', meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
+      currentUser('USER')
+    )).toBe('dashboard')
+  })
 })

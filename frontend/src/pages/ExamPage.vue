@@ -8,6 +8,7 @@
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/exam-rules/manage">考试规则</RouterLink>
         <RouterLink to="/mistakes">错题本</RouterLink>
         <RouterLink to="/reports">学习报告</RouterLink>
         <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
@@ -26,6 +27,55 @@
           <LogoutButton />
         </div>
       </header>
+
+      <section class="simulation-section" aria-label="管理员模拟考试">
+        <div class="simulation-heading">
+          <div>
+            <p class="eyebrow">固定规则 · 随机组卷</p>
+            <h2>管理员模拟考试</h2>
+          </div>
+          <RouterLink v-if="isAdminUser" class="table-action" to="/exam-rules/manage">管理考试规则</RouterLink>
+        </div>
+        <div v-if="publishedRules.length > 0" class="simulation-grid">
+          <article v-for="rule in publishedRules" :key="rule.id" class="simulation-rule-card">
+            <div class="simulation-card-header">
+              <div>
+                <h3>{{ rule.name }}</h3>
+                <p>{{ rule.description || '按管理员配置随机生成模拟试卷。' }}</p>
+              </div>
+              <span>{{ rule.totalQuestions }} 题</span>
+            </div>
+            <dl>
+              <div>
+                <dt>考试时限</dt>
+                <dd>{{ rule.durationMinutes }} 分钟</dd>
+              </div>
+              <div>
+                <dt>知识点</dt>
+                <dd>{{ rule.knowledgePoints.length ? rule.knowledgePoints.join('、') : '全部知识点' }}</dd>
+              </div>
+              <div>
+                <dt>题型</dt>
+                <dd>{{ quotaSummary(rule.typeQuotas, typeLabels) }}</dd>
+              </div>
+              <div>
+                <dt>难度</dt>
+                <dd>{{ quotaSummary(rule.difficultyQuotas, difficultyLabels) }}</dd>
+              </div>
+            </dl>
+            <button
+              class="simulation-start"
+              type="button"
+              :data-rule-id="rule.id"
+              :disabled="startingRuleId !== null"
+              @click="startRule(rule)"
+            >
+              {{ startingRuleId === rule.id ? '正在生成...' : '开始模拟考试' }}
+            </button>
+          </article>
+        </div>
+        <p v-else class="simulation-empty">当前没有已发布的模拟考试，可继续使用下方个人组卷。</p>
+      </section>
 
       <section class="question-layout">
         <article class="table-panel">
@@ -126,12 +176,15 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import {
   composeCustomExam,
   listExamSessions,
+  listPublishedExamRules,
   searchQuestions,
+  startSimulationExam,
   type CustomExamPaper,
+  type ExamRule,
   type ExamSummary,
   type Question
 } from '../api'
@@ -140,20 +193,59 @@ import LogoutButton from '../components/LogoutButton.vue'
 import { isAdmin } from '../permissions'
 
 const isAdminUser = isAdmin()
+const router = useRouter()
 const availableQuestions = ref<Question[]>([])
 const histories = ref<ExamSummary[]>([])
+const publishedRules = ref<ExamRule[]>([])
 const selectedQuestionIds = ref<number[]>([])
 const statusMessage = ref('')
 const createdPaper = ref<CustomExamPaper | null>(null)
 const creating = ref(false)
+const startingRuleId = ref<number | null>(null)
 const draft = reactive({
   name: '集合专项测试',
   durationMinutes: 45
 })
 
 onMounted(async () => {
-  await Promise.all([loadQuestions(), loadHistory()])
+  await Promise.all([loadQuestions(), loadHistory(), loadPublishedRules()])
 })
+
+const typeLabels: Record<string, string> = {
+  SINGLE_CHOICE: '单选题',
+  MULTIPLE_CHOICE: '多选题',
+  TRUE_FALSE: '判断题',
+  FILL_BLANK: '填空题',
+  SHORT_ANSWER: '简答题',
+  PROGRAMMING: '编程题'
+}
+
+const difficultyLabels: Record<string, string> = {
+  BEGINNER: '入门',
+  INTERMEDIATE: '进阶',
+  ADVANCED: '精通'
+}
+
+async function loadPublishedRules() {
+  try {
+    publishedRules.value = await listPublishedExamRules()
+  } catch (error) {
+    statusMessage.value = errorMessage(error, '加载模拟考试失败，请检查本地后端是否启动。')
+  }
+}
+
+async function startRule(rule: ExamRule) {
+  statusMessage.value = ''
+  startingRuleId.value = rule.id
+  try {
+    const session = await startSimulationExam(rule.id)
+    await router.push({ name: 'exam-taking', params: { examId: session.id } })
+  } catch (error) {
+    statusMessage.value = errorMessage(error, '生成模拟考试失败，请联系管理员检查题库配额。')
+  } finally {
+    startingRuleId.value = null
+  }
+}
 
 async function loadQuestions() {
   try {
@@ -225,6 +317,13 @@ function difficultyLabel(difficulty: string) {
   return ({ BEGINNER: '入门', INTERMEDIATE: '进阶', ADVANCED: '精通' } as Record<string, string>)[difficulty] ?? difficulty
 }
 
+function quotaSummary(quotas: Record<string, number>, labels: Record<string, string>) {
+  return Object.entries(quotas)
+    .filter(([, count]) => count > 0)
+    .map(([key, count]) => `${labels[key] ?? key} ${count}`)
+    .join('、') || '未配置'
+}
+
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('zh-CN', {
     month: '2-digit',
@@ -239,3 +338,136 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }
 </script>
+
+<style scoped>
+.simulation-section {
+  margin-bottom: 16px;
+}
+
+.simulation-heading {
+  align-items: flex-end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.simulation-heading h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.simulation-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.simulation-rule-card {
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+}
+
+.simulation-card-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.simulation-card-header h3 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.simulation-card-header p {
+  color: #667085;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.simulation-card-header > span {
+  background: #eef4ff;
+  border-radius: 6px;
+  color: #1f6feb;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 6px 8px;
+}
+
+.simulation-rule-card dl {
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.simulation-rule-card dt {
+  color: #667085;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.simulation-rule-card dd {
+  color: #344054;
+  line-height: 1.5;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.simulation-start {
+  background: #1f6feb;
+  border: 0;
+  border-radius: 7px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  min-height: 42px;
+  padding: 0 16px;
+  justify-self: start;
+}
+
+.simulation-start:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.simulation-empty {
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+  color: #667085;
+  margin: 0;
+  padding: 18px;
+}
+
+@media (max-width: 980px) {
+  .simulation-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .simulation-heading,
+  .simulation-card-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .simulation-rule-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .simulation-start {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+</style>

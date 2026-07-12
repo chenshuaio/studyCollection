@@ -231,6 +231,24 @@ export type CustomExamPayload = {
   questionIds: number[]
 }
 
+export type ExamRulePayload = {
+  name: string
+  description: string
+  durationMinutes: number
+  totalQuestions: number
+  knowledgePoints: string[]
+  typeQuotas: Record<string, number>
+  difficultyQuotas: Record<string, number>
+}
+
+export type ExamRule = ExamRulePayload & {
+  id: number
+  status: 'DRAFT' | 'PUBLISHED'
+  createdBy: number
+  createdAt: string
+  updatedAt: string
+}
+
 export type ExamQuestion = {
   id: number
   title: string
@@ -590,6 +608,38 @@ export function saveExamAnswer(sessionId: number, questionId: number, answer: st
 
 export function submitExamSession(sessionId: number) {
   return post<ExamSession>(`/exams/${sessionId}/submit`, {})
+}
+
+export function listPublishedExamRules() {
+  return request<ExamRule[]>('/exam-rules', { method: 'GET' })
+}
+
+export function listAdminExamRules() {
+  return request<ExamRule[]>('/exam-rules/admin', { method: 'GET' })
+}
+
+export function createExamRule(payload: ExamRulePayload) {
+  return post<ExamRule>('/exam-rules', payload)
+}
+
+export function updateExamRule(id: number, payload: ExamRulePayload) {
+  return put<ExamRule>(`/exam-rules/${id}`, payload)
+}
+
+export function publishExamRule(id: number) {
+  return post<ExamRule>(`/exam-rules/${id}/publish`, {})
+}
+
+export function unpublishExamRule(id: number) {
+  return post<ExamRule>(`/exam-rules/${id}/unpublish`, {})
+}
+
+export function deleteExamRule(id: number) {
+  return request<number>(`/exam-rules/${id}`, { method: 'DELETE' })
+}
+
+export function startSimulationExam(id: number) {
+  return post<ExamSession>(`/exam-rules/${id}/start`, {})
 }
 
 export function generateLearningReport(payload: LearningReportPayload) {

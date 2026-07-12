@@ -4,7 +4,9 @@ import {
   acceptQuestionFeedbackGroup,
   approvePendingQuestion,
   composeCustomExam,
+  createExamRule,
   createKnowledgePoint,
+  deleteExamRule,
   deleteQuestion,
   disableKnowledgePoint,
   generatePractice,
@@ -14,6 +16,8 @@ import {
   getRecentPractices,
   getPracticeStats,
   listExamSessions,
+  listAdminExamRules,
+  listPublishedExamRules,
   listLearningReports,
   listKnowledgePoints,
   listPendingFeedback,
@@ -25,6 +29,7 @@ import {
   listQuestionRevisions,
   login,
   markFeedbackNeedsReview,
+  publishExamRule,
   previewImport,
   recordMistake,
   rejectPendingQuestion,
@@ -36,6 +41,9 @@ import {
   submitUserPractice,
   submitQuestionFeedback,
   submitExamSession,
+  startSimulationExam,
+  unpublishExamRule,
+  updateExamRule,
   updateMistakeStatus,
   uploadKnowledgeFile,
   uploadQuestionFile
@@ -581,6 +589,81 @@ describe('api client', () => {
       body: JSON.stringify({ answer: 'A' })
     }))
     expect(fetchMock).toHaveBeenCalledWith('/api/exams/91/submit', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('manages exam rules and starts a published simulation exam', async () => {
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'admin-token',
+      userId: 1,
+      username: 'admin',
+      role: 'ADMIN',
+      displayName: '系统管理员'
+    }))
+    const rule = {
+      id: 5,
+      name: 'Java 入门模拟考试',
+      description: '检验基础语法',
+      durationMinutes: 20,
+      totalQuestions: 1,
+      knowledgePoints: ['Java 基础'],
+      typeQuotas: { SINGLE_CHOICE: 1 },
+      difficultyQuotas: { BEGINNER: 1 },
+      status: 'DRAFT',
+      createdBy: 1,
+      createdAt: '2026-07-12T03:00:00Z',
+      updatedAt: '2026-07-12T03:00:00Z'
+    }
+    const session = {
+      id: 91,
+      name: rule.name,
+      durationMinutes: 20,
+      status: 'IN_PROGRESS',
+      startedAt: '2026-07-12T03:00:00Z',
+      expiresAt: '2026-07-12T03:20:00Z',
+      submittedAt: null,
+      remainingSeconds: 1200,
+      score: null,
+      totalScore: null,
+      questions: []
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: [{ ...rule, status: 'PUBLISHED' }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: [rule] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: rule }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: rule }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: { ...rule, status: 'PUBLISHED' } }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: rule }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: 5 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'OK', data: session }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const payload = {
+      name: rule.name,
+      description: rule.description,
+      durationMinutes: rule.durationMinutes,
+      totalQuestions: rule.totalQuestions,
+      knowledgePoints: rule.knowledgePoints,
+      typeQuotas: rule.typeQuotas,
+      difficultyQuotas: rule.difficultyQuotas
+    }
+
+    await listPublishedExamRules()
+    await listAdminExamRules()
+    await createExamRule(payload)
+    await updateExamRule(5, payload)
+    await publishExamRule(5)
+    await unpublishExamRule(5)
+    await deleteExamRule(5)
+    const started = await startSimulationExam(5)
+
+    expect(started.id).toBe(91)
+    expect(fetchMock).toHaveBeenCalledWith('/api/exam-rules', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exam-rules/admin', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exam-rules', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exam-rules/5', expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exam-rules/5/publish', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exam-rules/5/unpublish', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exam-rules/5', expect.objectContaining({ method: 'DELETE' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/exam-rules/5/start', expect.objectContaining({ method: 'POST' }))
   })
 
   it('generates and lists trusted learning reports without client result samples', async () => {
