@@ -68,6 +68,7 @@ public class QuestionFeedbackService {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("反馈内容不能为空");
         }
+        questionRepository.findAccessibleById(questionId, userId);
         return feedbackRepository.saveFeedback(new QuestionFeedback(
                 null,
                 userId,
@@ -312,6 +313,7 @@ public class QuestionFeedbackService {
     ) {
         return new Question(
                 current.id(),
+                current.ownerUserId(),
                 isBlank(correctedTitle) ? current.title() : correctedTitle.trim(),
                 correctedType == null ? current.type() : correctedType,
                 correctedDifficulty == null ? current.difficulty() : correctedDifficulty,

@@ -67,9 +67,28 @@ class QuestionFeedbackControllerTest {
 
     @Test
     void adminCanRejectFeedbackOrMarkItNeedsReview() {
+        InMemoryQuestionRepository questions = new InMemoryQuestionRepository();
+        questions.save(new Question(
+                101L,
+                "测试公共题 101",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "解析"
+        ));
+        questions.save(new Question(
+                102L,
+                "测试公共题 102",
+                QuestionType.SHORT_ANSWER,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "答案",
+                "解析"
+        ));
         QuestionFeedbackController controller = new QuestionFeedbackController(new QuestionFeedbackService(
                 new InMemoryQuestionFeedbackRepository(),
-                new InMemoryQuestionRepository()
+                questions
         ));
         QuestionFeedback rejected = controller.submit(USER, new SubmitFeedbackRequest(
                 101L,

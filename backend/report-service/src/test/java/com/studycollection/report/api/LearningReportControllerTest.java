@@ -58,6 +58,26 @@ class LearningReportControllerTest {
                 "回收不可达对象占用的内存。",
                 "强化题解析"
         ));
+        questions.save(new Question(
+                93L,
+                USER.userId(),
+                "我的 JVM 个人强化题",
+                QuestionType.FILL_BLANK,
+                Difficulty.BEGINNER,
+                "JVM",
+                "字节码",
+                "个人强化题解析"
+        ));
+        questions.save(new Question(
+                94L,
+                OTHER_USER.userId(),
+                "他人的 JVM 个人强化题",
+                QuestionType.FILL_BLANK,
+                Difficulty.BEGINNER,
+                "JVM",
+                "类加载器",
+                "他人强化题解析"
+        ));
         AiAnalysisService aiAnalysisService = new AiAnalysisService(summary -> {
             throw new IllegalStateException("测试中的在线模型不可用");
         });
@@ -106,7 +126,10 @@ class LearningReportControllerTest {
                 .contains("FILL_BLANK", "SHORT_ANSWER", "SINGLE_CHOICE");
         assertThat(report.recentTrend()).extracting(point -> point.date().toString())
                 .containsExactly("2026-07-09", "2026-07-10");
-        assertThat(report.strengtheningQuestions()).hasSize(2);
+        assertThat(report.strengtheningQuestions()).hasSize(3);
+        assertThat(report.strengtheningQuestions()).extracting(question -> question.id())
+                .containsExactly(91L, 92L, 93L)
+                .doesNotContain(94L);
         assertThat(report.strengtheningQuestions()).allSatisfy(question -> {
             assertThat(question.knowledgePoint()).isEqualTo("JVM");
             assertThat(question.title()).isNotBlank();

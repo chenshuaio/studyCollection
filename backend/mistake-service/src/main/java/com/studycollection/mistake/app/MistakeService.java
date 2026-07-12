@@ -37,7 +37,7 @@ public class MistakeService {
         if (questionId == null) {
             throw new IllegalArgumentException("题目 ID 不能为空");
         }
-        Question question = questionRepository.findById(questionId);
+        Question question = questionRepository.findAccessibleById(questionId, userId);
         var occurredAt = clock.instant();
         MistakeRecord occurrence = new MistakeRecord(
                 userId,

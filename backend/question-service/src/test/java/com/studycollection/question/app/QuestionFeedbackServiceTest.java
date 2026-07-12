@@ -179,6 +179,7 @@ class QuestionFeedbackServiceTest {
         InMemoryQuestionRepository questionRepository = new InMemoryQuestionRepository();
         Question savedQuestion = questionRepository.save(new Question(
                 null,
+                7L,
                 "Java 中 int 默认值是多少？",
                 QuestionType.SINGLE_CHOICE,
                 Difficulty.BEGINNER,
@@ -210,6 +211,7 @@ class QuestionFeedbackServiceTest {
         assertThat(revision.questionId()).isEqualTo(savedQuestion.id());
         assertThat(revision.changeSummary()).contains("答案从 A 修改为 B");
         Question revisedQuestion = questionRepository.findById(savedQuestion.id());
+        assertThat(revisedQuestion.ownerUserId()).isEqualTo(7L);
         assertThat(revisedQuestion.answer()).isEqualTo("B");
         assertThat(revisedQuestion.analysis()).contains("默认值是 0");
     }
@@ -278,10 +280,57 @@ class QuestionFeedbackServiceTest {
                 .hasMessage("反馈已处理");
     }
 
+    @Test
+    void rejectsFeedbackForAnotherUsersPersonalQuestion() {
+        InMemoryQuestionRepository questions = new InMemoryQuestionRepository();
+        Question foreignQuestion = questions.save(new Question(
+                null,
+                8L,
+                "他人的个人题",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "他人解析"
+        ));
+        QuestionFeedbackService service = new QuestionFeedbackService(
+                new InMemoryQuestionFeedbackRepository(),
+                questions
+        );
+
+        assertThatThrownBy(() -> service.submit(
+                7L,
+                foreignQuestion.id(),
+                FeedbackType.STEM_ERROR,
+                "尝试访问他人个人题"
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("题目不存在或无权访问");
+    }
+
     private QuestionFeedbackService service() {
+        InMemoryQuestionRepository questions = new InMemoryQuestionRepository();
+        questions.save(new Question(
+                101L,
+                "测试公共题 101",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "解析"
+        ));
+        questions.save(new Question(
+                102L,
+                "测试公共题 102",
+                QuestionType.SHORT_ANSWER,
+                Difficulty.INTERMEDIATE,
+                "集合框架",
+                "答案",
+                "解析"
+        ));
         return new QuestionFeedbackService(
                 new InMemoryQuestionFeedbackRepository(),
-                new InMemoryQuestionRepository()
+                questions
         );
     }
 

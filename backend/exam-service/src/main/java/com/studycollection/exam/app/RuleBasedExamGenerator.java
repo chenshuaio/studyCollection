@@ -4,6 +4,7 @@ import com.studycollection.exam.domain.ExamRule;
 import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
+import com.studycollection.question.domain.QuestionBankScope;
 import com.studycollection.question.domain.QuestionType;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +23,14 @@ public class RuleBasedExamGenerator {
     }
 
     public List<Question> generate(ExamRule rule) {
-        List<Question> eligible = questionRepository.search(null, null, null, null).stream()
+        List<Question> eligible = questionRepository.searchAccessible(
+                        null,
+                        QuestionBankScope.PUBLIC,
+                        null,
+                        null,
+                        null,
+                        null
+                ).stream()
                 .filter(question -> rule.knowledgePoints().isEmpty()
                         || rule.knowledgePoints().contains(question.knowledgePoint()))
                 .filter(question -> question.answer() != null && !question.answer().isBlank())

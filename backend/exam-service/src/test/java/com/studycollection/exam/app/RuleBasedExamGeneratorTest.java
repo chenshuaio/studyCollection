@@ -176,6 +176,32 @@ class RuleBasedExamGeneratorTest {
                 .withMessageContaining("题型与难度");
     }
 
+    @Test
+    void publicSimulationNeverUsesPersonalQuestionCapacity() {
+        InMemoryQuestionRepository questions = new InMemoryQuestionRepository();
+        save(questions, "公共单选题", QuestionType.SINGLE_CHOICE, Difficulty.BEGINNER, "Java 基础");
+        questions.save(new Question(
+                null,
+                7L,
+                "个人单选题",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "个人解析"
+        ));
+        ExamRule rule = rule(
+                2,
+                Map.of(QuestionType.SINGLE_CHOICE, 2),
+                Map.of(Difficulty.BEGINNER, 2),
+                List.of("Java 基础")
+        );
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new RuleBasedExamGenerator(questions).generate(rule))
+                .withMessageContaining("题库不足");
+    }
+
     private ExamRule rule(
             int totalQuestions,
             Map<QuestionType, Integer> typeQuotas,

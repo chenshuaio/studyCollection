@@ -18,6 +18,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MistakeControllerTest {
     private static final AuthenticatedUser USER = new AuthenticatedUser(7L, "alice", Role.USER);
@@ -107,6 +108,25 @@ class MistakeControllerTest {
         assertThat(updated.firstWrongAt()).isEqualTo(updated.lastWrongAt());
     }
 
+    @Test
+    void rejectsRecordingAnotherUsersPersonalQuestion() {
+        InMemoryMistakeRepository mistakes = new InMemoryMistakeRepository();
+        MistakeController controller = controller(
+                mistakes,
+                questions(),
+                Instant.parse("2026-07-12T08:00:00Z")
+        );
+
+        assertThatThrownBy(() -> controller.record(USER, new RecordMistakeRequest(
+                3L,
+                "A",
+                "PRACTICE"
+        )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("题目不存在或无权访问");
+        assertThat(controller.list(USER, null, null, null, null, null).data()).isEmpty();
+    }
+
     private InMemoryQuestionRepository questions() {
         InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
         repository.save(new Question(
@@ -126,6 +146,16 @@ class MistakeControllerTest {
                 "JVM",
                 "局部变量表",
                 "每次方法调用都会创建栈帧。"
+        ));
+        repository.save(new Question(
+                3L,
+                8L,
+                "他人的个人错题",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "他人解析"
         ));
         return repository;
     }

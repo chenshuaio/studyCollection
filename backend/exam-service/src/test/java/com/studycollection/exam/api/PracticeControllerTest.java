@@ -8,6 +8,7 @@ import com.studycollection.exam.app.PracticeGenerator;
 import com.studycollection.question.app.InMemoryQuestionRepository;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
+import com.studycollection.question.domain.QuestionBankScope;
 import com.studycollection.question.domain.QuestionType;
 import org.junit.jupiter.api.Test;
 
@@ -201,11 +202,12 @@ class PracticeControllerTest {
                 new PracticeGenerator(repository, new Random(3))
         );
 
-        GeneratedPractice generated = controller.generate(new PracticeGenerateRequest(
+        GeneratedPractice generated = controller.generate(USER, new PracticeGenerateRequest(
                 "集合框架",
                 Difficulty.INTERMEDIATE,
                 QuestionType.SINGLE_CHOICE,
-                5
+                5,
+                QuestionBankScope.ALL
         )).data();
 
         assertThat(generated.requestedCount()).isEqualTo(5);
@@ -215,6 +217,28 @@ class PracticeControllerTest {
             assertThat(question.title()).contains("HashMap");
             assertThat(question.type()).isEqualTo(QuestionType.SINGLE_CHOICE);
         });
+    }
+
+    @Test
+    void rejectsSubmittingAnotherUsersPersonalQuestion() {
+        InMemoryQuestionRepository repository = new InMemoryQuestionRepository();
+        Question foreignQuestion = repository.save(new Question(
+                501L,
+                OTHER_USER.userId(),
+                "他人的个人练习题",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "他人解析"
+        ));
+        PracticeController controller = new PracticeController(repository, new InMemoryPracticeStatsRepository());
+
+        assertThatThrownBy(() -> controller.submit(USER, new PracticeSubmitRequest(List.of(
+                new PracticeAnswer(foreignQuestion.id(), "A")
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("题目不存在或无权访问");
     }
 
     @Test

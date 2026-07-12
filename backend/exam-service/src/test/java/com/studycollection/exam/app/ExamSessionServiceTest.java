@@ -68,6 +68,17 @@ class ExamSessionServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("题目不能重复选择");
 
+        assertThatThrownBy(() -> service.create(7L, new CustomExamRequest(
+                "越权个人题",
+                30,
+                List.of(3L)
+        )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("题目不存在或无权访问");
+
+        ExamSession personal = service.create(7L, new CustomExamRequest("我的个人题试卷", 30, List.of(4L)));
+        assertThat(personal.questions()).extracting(question -> question.questionId()).containsExactly(4L);
+
         ExamSession created = service.create(7L, new CustomExamRequest("私有试卷", 30, List.of(1L)));
         assertThatThrownBy(() -> service.get(8L, created.id()))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -145,6 +156,26 @@ class ExamSessionServiceTest {
                 "集合框架",
                 "ArrayList 基于数组，LinkedList 基于链表。",
                 "需要从访问和增删复杂度分析。"
+        ));
+        repository.save(new Question(
+                3L,
+                8L,
+                "他人的个人题",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "他人解析"
+        ));
+        repository.save(new Question(
+                4L,
+                7L,
+                "我的个人题",
+                QuestionType.SINGLE_CHOICE,
+                Difficulty.BEGINNER,
+                "Java 基础",
+                "A",
+                "个人解析"
         ));
         return repository;
     }

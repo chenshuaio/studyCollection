@@ -3,6 +3,7 @@ package com.studycollection.exam.app;
 import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
+import com.studycollection.question.domain.QuestionBankScope;
 import com.studycollection.question.domain.QuestionType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,8 @@ public class PracticeGenerator {
     }
 
     public List<Question> generate(
+            Long userId,
+            QuestionBankScope scope,
             String knowledgePoint,
             Difficulty difficulty,
             QuestionType type,
@@ -40,7 +43,9 @@ public class PracticeGenerator {
         String normalizedKnowledgePoint = knowledgePoint == null || knowledgePoint.isBlank()
                 ? null
                 : knowledgePoint.trim();
-        List<Question> available = new ArrayList<>(questionRepository.search(
+        List<Question> available = new ArrayList<>(questionRepository.searchAccessible(
+                userId,
+                scope,
                 null,
                 normalizedKnowledgePoint,
                 difficulty,

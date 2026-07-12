@@ -7,6 +7,7 @@ import com.studycollection.common.security.Role;
 import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.Difficulty;
 import com.studycollection.question.domain.Question;
+import com.studycollection.question.domain.QuestionBankScope;
 import com.studycollection.question.domain.QuestionType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,9 +50,17 @@ public class QuestionController {
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "knowledgePoint", required = false) String knowledgePoint,
             @RequestParam(value = "difficulty", required = false) Difficulty difficulty,
-            @RequestParam(value = "type", required = false) QuestionType type
+            @RequestParam(value = "type", required = false) QuestionType type,
+            @RequestParam(value = "scope", defaultValue = "ALL") QuestionBankScope scope
     ) {
-        List<Question> questions = questionRepository.search(keyword, knowledgePoint, difficulty, type);
+        List<Question> questions = questionRepository.searchAccessible(
+                currentUser.userId(),
+                scope,
+                keyword,
+                knowledgePoint,
+                difficulty,
+                type
+        );
         if (currentUser.role() == Role.ADMIN) {
             return ApiResponse.success(questions);
         }
@@ -59,15 +68,22 @@ public class QuestionController {
     }
 
     @DeleteMapping("/{id}")
-    @AdminOnly
-    public ApiResponse<Long> deleteQuestion(@PathVariable("id") Long id) {
-        questionRepository.deleteById(id);
+    public ApiResponse<Long> deleteQuestion(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
+            @PathVariable("id") Long id
+    ) {
+        if (currentUser.role() == Role.ADMIN) {
+            questionRepository.deleteById(id);
+        } else {
+            questionRepository.deleteOwnedById(id, currentUser.userId());
+        }
         return ApiResponse.success(id);
     }
 
     private Question hideAnswer(Question question) {
         return new Question(
                 question.id(),
+                question.ownerUserId(),
                 question.title(),
                 question.type(),
                 question.difficulty(),

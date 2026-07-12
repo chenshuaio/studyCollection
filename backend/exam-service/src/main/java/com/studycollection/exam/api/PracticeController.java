@@ -89,11 +89,16 @@ public class PracticeController {
     }
 
     @PostMapping("/generate")
-    public ApiResponse<GeneratedPractice> generate(@RequestBody PracticeGenerateRequest request) {
+    public ApiResponse<GeneratedPractice> generate(
+            @RequestAttribute(AuthenticatedUser.REQUEST_ATTRIBUTE) AuthenticatedUser currentUser,
+            @RequestBody PracticeGenerateRequest request
+    ) {
         if (request == null || request.count() == null) {
             throw new IllegalArgumentException("练习题目数量不能为空");
         }
         List<GeneratedPracticeQuestion> questions = practiceGenerator.generate(
+                        currentUser.userId(),
+                        request.scope(),
                         request.knowledgePoint(),
                         request.difficulty(),
                         request.type(),
@@ -129,7 +134,7 @@ public class PracticeController {
             throw new IllegalArgumentException("练习答案不能为空");
         }
         List<PracticeResultItem> items = request.answers().stream()
-                .map(this::scoreAnswer)
+                .map(answer -> scoreAnswer(currentUser.userId(), answer))
                 .toList();
         int score = items.stream().mapToInt(PracticeResultItem::score).sum();
         recordStats(currentUser.userId(), items);
@@ -168,8 +173,8 @@ public class PracticeController {
                 .toList());
     }
 
-    private PracticeResultItem scoreAnswer(PracticeAnswer answer) {
-        Question question = questionRepository.findById(answer.questionId());
+    private PracticeResultItem scoreAnswer(Long userId, PracticeAnswer answer) {
+        Question question = questionRepository.findAccessibleById(answer.questionId(), userId);
         String correctAnswer = question.answer();
         String analysis = question.analysis();
         if (correctAnswer == null || correctAnswer.isBlank()) {
@@ -236,7 +241,7 @@ public class PracticeController {
         String referenceId = UUID.randomUUID().toString();
         Instant attemptedAt = clock.instant();
         attemptRepository.saveAll(items.stream().map(item -> {
-            Question question = questionRepository.findById(item.questionId());
+            Question question = questionRepository.findAccessibleById(item.questionId(), userId);
             return new LearningAttempt(
                     null,
                     userId,

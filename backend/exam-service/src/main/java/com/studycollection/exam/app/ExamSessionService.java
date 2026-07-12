@@ -71,7 +71,7 @@ public class ExamSessionService {
             throw new IllegalArgumentException("题目不能重复选择");
         }
         List<Question> questions = request.questionIds().stream()
-                .map(questionRepository::findById)
+                .map(id -> questionRepository.findAccessibleById(id, userId))
                 .toList();
         return createFromQuestions(userId, request.name(), request.durationMinutes(), questions);
     }

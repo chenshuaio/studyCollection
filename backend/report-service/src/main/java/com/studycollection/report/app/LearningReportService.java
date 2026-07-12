@@ -9,6 +9,7 @@ import com.studycollection.question.app.InMemoryQuestionFeedbackRepository;
 import com.studycollection.question.app.QuestionFeedbackRepository;
 import com.studycollection.question.app.QuestionRepository;
 import com.studycollection.question.domain.Question;
+import com.studycollection.question.domain.QuestionBankScope;
 import com.studycollection.question.domain.QuestionType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -144,7 +145,7 @@ public class LearningReportService {
                 breakdown(attempts, LearningAttempt::knowledgePoint),
                 breakdown(attempts, attempt -> attempt.questionType().name()),
                 recentTrend(attempts),
-                strengtheningQuestions(analysis.weakestKnowledgePoint()),
+                strengtheningQuestions(userId, analysis.weakestKnowledgePoint()),
                 revisionPolicy.name(),
                 revisedAttemptCount
         );
@@ -201,8 +202,15 @@ public class LearningReportService {
         return new ArrayList<>(points.subList(fromIndex, points.size()));
     }
 
-    private List<StrengtheningQuestion> strengtheningQuestions(String knowledgePoint) {
-        return questionRepository.search(null, knowledgePoint, null, null).stream()
+    private List<StrengtheningQuestion> strengtheningQuestions(Long userId, String knowledgePoint) {
+        return questionRepository.searchAccessible(
+                        userId,
+                        QuestionBankScope.ALL,
+                        null,
+                        knowledgePoint,
+                        null,
+                        null
+                ).stream()
                 .limit(5)
                 .map(this::toStrengtheningQuestion)
                 .toList();
