@@ -117,14 +117,14 @@ CREATE TABLE IF NOT EXISTS ai_call_audits (
 - 修改：`frontend/src/pages/DashboardPage.test.ts`
 - 修改：`frontend/src/pages/ReportPage.vue`
 
-- [ ] 写失败 API 测试，固定 `getAiSettings`、`updateAiSettings`、`testAiConnection` 和 `listAiAudits` 的路径、方法、令牌和中文错误解析。
-- [ ] 写失败路由测试：管理员可进入 `/ai-settings`，普通用户被重定向到控制台；管理员控制台和报告页显示“AI 设置”入口。
-- [ ] 写失败页面测试：加载时展示端点、模型、密钥配置状态和审计；保存后刷新有效设置；连接测试成功/失败均显示后端真实消息；不会出现密钥输入框或密钥值。
-- [ ] 实现 TypeScript 类型和 API 函数，审计状态映射为“成功 / 已回退”，用途映射为“学习报告 / 配置测试”。
-- [ ] 实现 `AiSettingsPage.vue`：使用紧凑表单、状态提示、保存/测试按钮和可内部滚动的审计表；按钮执行期间禁用以防重复提交。
-- [ ] 在管理员控制台与报告页加入导航入口，并保持普通用户页面无管理入口。
-- [ ] 运行 `npm test`、`npm run typecheck`、`npm run build`，确认前端测试、类型与生产构建通过。
-- [ ] 提交：`git commit -m "feat: add ai settings admin page"`。
+- [x] 写失败 API 测试，固定 `getAiSettings`、`updateAiSettings`、`testAiConnection` 和 `listAiAudits` 的路径、方法、令牌和中文错误解析。
+- [x] 写失败路由测试：管理员可进入 `/ai-settings`，普通用户被重定向到控制台；管理员控制台和报告页显示“AI 设置”入口。
+- [x] 写失败页面测试：加载时展示端点、模型、密钥配置状态和审计；保存后刷新有效设置；连接测试成功/失败均显示后端真实消息；不会出现密钥输入框或密钥值。
+- [x] 实现 TypeScript 类型和 API 函数，审计状态映射为“成功 / 已回退”，用途映射为“学习报告 / 配置测试”。
+- [x] 实现 `AiSettingsPage.vue`：使用紧凑表单、状态提示、保存/测试按钮和可内部滚动的审计表；按钮执行期间禁用以防重复提交。
+- [x] 在管理员控制台与报告页加入导航入口，并保持普通用户页面无管理入口。
+- [x] 运行 `npm test`、`npm run typecheck`、`npm run build`，确认前端测试、类型与生产构建通过。
+- [x] 提交：`git commit -m "feat: add ai settings admin page"`。
 
 ### 任务 4：真实 MySQL、响应式页面、文档与发布验收
 

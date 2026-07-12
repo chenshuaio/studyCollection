@@ -12,11 +12,13 @@ import {
   generatePractice,
   generateKnowledgeQuestions,
   generateLearningReport,
+  getAiSettings,
   getExamSession,
   getRecentPractices,
   getPracticeStats,
   listExamSessions,
   listAdminExamRules,
+  listAiAudits,
   listPublishedExamRules,
   listLearningReports,
   listKnowledgePoints,
@@ -42,8 +44,10 @@ import {
   submitQuestionFeedback,
   submitExamSession,
   startSimulationExam,
+  testAiConnection,
   unpublishExamRule,
   updateExamRule,
+  updateAiSettings,
   updateMistakeStatus,
   uploadKnowledgeFile,
   uploadQuestionFile
@@ -56,6 +60,33 @@ describe('api client', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  it('uses authenticated administrator endpoints for ai settings and audits', async () => {
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'admin-token', userId: 1, username: 'admin', role: 'ADMIN', displayName: '系统管理员'
+    }))
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ code: 'OK', data: {} })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await getAiSettings()
+    await updateAiSettings({ endpoint: 'https://api.example/v1/chat/completions', modelName: 'qwen-plus' })
+    await testAiConnection()
+    await listAiAudits(25)
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/ai/settings', expect.objectContaining({
+      method: 'GET',
+      headers: expect.objectContaining({ Authorization: 'Bearer admin-token' })
+    }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/ai/settings', expect.objectContaining({
+      method: 'PUT',
+      body: expect.stringContaining('qwen-plus')
+    }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/ai/settings/test', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/ai/audits?limit=25', expect.objectContaining({ method: 'GET' }))
   })
 
   it('posts login requests through the local api proxy', async () => {

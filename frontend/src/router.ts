@@ -13,6 +13,7 @@ import MistakePage from './pages/MistakePage.vue'
 import UserManagementPage from './pages/UserManagementPage.vue'
 import KnowledgePointPage from './pages/KnowledgePointPage.vue'
 import ExamRuleManagementPage from './pages/ExamRuleManagementPage.vue'
+import AiSettingsPage from './pages/AiSettingsPage.vue'
 import { getCurrentUser, type CurrentUser } from './session'
 
 type AccessRoute = {
@@ -52,7 +53,8 @@ export const router = createRouter({
     { path: '/feedback', name: 'feedback', component: FeedbackReviewPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
     { path: '/users', name: 'users', component: UserManagementPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
     { path: '/knowledge-points', name: 'knowledge-points', component: KnowledgePointPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
-    { path: '/exam-rules/manage', name: 'exam-rule-management', component: ExamRuleManagementPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } }
+    { path: '/exam-rules/manage', name: 'exam-rule-management', component: ExamRuleManagementPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
+    { path: '/ai-settings', name: 'ai-settings', component: AiSettingsPage, meta: { requiresAuth: true, requiredRole: 'ADMIN' } }
   ]
 })
 

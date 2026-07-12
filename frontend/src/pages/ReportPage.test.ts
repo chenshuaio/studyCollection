@@ -75,6 +75,20 @@ describe('ReportPage', () => {
     expect(wrapper.get('[data-action="strengthen"]').attributes('data-to')).toContain('JVM')
   })
 
+  it('shows the ai settings navigation only to administrators', async () => {
+    window.localStorage.setItem('studyCollectionUser', JSON.stringify({
+      token: 'admin-token', userId: 1, username: 'admin', role: 'ADMIN', displayName: '系统管理员'
+    }))
+    const wrapper = mount(ReportPage, {
+      global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('AI 设置')
+    expect(wrapper.find('a[data-to*="ai-settings"]').exists()).toBe(true)
+  })
+
   it('generates a new report with the selected analysis and revised-question policies', async () => {
     const wrapper = mount(ReportPage, {
       global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }

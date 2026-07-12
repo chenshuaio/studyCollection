@@ -352,6 +352,38 @@ export type LearningReport = {
   revisedAttemptCount: number
 }
 
+export type AiSettings = {
+  provider: string
+  endpoint: string
+  modelName: string
+  apiKeyConfigured: boolean
+  updatedBy: number | null
+  updatedAt: string | null
+}
+
+export type UpdateAiSettingsPayload = {
+  endpoint: string
+  modelName: string
+}
+
+export type AiConnectionTest = {
+  success: boolean
+  source: 'ONLINE_MODEL' | 'RULES'
+  message: string
+}
+
+export type AiCallAudit = {
+  id: number
+  userId: number | null
+  purpose: string
+  provider: string
+  modelName: string
+  status: 'SUCCESS' | 'FALLBACK'
+  failureReason: string | null
+  durationMs: number
+  createdAt: string
+}
+
 export type MistakeRecord = {
   userId: number
   questionId: number
@@ -659,6 +691,22 @@ export function generateLearningReport(payload: LearningReportPayload) {
 
 export function listLearningReports() {
   return request<LearningReport[]>('/reports/learning', { method: 'GET' })
+}
+
+export function getAiSettings() {
+  return request<AiSettings>('/ai/settings', { method: 'GET' })
+}
+
+export function updateAiSettings(payload: UpdateAiSettingsPayload) {
+  return put<AiSettings>('/ai/settings', payload)
+}
+
+export function testAiConnection() {
+  return post<AiConnectionTest>('/ai/settings/test', {})
+}
+
+export function listAiAudits(limit = 50) {
+  return request<AiCallAudit[]>(`/ai/audits?limit=${limit}`, { method: 'GET' })
 }
 
 export function recordMistake(payload: RecordMistakePayload) {

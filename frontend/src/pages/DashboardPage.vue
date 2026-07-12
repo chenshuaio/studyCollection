@@ -9,6 +9,7 @@
         <RouterLink v-if="isAdminUser" to="/exam-rules/manage">考试规则</RouterLink>
         <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
         <RouterLink v-if="isAdminUser" to="/users">用户管理</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/ai-settings">AI 设置</RouterLink>
         <RouterLink to="/import">题目导入</RouterLink>
         <RouterLink to="/practice">练习中心</RouterLink>
         <RouterLink to="/exams">考试中心</RouterLink>

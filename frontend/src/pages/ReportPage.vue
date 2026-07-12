@@ -12,6 +12,7 @@
         <RouterLink to="/mistakes">错题本</RouterLink>
         <RouterLink to="/reports">学习报告</RouterLink>
         <RouterLink v-if="isAdminUser" to="/feedback">反馈审核</RouterLink>
+        <RouterLink v-if="isAdminUser" to="/ai-settings">AI 设置</RouterLink>
       </nav>
     </aside>
 

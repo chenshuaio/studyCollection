@@ -110,4 +110,15 @@ describe('route access control', () => {
       currentUser('USER')
     )).toBe('dashboard')
   })
+
+  it('registers ai settings as an administrator-only route', () => {
+    const aiSettingsRoute = router.getRoutes().find((route) => route.name === 'ai-settings')
+
+    expect(aiSettingsRoute?.path).toBe('/ai-settings')
+    expect(aiSettingsRoute?.meta).toEqual(expect.objectContaining({ requiresAuth: true, requiredRole: 'ADMIN' }))
+    expect(resolveRouteAccess(
+      { name: 'ai-settings', meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
+      currentUser('USER')
+    )).toBe('dashboard')
+  })
 })
