@@ -69,7 +69,7 @@
         <article class="workspace-panel import-source-panel">
           <h2>学习内容生成题库</h2>
           <label class="file-upload">
-            <span>上传 Java 学习资料</span>
+            <span>上传 Java 学习资料（PDF / DOCX / XLSX / CSV / MD / TXT，最大 10 MB）</span>
             <input
               type="file"
               accept=".txt,.md,.csv,.xlsx,.docx,.pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
@@ -112,6 +112,8 @@ import { isAdmin } from '../permissions'
 
 const isAdminUser = isAdmin()
 const targetScope = ref<'PERSONAL' | 'PUBLIC'>('PERSONAL')
+const MAX_KNOWLEDGE_FILE_SIZE = 10 * 1024 * 1024
+const KNOWLEDGE_FILE_EXTENSIONS = new Set(['pdf', 'docx', 'xlsx', 'csv', 'md', 'txt'])
 
 const rawContent = ref(`## 单选题
 题目: Java 中 int 默认值是多少？
@@ -192,14 +194,33 @@ async function uploadKnowledgeMaterial(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  const validationMessage = validateKnowledgeFile(file)
+  if (validationMessage) {
+    generationStatus.value = validationMessage
+    input.value = ''
+    return
+  }
+  generationStatus.value = `正在解析 ${file.name}...`
   try {
-    generatedQuestions.value = await uploadKnowledgeFile(file)
-    generationStatus.value = `已从 ${file.name} 生成 ${generatedQuestions.value.length} 道题，请预览后提交审核。`
+    const questions = await uploadKnowledgeFile(file)
+    generatedQuestions.value = questions
+    generationStatus.value = `已从 ${file.name} 生成 ${questions.length} 道题，请预览后提交审核。`
   } catch (error) {
     generationStatus.value = error instanceof Error ? error.message : '上传分析失败，请检查文件格式或本地后端。'
   } finally {
     input.value = ''
   }
+}
+
+function validateKnowledgeFile(file: File): string {
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
+  if (!KNOWLEDGE_FILE_EXTENSIONS.has(extension)) {
+    return '学习资料仅支持 PDF、DOCX、XLSX、CSV、MD 和 TXT 格式。'
+  }
+  if (file.size > MAX_KNOWLEDGE_FILE_SIZE) {
+    return '学习资料文件不能超过 10 MB。'
+  }
+  return ''
 }
 
 async function saveGeneratedQuestions() {
