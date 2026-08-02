@@ -27,7 +27,7 @@
 - Modify: `backend/local-app/src/test/java/com/studycollection/local/LocalStudyCollectionApplicationTest.java`
 - Test: `backend/import-service/src/test/java/com/studycollection/importer/api/KnowledgeGenerateControllerTest.java`
 
-- [ ] **Step 1: 写资料提取器失败测试**
+- [x] **Step 1: 写资料提取器失败测试**
 
 创建 `KnowledgeFileTextExtractorTest`，覆盖文本型 PDF、空白 PDF、损坏 PDF、超过 10 MB 和不支持扩展名：
 
@@ -160,7 +160,7 @@ class KnowledgeFileTextExtractorTest {
 }
 ```
 
-- [ ] **Step 2: 写真实 HTTP 失败测试**
+- [x] **Step 2: 写真实 HTTP 失败测试**
 
 在 `LocalStudyCollectionApplicationTest` 增加以下 imports 和测试，证明损坏 PDF 返回统一业务错误而不是 500：
 
@@ -204,7 +204,7 @@ void brokenPdfUploadReturnsUnifiedBadRequest() throws Exception {
 import java.nio.charset.StandardCharsets;
 ```
 
-- [ ] **Step 3: 运行测试并确认当前实现失败**
+- [x] **Step 3: 运行测试并确认当前实现失败**
 
 Run:
 
@@ -216,7 +216,7 @@ mvn -pl local-app -am -Dtest=LocalStudyCollectionApplicationTest#brokenPdfUpload
 
 Expected: 第一条命令至少在空白、损坏、超大和扩展名用例失败；第二条命令收到 500 或非预期错误消息。
 
-- [ ] **Step 4: 实现最小后端校验和 PDF 错误转换**
+- [x] **Step 4: 实现最小后端校验和 PDF 错误转换**
 
 将 `KnowledgeFileTextExtractor` 的入口改为明确白名单和统一大小限制，保留现有 DOCX/XLSX 提取方法：
 
@@ -265,7 +265,7 @@ private String extractPdf(byte[] bytes) {
 }
 ```
 
-- [ ] **Step 5: 运行后端测试并确认通过**
+- [x] **Step 5: 运行后端测试并确认通过**
 
 Run:
 
@@ -277,7 +277,7 @@ mvn -pl local-app -am -Dtest=LocalStudyCollectionApplicationTest#brokenPdfUpload
 
 Expected: 两条命令均 `BUILD SUCCESS`，新增测试 0 failures、0 errors。
 
-- [ ] **Step 6: 提交后端改动**
+- [x] **Step 6: 提交后端改动**
 
 ```powershell
 git add backend/import-service/src/main/java/com/studycollection/importer/parser/KnowledgeFileTextExtractor.java backend/import-service/src/test/java/com/studycollection/importer/parser/KnowledgeFileTextExtractorTest.java backend/local-app/src/test/java/com/studycollection/local/LocalStudyCollectionApplicationTest.java
@@ -290,7 +290,7 @@ git commit -m "feat: validate pdf knowledge uploads"
 - Modify: `frontend/src/pages/ImportPage.test.ts`
 - Modify: `frontend/src/pages/ImportPage.vue`
 
-- [ ] **Step 1: 写 PDF 上传和校验失败测试**
+- [x] **Step 1: 写 PDF 上传和校验失败测试**
 
 在 `ImportPage.test.ts` 中：
 
@@ -393,7 +393,7 @@ it('shows PDF parse errors without clearing an existing preview', async () => {
 })
 ```
 
-- [ ] **Step 2: 运行页面测试并确认失败**
+- [x] **Step 2: 运行页面测试并确认失败**
 
 Run:
 
@@ -404,7 +404,7 @@ npm test -- ImportPage.test.ts
 
 Expected: 缺少格式说明和 10 MB 前端校验的断言失败。
 
-- [ ] **Step 3: 实现前端格式、大小和状态校验**
+- [x] **Step 3: 实现前端格式、大小和状态校验**
 
 在 `ImportPage.vue` 的学习资料上传标签中使用：
 
@@ -459,7 +459,7 @@ async function uploadKnowledgeMaterial(event: Event) {
 }
 ```
 
-- [ ] **Step 4: 运行前端测试、类型检查和构建**
+- [x] **Step 4: 运行前端测试、类型检查和构建**
 
 Run:
 
@@ -472,7 +472,7 @@ npm run build
 
 Expected: Vitest 全部通过，`vue-tsc` 退出码 0，Vite 构建成功。
 
-- [ ] **Step 5: 提交前端改动**
+- [x] **Step 5: 提交前端改动**
 
 ```powershell
 git add frontend/src/pages/ImportPage.vue frontend/src/pages/ImportPage.test.ts
@@ -485,7 +485,7 @@ git commit -m "feat: improve pdf upload feedback"
 - Modify: `README.md`
 - Modify: `docs/api/local-flow.md`
 
-- [ ] **Step 1: 更新 README 上传说明**
+- [x] **Step 1: 更新 README 上传说明**
 
 将学习资料上传说明明确为：
 
@@ -493,7 +493,7 @@ git commit -m "feat: improve pdf upload feedback"
 也可以点击“上传学习资料”选择 `.txt`、`.md`、`.csv`、`.xlsx`、`.docx` 或 `.pdf` 文件。单个文件最大 10 MB；PDF 必须包含可复制的文本层，扫描版/纯图片 PDF 暂不支持。上传成功后，前端展示后端生成的可编辑题库草稿，确认后再提交管理员审核。
 ```
 
-- [ ] **Step 2: 更新本地接口文档**
+- [x] **Step 2: 更新本地接口文档**
 
 将 `/imports/knowledge/upload` 条目更新为：
 
@@ -501,7 +501,7 @@ git commit -m "feat: improve pdf upload feedback"
 - `POST /imports/knowledge/upload`：上传 Java 学习资料文件，字段名为 `file`，支持 `.txt`、`.md`、`.csv`、`.xlsx`、`.docx`、`.pdf`，单个文件最大 10 MB，返回待预览的题库草稿。PDF 必须包含文本层；扫描版、损坏或加密 PDF 返回明确的 HTTP 400 中文错误。
 ```
 
-- [ ] **Step 3: 检查文档和代码差异**
+- [x] **Step 3: 检查文档和代码差异**
 
 Run:
 
@@ -512,7 +512,7 @@ rg -n "10 MB|扫描版|application/pdf|PDF / DOCX" README.md docs/api/local-flow
 
 Expected: `git diff --check` 无输出；三个文件均能检索到 PDF 范围和限制。
 
-- [ ] **Step 4: 提交文档改动**
+- [x] **Step 4: 提交文档改动**
 
 ```powershell
 git add README.md docs/api/local-flow.md
@@ -526,7 +526,7 @@ git commit -m "docs: document pdf knowledge uploads"
 - Verify: `scripts/publish-local.ps1`
 - Verify: `.local/public-url.txt`
 
-- [ ] **Step 1: 运行完整自动验证**
+- [x] **Step 1: 运行完整自动验证**
 
 Run:
 
@@ -537,7 +537,7 @@ git diff --check
 
 Expected: Maven 全部模块 0 failures/0 errors，前端类型检查、全部 Vitest 和 Vite 构建通过；`git diff --check` 无输出。
 
-- [ ] **Step 2: 生成临时文本型 PDF 供真实上传验证**
+- [x] **Step 2: 生成临时文本型 PDF 供真实上传验证**
 
 在 PowerShell 运行以下脚本，生成一个带文本层且无需额外依赖的最小 PDF：
 
@@ -571,7 +571,7 @@ Get-Item $pdfPath | Select-Object FullName, Length
 
 Expected: `.local\studycollection-java-notes.pdf` 存在且长度大于 500 字节。
 
-- [ ] **Step 3: 重启 MySQL 模式服务并重新发布**
+- [x] **Step 3: 重启 MySQL 模式服务并重新发布**
 
 Run:
 
@@ -584,7 +584,7 @@ Invoke-WebRequest -UseBasicParsing ($publicUrl + '/') -TimeoutSec 15 | Select-Ob
 
 Expected: 本地和公网地址均返回 200，`.local/public-url.txt` 中是本次启动的新 `trycloudflare.com` 地址。
 
-- [ ] **Step 4: 通过浏览器完成真实 PDF 流程**
+- [x] **Step 4: 通过浏览器完成真实 PDF 流程**
 
 1. 使用普通账号 `user / user123` 登录本地站点。
 2. 打开 `/import`，确认上传控件显示 `PDF / DOCX / XLSX / CSV / MD / TXT，最大 10 MB`。
