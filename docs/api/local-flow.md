@@ -87,8 +87,8 @@ Authorization: Bearer signed-token
 
 - `POST /imports/preview`：提交结构化 Markdown/TXT 题目内容，返回题目预览列表。
 - `POST /imports/questions/upload`：上传结构化题目文件，字段名为 `file`，支持 `.json`、`.csv`、`.xlsx`、`.txt`、`.md`；最多 10 MB、1000 道题，返回完整可编辑草稿。
-- `POST /imports/knowledge/generate`：提交 Java 学习知识内容，返回可入库的题库草稿。
-- `POST /imports/knowledge/upload`：上传 Java 学习资料文件，字段名为 `file`，支持 `.txt`、`.md`、`.csv`、`.xlsx`、`.docx`、`.pdf`，单个文件最大 10 MB，返回待预览的题库草稿。PDF 必须包含文本层；扫描版、损坏或加密 PDF 返回明确的 HTTP 400 中文错误。
+- `POST /imports/knowledge/generate`：提交 Java 学习知识内容，仅返回可编辑题库草稿，不会自动入库；用户确认后逐题提交管理员审核，审核通过后才进入正式题库。
+- `POST /imports/knowledge/upload`：上传 Java 学习资料文件，字段名为 `file`，支持 `.txt`、`.md`、`.csv`、`.xlsx`、`.docx`、`.pdf`，单个文件最大 10 MB，仅返回可编辑题库草稿，不会自动入库。PDF 先提取文本层内容，再沿用现有规则生成题目；扫描件无文本时不支持 OCR，并返回明确的 HTTP 400 中文错误。用户确认后逐题提交管理员审核，审核通过后才进入正式题库；损坏或加密 PDF 也返回明确的 HTTP 400 中文错误。
 
 结构化题目格式示例：
 
