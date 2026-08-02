@@ -55,6 +55,9 @@ public class KnowledgeFileTextExtractor {
 
     private String extractPdf(byte[] bytes) {
         try (PDDocument document = PDDocument.load(bytes)) {
+            if (document.isEncrypted()) {
+                throw new IllegalArgumentException("PDF 无法解析，请确认文件未损坏且未加密。");
+            }
             String text = new PDFTextStripper().getText(document).trim();
             if (text.isBlank()) {
                 throw new IllegalArgumentException("PDF 未提取到可用文字，请上传可复制文字的 PDF，扫描版暂不支持。");

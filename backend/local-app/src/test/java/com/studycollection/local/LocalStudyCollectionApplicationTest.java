@@ -2,6 +2,12 @@ package com.studycollection.local;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -157,6 +164,23 @@ class LocalStudyCollectionApplicationTest {
                 "broken.pdf",
                 MediaType.APPLICATION_PDF,
                 "not a pdf".getBytes(StandardCharsets.UTF_8),
+                user.token()
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        JsonNode responseBody = objectMapper.readTree(response.getBody());
+        assertThat(responseBody.path("code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertThat(responseBody.path("message").asText())
+                .isEqualTo("PDF 无法解析，请确认文件未损坏且未加密。");
+    }
+
+    @Test
+    void ownerPasswordProtectedPdfUploadReturnsUnifiedBadRequest() throws Exception {
+        Session user = login("user", "user123");
+        ResponseEntity<String> response = uploadKnowledgeFile(
+                "owner-protected.pdf",
+                MediaType.APPLICATION_PDF,
+                ownerPasswordOnlyEncryptedPdfBytes(),
                 user.token()
         );
 
@@ -315,6 +339,30 @@ class LocalStudyCollectionApplicationTest {
         byte[] text = "HashMap 默认负载因子是 0.75。".getBytes(StandardCharsets.UTF_8);
         System.arraycopy(text, 0, content, 0, text.length);
         return content;
+    }
+
+    private byte[] ownerPasswordOnlyEncryptedPdfBytes() throws Exception {
+        try (PDDocument document = new PDDocument();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDPage page = new PDPage();
+            document.addPage(page);
+            try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+                content.beginText();
+                content.setFont(PDType1Font.HELVETICA, 12);
+                content.newLineAtOffset(48, 720);
+                content.showText("HashMap uses buckets.");
+                content.endText();
+            }
+            StandardProtectionPolicy policy = new StandardProtectionPolicy(
+                    "owner-password",
+                    "",
+                    new AccessPermission()
+            );
+            policy.setEncryptionKeyLength(128);
+            document.protect(policy);
+            document.save(output);
+            return output.toByteArray();
+        }
     }
 
     private HttpHeaders headers(String token) {

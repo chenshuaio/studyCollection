@@ -58,7 +58,18 @@ class KnowledgeFileTextExtractorTest {
         assertThatThrownBy(() -> extractor.extract(file(
                 "protected.pdf",
                 "application/pdf",
-                encryptedPdfBytes()
+                encryptedPdfBytes("user-password")
+        )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(INVALID_PDF_MESSAGE);
+    }
+
+    @Test
+    void rejectsOwnerPasswordProtectedPdfWithoutUserPassword() throws Exception {
+        assertThatThrownBy(() -> extractor.extract(file(
+                "owner-protected.pdf",
+                "application/pdf",
+                encryptedPdfBytes("")
         )))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(INVALID_PDF_MESSAGE);
@@ -133,14 +144,22 @@ class KnowledgeFileTextExtractorTest {
         }
     }
 
-    private byte[] encryptedPdfBytes() throws Exception {
+    private byte[] encryptedPdfBytes(String userPassword) throws Exception {
         try (PDDocument document = new PDDocument();
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            document.addPage(new PDPage());
+            PDPage page = new PDPage();
+            document.addPage(page);
+            try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+                content.beginText();
+                content.setFont(PDType1Font.HELVETICA, 12);
+                content.newLineAtOffset(48, 720);
+                content.showText("HashMap uses buckets.");
+                content.endText();
+            }
             AccessPermission permission = new AccessPermission();
             StandardProtectionPolicy policy = new StandardProtectionPolicy(
                     "owner-password",
-                    "user-password",
+                    userPassword,
                     permission
             );
             policy.setEncryptionKeyLength(128);
