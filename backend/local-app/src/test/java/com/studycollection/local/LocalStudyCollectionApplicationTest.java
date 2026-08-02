@@ -18,6 +18,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -152,24 +153,11 @@ class LocalStudyCollectionApplicationTest {
     @Test
     void brokenPdfUploadReturnsUnifiedBadRequest() throws Exception {
         Session user = login("user", "user123");
-        ByteArrayResource brokenPdf = new ByteArrayResource("not a pdf".getBytes(StandardCharsets.UTF_8)) {
-            @Override
-            public String getFilename() {
-                return "broken.pdf";
-            }
-        };
-        HttpHeaders fileHeaders = new HttpHeaders();
-        fileHeaders.setContentType(MediaType.APPLICATION_PDF);
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", new HttpEntity<>(brokenPdf, fileHeaders));
-        HttpHeaders requestHeaders = headers(user.token());
-        requestHeaders.setContentType(MediaType.MULTIPART_FORM_DATA);
-
-        ResponseEntity<String> response = restTemplate.exchange(
-                url("/imports/knowledge/upload"),
-                HttpMethod.POST,
-                new HttpEntity<>(body, requestHeaders),
-                String.class
+        ResponseEntity<String> response = uploadKnowledgeFile(
+                "broken.pdf",
+                MediaType.APPLICATION_PDF,
+                "not a pdf".getBytes(StandardCharsets.UTF_8),
+                user.token()
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -177,6 +165,38 @@ class LocalStudyCollectionApplicationTest {
         assertThat(responseBody.path("code").asText()).isEqualTo("VALIDATION_FAILED");
         assertThat(responseBody.path("message").asText())
                 .isEqualTo("PDF 无法解析，请确认文件未损坏且未加密。");
+    }
+
+    @Test
+    void knowledgeUploadLargerThanDefaultMultipartLimitSucceeds() throws Exception {
+        Session user = login("user", "user123");
+
+        ResponseEntity<String> response = uploadKnowledgeFile(
+                "large-notes.txt",
+                MediaType.TEXT_PLAIN,
+                knowledgeFileBytes(2 * 1024 * 1024),
+                user.token()
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(objectMapper.readTree(response.getBody()).path("code").asText()).isEqualTo("OK");
+    }
+
+    @Test
+    void oversizedKnowledgeUploadUsesBusinessValidation() throws Exception {
+        Session user = login("user", "user123");
+
+        ResponseEntity<String> response = uploadKnowledgeFile(
+                "too-large.txt",
+                MediaType.TEXT_PLAIN,
+                knowledgeFileBytes(10 * 1024 * 1024 + 1),
+                user.token()
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        JsonNode responseBody = objectMapper.readTree(response.getBody());
+        assertThat(responseBody.path("code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertThat(responseBody.path("message").asText()).isEqualTo("学习资料文件不能超过 10 MB。");
     }
 
     @Test
@@ -261,6 +281,40 @@ class LocalStudyCollectionApplicationTest {
                 new HttpEntity<>(headers(token)),
                 String.class
         );
+    }
+
+    private ResponseEntity<String> uploadKnowledgeFile(
+            String filename,
+            MediaType contentType,
+            byte[] content,
+            String token
+    ) {
+        ByteArrayResource file = new ByteArrayResource(content) {
+            @Override
+            public String getFilename() {
+                return filename;
+            }
+        };
+        HttpHeaders fileHeaders = new HttpHeaders();
+        fileHeaders.setContentType(contentType);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new HttpEntity<>(file, fileHeaders));
+        HttpHeaders requestHeaders = headers(token);
+        requestHeaders.setContentType(MediaType.MULTIPART_FORM_DATA);
+        return restTemplate.exchange(
+                url("/imports/knowledge/upload"),
+                HttpMethod.POST,
+                new HttpEntity<>(body, requestHeaders),
+                String.class
+        );
+    }
+
+    private byte[] knowledgeFileBytes(int size) {
+        byte[] content = new byte[size];
+        Arrays.fill(content, (byte) ' ');
+        byte[] text = "HashMap 默认负载因子是 0.75。".getBytes(StandardCharsets.UTF_8);
+        System.arraycopy(text, 0, content, 0, text.length);
+        return content;
     }
 
     private HttpHeaders headers(String token) {
