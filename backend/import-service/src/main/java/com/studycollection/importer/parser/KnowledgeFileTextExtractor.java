@@ -18,9 +18,14 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class KnowledgeFileTextExtractor {
+    private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
+
     public String extract(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("学习资料文件不能为空");
+            throw new IllegalArgumentException("学习资料文件不能为空。");
+        }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("学习资料文件不能超过 10 MB。");
         }
 
         String filename = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase(Locale.ROOT);
@@ -34,7 +39,10 @@ public class KnowledgeFileTextExtractor {
         if (filename.endsWith(".xlsx")) {
             return extractXlsx(bytes);
         }
-        return new String(bytes, StandardCharsets.UTF_8);
+        if (filename.endsWith(".txt") || filename.endsWith(".md") || filename.endsWith(".csv")) {
+            return new String(bytes, StandardCharsets.UTF_8);
+        }
+        throw new IllegalArgumentException("学习资料仅支持 PDF、DOCX、XLSX、CSV、MD 和 TXT 格式。");
     }
 
     private String extractDocx(byte[] bytes) throws IOException {
@@ -45,9 +53,15 @@ public class KnowledgeFileTextExtractor {
         }
     }
 
-    private String extractPdf(byte[] bytes) throws IOException {
+    private String extractPdf(byte[] bytes) {
         try (PDDocument document = PDDocument.load(bytes)) {
-            return new PDFTextStripper().getText(document);
+            String text = new PDFTextStripper().getText(document).trim();
+            if (text.isBlank()) {
+                throw new IllegalArgumentException("PDF 未提取到可用文字，请上传可复制文字的 PDF，扫描版暂不支持。");
+            }
+            return text;
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("PDF 无法解析，请确认文件未损坏且未加密。", exception);
         }
     }
 

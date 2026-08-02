@@ -7,13 +7,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -143,6 +147,36 @@ class LocalStudyCollectionApplicationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).contains("\"code\":\"VALIDATION_FAILED\"");
         assertThat(response.getBody()).contains("题目不存在");
+    }
+
+    @Test
+    void brokenPdfUploadReturnsUnifiedBadRequest() throws Exception {
+        Session user = login("user", "user123");
+        ByteArrayResource brokenPdf = new ByteArrayResource("not a pdf".getBytes(StandardCharsets.UTF_8)) {
+            @Override
+            public String getFilename() {
+                return "broken.pdf";
+            }
+        };
+        HttpHeaders fileHeaders = new HttpHeaders();
+        fileHeaders.setContentType(MediaType.APPLICATION_PDF);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new HttpEntity<>(brokenPdf, fileHeaders));
+        HttpHeaders requestHeaders = headers(user.token());
+        requestHeaders.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/imports/knowledge/upload"),
+                HttpMethod.POST,
+                new HttpEntity<>(body, requestHeaders),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        JsonNode responseBody = objectMapper.readTree(response.getBody());
+        assertThat(responseBody.path("code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertThat(responseBody.path("message").asText())
+                .isEqualTo("PDF 无法解析，请确认文件未损坏且未加密。");
     }
 
     @Test
