@@ -213,7 +213,8 @@ async function uploadKnowledgeMaterial(event: Event) {
 }
 
 function validateKnowledgeFile(file: File): string {
-  const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const dotIndex = file.name.lastIndexOf('.')
+  const extension = dotIndex < 0 ? '' : file.name.slice(dotIndex + 1).toLowerCase()
   if (!KNOWLEDGE_FILE_EXTENSIONS.has(extension)) {
     return '学习资料仅支持 PDF、DOCX、XLSX、CSV、MD 和 TXT 格式。'
   }

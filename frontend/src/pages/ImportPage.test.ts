@@ -252,6 +252,21 @@ describe('ImportPage', () => {
     expect(wrapper.text()).toContain('学习资料仅支持 PDF、DOCX、XLSX、CSV、MD 和 TXT 格式。')
   })
 
+  it('rejects an extensionless knowledge file whose name matches an allowed extension', async () => {
+    const wrapper = mount(ImportPage, {
+      global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
+    })
+    const file = new File(['content'], 'pdf', { type: 'application/pdf' })
+    const fileInput = wrapper.get('input[aria-label="上传 Java 学习资料"]')
+    Object.defineProperty(fileInput.element, 'files', { configurable: true, value: [file] })
+
+    await fileInput.trigger('change')
+    await flushPromises()
+
+    expect(uploadKnowledgeFile).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('学习资料仅支持 PDF、DOCX、XLSX、CSV、MD 和 TXT 格式。')
+  })
+
   it('keeps an existing generated preview when a later PDF upload fails', async () => {
     vi.mocked(uploadKnowledgeFile)
       .mockResolvedValueOnce([
