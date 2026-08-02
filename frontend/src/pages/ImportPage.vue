@@ -137,6 +137,7 @@ const previewQuestions = ref<QuestionPayload[]>([
   }
 ])
 const generatedQuestions = ref<QuestionPayload[]>([])
+let knowledgeGenerationRequestId = 0
 
 async function generatePreview() {
   previewStatus.value = ''
@@ -180,11 +181,15 @@ async function savePreviewQuestions() {
 }
 
 async function generateQuestionBank() {
+  const requestId = ++knowledgeGenerationRequestId
   generationStatus.value = ''
   try {
-    generatedQuestions.value = await generateKnowledgeQuestions(knowledgeContent.value)
-    generationStatus.value = `已生成 ${generatedQuestions.value.length} 道题，请编辑确认后提交审核。`
+    const questions = await generateKnowledgeQuestions(knowledgeContent.value)
+    if (requestId !== knowledgeGenerationRequestId) return
+    generatedQuestions.value = questions
+    generationStatus.value = `已生成 ${questions.length} 道题，请编辑确认后提交审核。`
   } catch (error) {
+    if (requestId !== knowledgeGenerationRequestId) return
     generationStatus.value = error instanceof Error ? error.message : '分析失败，请检查本地后端是否启动。'
   }
 }
@@ -194,21 +199,22 @@ async function uploadKnowledgeMaterial(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  input.value = ''
+  const requestId = ++knowledgeGenerationRequestId
   const validationMessage = validateKnowledgeFile(file)
   if (validationMessage) {
     generationStatus.value = validationMessage
-    input.value = ''
     return
   }
   generationStatus.value = `正在解析 ${file.name}...`
   try {
     const questions = await uploadKnowledgeFile(file)
+    if (requestId !== knowledgeGenerationRequestId) return
     generatedQuestions.value = questions
     generationStatus.value = `已从 ${file.name} 生成 ${questions.length} 道题，请预览后提交审核。`
   } catch (error) {
+    if (requestId !== knowledgeGenerationRequestId) return
     generationStatus.value = error instanceof Error ? error.message : '上传分析失败，请检查文件格式或本地后端。'
-  } finally {
-    input.value = ''
   }
 }
 

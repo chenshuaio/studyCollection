@@ -17,6 +17,16 @@ const routerLinkStub = {
   template: '<a><slot /></a>'
 }
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, resolve, reject }
+}
+
 describe('ImportPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -319,5 +329,52 @@ describe('ImportPage', () => {
 
     resolveUpload?.([])
     await flushPromises()
+  })
+
+  it('keeps the latest PDF result when an earlier upload resolves later', async () => {
+    const firstUpload = deferred<QuestionPayload[]>()
+    const secondUpload = deferred<QuestionPayload[]>()
+    vi.mocked(uploadKnowledgeFile)
+      .mockImplementationOnce(() => firstUpload.promise)
+      .mockImplementationOnce(() => secondUpload.promise)
+    const wrapper = mount(ImportPage, {
+      global: { stubs: { RouterLink: routerLinkStub, LogoutButton: true } }
+    })
+    const fileInput = wrapper.get('input[aria-label="上传 Java 学习资料"]')
+    const firstFile = new File(['A content'], 'A.pdf', { type: 'application/pdf' })
+    Object.defineProperty(fileInput.element, 'files', { configurable: true, value: [firstFile] })
+    await fileInput.trigger('change')
+
+    const secondFile = new File(['B content'], 'B.pdf', { type: 'application/pdf' })
+    Object.defineProperty(fileInput.element, 'files', { configurable: true, value: [secondFile] })
+    await fileInput.trigger('change')
+
+    secondUpload.resolve([
+      {
+        title: 'B 最新预览题',
+        type: 'SHORT_ANSWER',
+        difficulty: 'BEGINNER',
+        knowledgePoint: 'B 知识点',
+        answer: 'B 答案',
+        analysis: 'B 解析'
+      }
+    ])
+    await flushPromises()
+    firstUpload.resolve([
+      {
+        title: 'A 旧预览题',
+        type: 'SHORT_ANSWER',
+        difficulty: 'BEGINNER',
+        knowledgePoint: 'A 知识点',
+        answer: 'A 答案',
+        analysis: 'A 解析'
+      }
+    ])
+    await flushPromises()
+
+    expect((wrapper.get('textarea[aria-label="生成题库预览第 1 题题干"]').element as HTMLTextAreaElement).value)
+      .toBe('B 最新预览题')
+    expect(wrapper.text()).toContain('已从 B.pdf 生成 1 道题，请预览后提交审核。')
+    expect(wrapper.text()).not.toContain('已从 A.pdf 生成 1 道题，请预览后提交审核。')
   })
 })
